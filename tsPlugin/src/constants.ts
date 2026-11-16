@@ -81,11 +81,15 @@ export enum FileInfoType {
 export function getNamesForInbuiltFunctionsWithVariableName() {
     return [
         "getGlobalEnvVar",
+        "hasGlobalEnvVar",
         "setGlobalEnvVar",
+        "deleteGlobalEnvVar",
         "getEnvVar",
+        "hasEnvVar",
         "setEnvVar",
         "deleteEnvVar",
         "getVar",
+        "hasVar",
         "setVar",
         "deleteVar",
         "getRequestVar",

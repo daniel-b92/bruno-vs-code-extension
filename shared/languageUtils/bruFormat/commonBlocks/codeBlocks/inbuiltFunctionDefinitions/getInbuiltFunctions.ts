@@ -26,6 +26,15 @@ export function getInbuiltFunctions(): {
             variableType: BrunoVariableType.Global,
             scope: VariableAvailabilityScopes.Global,
         },
+        [InbuiltFunctionName.HasGlobalEnvVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.HasGlobalEnvVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.Global,
+            scope: VariableAvailabilityScopes.Global,
+        },
         [InbuiltFunctionName.SetGlobalEnvVar]: {
             identifier: {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
@@ -35,10 +44,28 @@ export function getInbuiltFunctions(): {
             variableType: BrunoVariableType.Global,
             scope: VariableAvailabilityScopes.Global,
         },
+        [InbuiltFunctionName.DeleteGlobalEnvVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.DeleteGlobalEnvVar,
+            },
+            referenceType: VariableReferenceType.Delete,
+            variableType: BrunoVariableType.Global,
+            scope: VariableAvailabilityScopes.Global,
+        },
         [InbuiltFunctionName.GetEnvVar]: {
             identifier: {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
                 functionName: InbuiltFunctionName.GetEnvVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.Environment,
+            scope: VariableAvailabilityScopes.Collection,
+        },
+        [InbuiltFunctionName.HasEnvVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.HasEnvVar,
             },
             referenceType: VariableReferenceType.Read,
             variableType: BrunoVariableType.Environment,
@@ -66,6 +93,14 @@ export function getInbuiltFunctions(): {
             identifier: {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
                 functionName: InbuiltFunctionName.GetVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.Runtime,
+        },
+        [InbuiltFunctionName.HasVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.HasVar,
             },
             referenceType: VariableReferenceType.Read,
             variableType: BrunoVariableType.Runtime,

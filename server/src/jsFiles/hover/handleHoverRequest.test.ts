@@ -12,30 +12,38 @@ import {
 import { TypedCollectionItemProvider } from "../../shared";
 
 describe("handleHoverRequest for JS files", () => {
-    it("shows no collection column for a file within a collection", () => {
-        const result = handleHoverRequest({
-            baseRequest: getBaseRequest(),
-            collection: getCollection("/ws/colA", "a-value"),
-            itemProvider: {} as TypedCollectionItemProvider,
-        });
+    it.each(["getEnvVar", "hasEnvVar"])(
+        "shows no collection column for %s within a collection",
+        (functionName) => {
+            const result = handleHoverRequest({
+                baseRequest: getBaseRequest(`bru.${functionName}("token")`),
+                collection: getCollection("/ws/colA", "a-value"),
+                itemProvider: {} as TypedCollectionItemProvider,
+            });
 
-        expect(getHoverText(result)).toContain("`a-value`");
-        expect(getHoverText(result)).not.toContain("collection");
-    });
+            expect(getHoverText(result)).toContain("`a-value`");
+            expect(getHoverText(result)).not.toContain("collection");
+        },
+    );
 
-    it("shows the values of all collections for a file within a shared context root", async () => {
-        const result = await handleHoverRequestForJsFileInContextRoot({
-            baseRequest: getBaseRequest(),
-            collections: [
-                { collection: getCollection("/ws/colB", "b-value") },
-                { collection: getCollection("/ws/colA", "a-value") },
-            ],
-        });
+    it.each(["getEnvVar", "hasEnvVar"])(
+        "shows the values of all collections for %s within a shared context root",
+        async (functionName) => {
+            const result = await handleHoverRequestForJsFileInContextRoot({
+                baseRequest: getBaseRequest(`bru.${functionName}("token")`),
+                collections: [
+                    { collection: getCollection("/ws/colB", "b-value") },
+                    { collection: getCollection("/ws/colA", "a-value") },
+                ],
+            });
 
-        const text = getHoverText(result);
-        expect(text).toContain("| value | collection |");
-        expect(text.indexOf("a-value")).toBeLessThan(text.indexOf("b-value"));
-    });
+            const text = getHoverText(result);
+            expect(text).toContain("| value | collection |");
+            expect(text.indexOf("a-value")).toBeLessThan(
+                text.indexOf("b-value"),
+            );
+        },
+    );
 
     it("returns undefined if no collection defines the variable", async () => {
         const result = await handleHoverRequestForJsFileInContextRoot({
@@ -45,6 +53,18 @@ describe("handleHoverRequest for JS files", () => {
 
         expect(result).toBeUndefined();
     });
+
+    it.each(["hasVar", "hasGlobalEnvVar", "deleteGlobalEnvVar"])(
+        "returns no environment-variable hover for %s",
+        async (functionName) => {
+            const result = await handleHoverRequestForJsFileInContextRoot({
+                baseRequest: getBaseRequest(`bru.${functionName}("token")`),
+                collections: [{ collection: getCollection("/ws/colA", "v") }],
+            });
+
+            expect(result).toBeUndefined();
+        },
+    );
 });
 
 function getCollection(rootDirectory: string, value: string) {
@@ -59,7 +79,7 @@ function getBaseRequest(text = 'bru.getEnvVar("token")') {
     return {
         filePath: "/ws/shared/script.js",
         documentHelper: new TextDocumentHelper(text),
-        position: new Position(0, 15),
+        position: new Position(0, text.indexOf('"') + 2),
         token: CancellationToken.None,
     };
 }

@@ -29,6 +29,7 @@ export function getHoverForBrunoVariable(
     const allRefs = getAllVariableReferences(fullRequest, variableReference, {
         configuredEnvironment: configuredEnvironmentName,
         variableNameForFiltering: variableName,
+        includeDeleteReferences: true,
     });
 
     if (!allRefs) {

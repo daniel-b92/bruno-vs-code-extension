@@ -1,9 +1,67 @@
 import { describe, it, expect } from "@jest/globals";
 import { Position, Range, TextDocumentHelper } from "../../../..";
-import { BrunoVariableType, VariableReferenceType } from "../../../..";
+import {
+    BrunoVariableType,
+    VariableAvailabilityScopes,
+    VariableReferenceType,
+} from "../../../..";
 import { getBrunoVariableReferencesInCodeBlock } from "./getBrunoVariableReferencesInCodeBlock";
 
 describe("getBrunoVariableReferencesInCodeBlock", () => {
+    it.each([
+        {
+            functionName: "hasEnvVar",
+            variableType: BrunoVariableType.Environment,
+            referenceType: VariableReferenceType.Read,
+            scope: VariableAvailabilityScopes.Collection,
+        },
+        {
+            functionName: "hasVar",
+            variableType: BrunoVariableType.Runtime,
+            referenceType: VariableReferenceType.Read,
+            scope: undefined,
+        },
+        {
+            functionName: "hasGlobalEnvVar",
+            variableType: BrunoVariableType.Global,
+            referenceType: VariableReferenceType.Read,
+            scope: VariableAvailabilityScopes.Global,
+        },
+        {
+            functionName: "deleteGlobalEnvVar",
+            variableType: BrunoVariableType.Global,
+            referenceType: VariableReferenceType.Delete,
+            scope: VariableAvailabilityScopes.Global,
+        },
+    ])(
+        "recognizes 'bru.$functionName' as a $referenceType of a $variableType variable",
+        ({ functionName, variableType, referenceType, scope }) => {
+            const content = `bru.${functionName}("token");`;
+            const references = getReferences(content);
+            const start = content.indexOf("token");
+
+            expect(references).toEqual([
+                {
+                    variableName: "token",
+                    variableType,
+                    referenceType,
+                    scope,
+                    variableNameRange: new Range(
+                        new Position(0, start),
+                        new Position(0, start + "token".length),
+                    ),
+                },
+            ]);
+        },
+    );
+
+    it.each(["hasEnvVar", "hasVar", "hasGlobalEnvVar", "deleteGlobalEnvVar"])(
+        "does not recognize 'bru.%s' with a non-literal parameter",
+        (functionName) => {
+            expect(getReferences(`bru.${functionName}(name);`)).toEqual([]);
+        },
+    );
+
     it("recognizes 'bru.deleteVar' as deletion of a runtime variable", () => {
         const [reference] = getReferences('bru.deleteVar("token");');
 

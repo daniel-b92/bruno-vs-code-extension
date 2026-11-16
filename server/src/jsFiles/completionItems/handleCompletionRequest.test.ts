@@ -9,49 +9,59 @@ import {
 import { TypedCollectionItemProvider } from "../../shared";
 
 describe("handleCompletionRequest for JS files", () => {
-    it("returns one item per variable name without collection details for a file within a collection", async () => {
-        const collection = getCollection("/ws/colA");
+    it.each(["getEnvVar", "hasEnvVar"])(
+        "returns one item per variable name without collection details for %s within a collection",
+        async (functionName) => {
+            const collection = getCollection("/ws/colA");
 
-        const result = await handleCompletionRequest({
-            baseRequest: getBaseRequest(),
-            collection,
-            itemProvider: {} as TypedCollectionItemProvider,
-        });
+            const result = await handleCompletionRequest({
+                baseRequest: getBaseRequest(`bru.${functionName}("")`),
+                collection,
+                itemProvider: {} as TypedCollectionItemProvider,
+            });
 
-        expect(result?.map(({ label }) => label)).toEqual(["token"]);
-        expect(result?.[0].labelDetails?.description).toBe(
-            "Env (2 environments)",
-        );
-        expect(getDocumentation(result?.[0])).not.toContain("collection");
-    });
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+            expect(result?.[0].labelDetails?.description).toBe(
+                "Env (2 environments)",
+            );
+            expect(getDocumentation(result?.[0])).not.toContain("collection");
+        },
+    );
 
-    it("merges the variables of all collections for a file within a shared context root", async () => {
-        const result = await handleCompletionRequestForJsFileInContextRoot({
-            baseRequest: getBaseRequest(),
-            collections: [
-                { collection: getCollection("/ws/colA") },
-                { collection: getCollection("/ws/colB") },
-            ],
-        });
+    it.each(["getEnvVar", "hasEnvVar"])(
+        "merges the variables of all collections for %s within a shared context root",
+        async (functionName) => {
+            const result = await handleCompletionRequestForJsFileInContextRoot({
+                baseRequest: getBaseRequest(`bru.${functionName}("")`),
+                collections: [
+                    { collection: getCollection("/ws/colA") },
+                    { collection: getCollection("/ws/colB") },
+                ],
+            });
 
-        expect(result).toHaveLength(1);
-        expect(result?.[0].labelDetails?.description).toBe(
-            "Env (multiple collections)",
-        );
-        expect(getDocumentation(result?.[0])).toMatch(/colA[\s\S]*colB/);
-    });
+            expect(result).toHaveLength(1);
+            expect(result?.[0].labelDetails?.description).toBe(
+                "Env (multiple collections)",
+            );
+            expect(getDocumentation(result?.[0])).toMatch(/colA[\s\S]*colB/);
+        },
+    );
 
-    it("returns undefined for functions with variables that are not defined in environment files", async () => {
-        const result = await handleCompletionRequestForJsFileInContextRoot({
-            baseRequest: getBaseRequest(
-                'bru.deleteVar("")',
-                new Position(0, 15),
-            ),
-            collections: [{ collection: getCollection("/ws/colA") }],
-        });
+    it.each(["deleteVar", "hasVar", "hasGlobalEnvVar", "deleteGlobalEnvVar"])(
+        "returns undefined for %s, whose variables are not defined in environment files",
+        async (functionName) => {
+            const text = `bru.${functionName}("")`;
+            const result = await handleCompletionRequestForJsFileInContextRoot({
+                baseRequest: getBaseRequest(
+                    text,
+                    new Position(0, text.indexOf('"') + 1),
+                ),
+                collections: [{ collection: getCollection("/ws/colA") }],
+            });
 
-        expect(result).toBeUndefined();
-    });
+            expect(result).toBeUndefined();
+        },
+    );
 
     it("warns about the deletion for 'bru.deleteEnvVar'", async () => {
         const result = await handleCompletionRequestForJsFileInContextRoot({

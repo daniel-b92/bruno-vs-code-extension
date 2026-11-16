@@ -46,11 +46,15 @@ export enum InbuiltFunctionBaseIdentifierEnum {
 
 export enum InbuiltFunctionName {
     GetGlobalEnvVar = "getGlobalEnvVar",
+    HasGlobalEnvVar = "hasGlobalEnvVar",
     SetGlobalEnvVar = "setGlobalEnvVar",
+    DeleteGlobalEnvVar = "deleteGlobalEnvVar",
     GetEnvVar = "getEnvVar",
+    HasEnvVar = "hasEnvVar",
     SetEnvVar = "setEnvVar",
     DeleteEnvVar = "deleteEnvVar",
     GetVar = "getVar",
+    HasVar = "hasVar",
     SetVar = "setVar",
     DeleteVar = "deleteVar",
     GetRequestVar = "getRequestVar",
