@@ -1,11 +1,11 @@
 import { describe, it, expect } from "@jest/globals";
-import { readFile } from "fs/promises";
 import { join } from "path";
 import {
     BrunoAppFile,
     BrunoRequestFile,
     CollectionDirectory,
     CollectionFormat,
+    parseSequenceFromFile,
 } from "@global_shared";
 import {
     createCollectionWithEnvironments,
@@ -113,44 +113,38 @@ describe("normalizeSequencesRecursively", () => {
             );
 
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "root-request" + extension),
-                    "utf-8",
                 ),
-            ).toContain("seq: 5");
+            ).toBe(5);
             expect(
-                await readFile(join(directory, "app" + extension), "utf-8"),
-            ).toContain("seq: 10");
+                await parseSequenceFromFile(join(directory, "app" + extension)),
+            ).toBe(10);
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "alpha", settingsFileName),
-                    "utf-8",
                 ),
-            ).toContain("seq: 5");
+            ).toBe(5);
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "zeta", settingsFileName),
-                    "utf-8",
                 ),
-            ).toContain("seq: 10");
+            ).toBe(10);
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "alpha", "request" + extension),
-                    "utf-8",
                 ),
-            ).toContain("seq: 5");
+            ).toBe(5);
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "alpha", "nested", settingsFileName),
-                    "utf-8",
                 ),
-            ).toContain("seq: 5");
+            ).toBe(5);
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "alpha", "nested", "request" + extension),
-                    "utf-8",
                 ),
-            ).toContain("seq: 5");
+            ).toBe(5);
         },
     );
 });

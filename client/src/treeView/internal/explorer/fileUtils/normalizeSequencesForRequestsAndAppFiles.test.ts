@@ -1,7 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
-import { readFile } from "fs/promises";
 import { join } from "path";
-import { CollectionFormat } from "@global_shared";
+import { CollectionFormat, parseSequenceFromFile } from "@global_shared";
 import {
     createItemProviderStub,
     useTemporaryDirectories,
@@ -27,15 +26,13 @@ describe("normalizeSequencesForRequestsAndAppFiles", () => {
             directory,
         );
 
-        expect(await readFile(join(directory, "first.bru"), "utf-8")).toContain(
-            "seq: 1",
+        expect(await parseSequenceFromFile(join(directory, "first.bru"))).toBe(
+            1,
         );
-        expect(await readFile(join(directory, "app.bru"), "utf-8")).toContain(
-            "seq: 2",
-        );
+        expect(await parseSequenceFromFile(join(directory, "app.bru"))).toBe(2);
         expect(
-            await readFile(join(directory, "second.bru"), "utf-8"),
-        ).toContain("seq: 3");
+            await parseSequenceFromFile(join(directory, "second.bru")),
+        ).toBe(3);
     });
 
     it("uses the configured step and sorts equal sequences by name when requested", async () => {
@@ -55,14 +52,14 @@ describe("normalizeSequencesForRequestsAndAppFiles", () => {
             true,
         );
 
-        expect(await readFile(join(directory, "alpha.bru"), "utf-8")).toContain(
-            "seq: 10",
+        expect(await parseSequenceFromFile(join(directory, "alpha.bru"))).toBe(
+            10,
         );
-        expect(await readFile(join(directory, "zeta.bru"), "utf-8")).toContain(
-            "seq: 20",
+        expect(await parseSequenceFromFile(join(directory, "zeta.bru"))).toBe(
+            20,
         );
-        expect(await readFile(join(directory, "later.bru"), "utf-8")).toContain(
-            "seq: 30",
+        expect(await parseSequenceFromFile(join(directory, "later.bru"))).toBe(
+            30,
         );
     });
 
@@ -84,11 +81,11 @@ describe("normalizeSequencesForRequestsAndAppFiles", () => {
             true,
         );
 
-        expect(await readFile(join(directory, "first.yml"), "utf-8")).toContain(
-            "seq: 5",
+        expect(await parseSequenceFromFile(join(directory, "first.yml"))).toBe(
+            5,
         );
         expect(
-            await readFile(join(directory, "second.yml"), "utf-8"),
-        ).toContain("seq: 10");
+            await parseSequenceFromFile(join(directory, "second.yml")),
+        ).toBe(10);
     });
 });

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
-import { readFile } from "fs/promises";
 import { join } from "path";
-import { CollectionFormat } from "@global_shared";
+import { CollectionFormat, parseSequenceFromFile } from "@global_shared";
 import {
     createItemProviderStub,
     useTemporaryDirectories,
@@ -63,17 +62,15 @@ describe("normalizeSequencesForFolders", () => {
             );
 
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "alpha", settingsFileName),
-                    "utf-8",
                 ),
-            ).toContain("seq: 10");
+            ).toBe(10);
             expect(
-                await readFile(
+                await parseSequenceFromFile(
                     join(directory, "zeta", settingsFileName),
-                    "utf-8",
                 ),
-            ).toContain("seq: 20");
+            ).toBe(20);
         },
     );
 });
