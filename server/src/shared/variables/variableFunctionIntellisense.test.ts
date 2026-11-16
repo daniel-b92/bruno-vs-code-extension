@@ -35,6 +35,16 @@ const functions = [
     },
 ];
 
+const writeFunctions = [
+    { setter: "setEnvVar", reader: "getEnvVar", deleter: "deleteEnvVar" },
+    { setter: "setVar", reader: "getVar", deleter: "deleteVar" },
+    {
+        setter: "setGlobalEnvVar",
+        reader: "getGlobalEnvVar",
+        deleter: "deleteGlobalEnvVar",
+    },
+];
+
 describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
     "variable function intellisense in %s files",
     (format) => {
@@ -93,15 +103,135 @@ describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
                 );
             },
         );
+
+        it.each(writeFunctions)(
+            "does not complete bru.$setter from a deletion in the same request",
+            async ({ setter, deleter }) => {
+                const result = await requestCompletions(
+                    format,
+                    getFile(
+                        format,
+                        `bru.${setter}("${CURSOR}", "value");`,
+                        `bru.${deleter}("deleted");`,
+                    ),
+                );
+
+                expect(result?.map(({ label }) => label)).toEqual([]);
+            },
+        );
+
+        it.each(writeFunctions)(
+            "completes bru.$setter only once for a read and deletion in the same request",
+            async ({ setter, reader, deleter }) => {
+                const result = await requestCompletions(
+                    format,
+                    getFile(
+                        format,
+                        `bru.${setter}("${CURSOR}", "value");`,
+                        `bru.${reader}("token"); bru.${deleter}("token");`,
+                    ),
+                );
+
+                expect(result?.map(({ label }) => label)).toEqual(["token"]);
+            },
+        );
+
+        it.each(writeFunctions)(
+            "does not complete bru.$setter from a deletion in a following request",
+            async ({ setter, deleter }) => {
+                const result = await requestCompletions(
+                    format,
+                    getFile(format, `bru.${setter}("${CURSOR}", "value");`, ""),
+                    [
+                        getFile(
+                            format,
+                            `bru.${deleter}("deleted");`,
+                            "",
+                            "delete",
+                            2,
+                        ),
+                    ],
+                );
+
+                expect(result?.map(({ label }) => label)).toEqual([]);
+            },
+        );
+
+        it.each(writeFunctions)(
+            "completes bru.$setter only once for reads and deletions in following requests",
+            async ({ setter, reader, deleter }) => {
+                const result = await requestCompletions(
+                    format,
+                    getFile(format, `bru.${setter}("${CURSOR}", "value");`, ""),
+                    [
+                        getFile(
+                            format,
+                            `bru.${reader}("token");`,
+                            "",
+                            "read",
+                            2,
+                        ),
+                        getFile(
+                            format,
+                            `bru.${deleter}("token");`,
+                            "",
+                            "delete",
+                            3,
+                        ),
+                    ],
+                );
+
+                expect(result?.map(({ label }) => label)).toEqual(["token"]);
+            },
+        );
+
+        it.each(writeFunctions)(
+            "keeps reads and deletions in following requests visible when hovering bru.$setter",
+            ({ setter, reader, deleter }) => {
+                const result = requestHover(
+                    format,
+                    getFile(
+                        format,
+                        `bru.${setter}("to${CURSOR}ken", "value");`,
+                        "",
+                    ),
+                    [
+                        getFile(
+                            format,
+                            `bru.${reader}("token");`,
+                            "",
+                            "read",
+                            2,
+                        ),
+                        getFile(
+                            format,
+                            `bru.${deleter}("token");`,
+                            "",
+                            "delete",
+                            3,
+                        ),
+                    ],
+                );
+
+                expect(getHoverText(result)).toContain("| `Read` |");
+                expect(getHoverText(result)).toContain("| `Delete` |");
+            },
+        );
     },
 );
 
-function getFile(format: CollectionFormat, before: string, after: string) {
+function getFile(
+    format: CollectionFormat,
+    before: string,
+    after: string,
+    requestName = "request",
+    sequence = 1,
+) {
     let text: string;
     let filePath: string;
     switch (format) {
         case CollectionFormat.Bru:
-            filePath = "/collection/request.bru";
+            filePath = `/collection/${requestName}.bru`;
             text = `script:pre-request {
   ${before}
 }
@@ -111,7 +241,7 @@ script:post-response {
 `;
             break;
         case CollectionFormat.Yaml:
-            filePath = "/collection/request.yml";
+            filePath = `/collection/${requestName}.yml`;
             text = `runtime:
   scripts:
     - type: before-request
@@ -125,5 +255,8 @@ script:post-response {
         default:
             throw new Error("Unsupported collection format");
     }
-    return toTestFile({ item: new BrunoRequestFile(filePath), content: text });
+    return toTestFile({
+        item: new BrunoRequestFile(filePath, sequence),
+        content: text,
+    });
 }

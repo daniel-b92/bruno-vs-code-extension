@@ -30,6 +30,8 @@ export function getAllVariableReferences(
     environmentVarsParams: {
         configuredEnvironment?: string;
         variableNameForFiltering?: string;
+        /** Deletions are useful for hovers, but should not suggest new writes. */
+        includeDeleteReferences?: boolean;
     },
 ) {
     const {
@@ -38,8 +40,14 @@ export function getAllVariableReferences(
         logger,
     } = fullRequest;
     const { token, filePath } = baseRequest;
-    const { variableNameForFiltering, configuredEnvironment } =
-        environmentVarsParams;
+    const {
+        variableNameForFiltering,
+        configuredEnvironment,
+        includeDeleteReferences = false,
+    } = environmentVarsParams;
+    const includeReference = (reference: BrunoVariableReference) =>
+        includeDeleteReferences ||
+        reference.referenceType != VariableReferenceType.Delete;
     const { referenceType, variableType } = sourceReference;
     const { kind: sourceSectionKind } = sectionContainingPosition;
 
@@ -65,9 +73,14 @@ export function getAllVariableReferences(
                 fromScriptVariableBlocks: [],
             },
             dynamicReferences: {
-                withinSameFile,
-                fromOtherFiles:
-                    groupReferencesWithSameRelevance(fromOtherFiles),
+                withinSameFile: withinSameFile.filter(({ variableReference }) =>
+                    includeReference(variableReference),
+                ),
+                fromOtherFiles: groupReferencesWithSameRelevance(
+                    fromOtherFiles.filter(({ reference }) =>
+                        includeReference(reference),
+                    ),
+                ),
             },
         };
     }
@@ -130,8 +143,13 @@ export function getAllVariableReferences(
             fromScriptVariableBlocks: matchingStaticScriptVariableDefinitions,
         },
         dynamicReferences: {
-            withinSameFile: dynamicVariableReferencesWithinFile,
-            fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
+            withinSameFile: dynamicVariableReferencesWithinFile.filter(
+                ({ variableReference }) => includeReference(variableReference),
+            ),
+            fromOtherFiles: dynamicVariableReferencesFromOtherFiles.filter(
+                ({ mostRelevantReference: { reference } }) =>
+                    includeReference(reference),
+            ),
         },
     };
 }
