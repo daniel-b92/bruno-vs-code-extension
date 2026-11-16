@@ -1,7 +1,12 @@
 import { describe, it, expect } from "@jest/globals";
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { CollectionDirectory, CollectionFormat } from "@global_shared";
+import {
+    BrunoAppFile,
+    BrunoRequestFile,
+    CollectionDirectory,
+    CollectionFormat,
+} from "@global_shared";
 import {
     createCollectionWithEnvironments,
     createItemProviderStub,
@@ -25,6 +30,7 @@ describe("normalizeSequencesRecursively", () => {
                     "root request",
                     7,
                 ),
+                ["app" + extension]: appContent(format, "app", 9),
                 ["zeta/" + settingsFileName]: folderContent(format, "zeta", 4),
                 ["alpha/" + settingsFileName]: folderContent(
                     format,
@@ -53,14 +59,45 @@ describe("normalizeSequencesRecursively", () => {
                 format,
                 directory,
             );
-            for (const relativePath of ["alpha", "alpha/nested", "zeta"]) {
+            for (const [relativePath, sequence] of [
+                ["alpha", 4],
+                ["alpha/nested", 9],
+                ["zeta", 4],
+            ] as const) {
                 collection.addItem({
                     item: new CollectionDirectory(
                         join(directory, relativePath),
+                        join(directory, relativePath, settingsFileName),
+                        sequence,
                     ),
                     additionalData: undefined,
                 });
             }
+            collection.addItem({
+                item: new BrunoRequestFile(
+                    join(directory, "root-request" + extension),
+                    7,
+                ),
+                additionalData: undefined,
+            });
+            collection.addItem({
+                item: new BrunoAppFile(join(directory, "app" + extension), 9),
+                additionalData: undefined,
+            });
+            collection.addItem({
+                item: new BrunoRequestFile(
+                    join(directory, "alpha", "request" + extension),
+                    8,
+                ),
+                additionalData: undefined,
+            });
+            collection.addItem({
+                item: new BrunoRequestFile(
+                    join(directory, "alpha", "nested", "request" + extension),
+                    2,
+                ),
+                additionalData: undefined,
+            });
             const itemProvider =
                 createItemProviderStub<TypedCollectionItemProvider>(
                     directory,
@@ -81,6 +118,9 @@ describe("normalizeSequencesRecursively", () => {
                     "utf-8",
                 ),
             ).toContain("seq: 5");
+            expect(
+                await readFile(join(directory, "app" + extension), "utf-8"),
+            ).toContain("seq: 10");
             expect(
                 await readFile(
                     join(directory, "alpha", settingsFileName),
@@ -163,6 +203,27 @@ function folderContent(
         "info:",
         "  name: " + name,
         "  type: folder",
+        "  seq: " + sequence,
+        "",
+    ].join("\n");
+}
+
+function appContent(format: CollectionFormat, name: string, sequence: number) {
+    if (format === CollectionFormat.Bru) {
+        return [
+            "meta {",
+            "  name: " + name,
+            "  type: app",
+            "  seq: " + sequence,
+            "}",
+            "",
+        ].join("\n");
+    }
+
+    return [
+        "info:",
+        "  name: " + name,
+        "  type: app",
         "  seq: " + sequence,
         "",
     ].join("\n");

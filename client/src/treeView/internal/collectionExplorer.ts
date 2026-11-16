@@ -948,11 +948,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     return;
                 }
 
-                await normalizeSequencesRecursively(
-                    this.itemProvider,
-                    selectedPath,
-                    collection.getRootDirectory(),
-                    sequenceStep,
+                await vscode.window.withProgress(
+                    {
+                        location: { viewId: this.treeViewId },
+                        title: "Normalizing sequences",
+                    },
+                    () =>
+                        normalizeSequencesRecursively(
+                            this.itemProvider,
+                            selectedPath,
+                            collection.getRootDirectory(),
+                            sequenceStep,
+                        ),
                 );
             },
         );
