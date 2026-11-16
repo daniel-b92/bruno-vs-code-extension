@@ -37,4 +37,58 @@ describe("normalizeSequencesForRequestsAndAppFiles", () => {
             await readFile(join(directory, "second.bru"), "utf-8"),
         ).toContain("seq: 3");
     });
+
+    it("uses the configured step and sorts equal sequences by name when requested", async () => {
+        const directory = await createTemporaryDirectory({
+            "zeta.bru": "meta {\n  name: zeta\n  type: http\n  seq: 2\n}\n",
+            "alpha.bru": "meta {\n  name: alpha\n  type: http\n  seq: 2\n}\n",
+            "later.bru": "meta {\n  name: later\n  type: http\n  seq: 7\n}\n",
+        });
+
+        await normalizeSequencesForRequestsAndAppFiles(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                directory,
+                CollectionFormat.Bru,
+            ),
+            directory,
+            10,
+            true,
+        );
+
+        expect(await readFile(join(directory, "alpha.bru"), "utf-8")).toContain(
+            "seq: 10",
+        );
+        expect(await readFile(join(directory, "zeta.bru"), "utf-8")).toContain(
+            "seq: 20",
+        );
+        expect(await readFile(join(directory, "later.bru"), "utf-8")).toContain(
+            "seq: 30",
+        );
+    });
+
+    it("normalizes yaml request sequences with a configured step", async () => {
+        const directory = await createTemporaryDirectory({
+            "first.yml":
+                "info:\n  name: first\n  type: http\n  seq: 2\n\nhttp:\n  method: GET\n",
+            "second.yml":
+                "info:\n  name: second\n  type: http\n  seq: 8\n\nhttp:\n  method: GET\n",
+        });
+
+        await normalizeSequencesForRequestsAndAppFiles(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                directory,
+                CollectionFormat.Yaml,
+            ),
+            directory,
+            5,
+            true,
+        );
+
+        expect(await readFile(join(directory, "first.yml"), "utf-8")).toContain(
+            "seq: 5",
+        );
+        expect(
+            await readFile(join(directory, "second.yml"), "utf-8"),
+        ).toContain("seq: 10");
+    });
 });
