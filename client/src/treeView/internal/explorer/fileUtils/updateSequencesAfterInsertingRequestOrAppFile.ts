@@ -1,13 +1,25 @@
 import {
-    getMaxSequenceForRequestsAndAppFiles,
     getSequencesForRequestsAndAppFiles,
     normalizePath,
 } from "@global_shared";
-import { TypedCollectionItemProvider } from "@shared";
+import {
+    getSequenceStepFromSettings,
+    shouldRenumberSequencesAutomatically,
+    TypedCollectionItemProvider,
+} from "@shared";
 import { normalizeSequencesForRequestsAndAppFiles } from "./normalizeSequencesForRequestsAndAppFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 import { FileInsertionPosition } from "./interfaces";
+import {
+    calculateSequenceChangesForInsertion,
+    SequenceInsertionPoint,
+    SequenceInsertionPointType,
+} from "../sequenceUtils/calculateSequenceChangesForInsertion";
 
+/**
+ * Sets the sequence of a newly inserted (or moved) request or app file, without changing the sequences of other files if possible.
+ * Only if the setting for renumbering sequences automatically is enabled, the sequences of the affected directories are normalized afterwards.
+ */
 export async function updateSequencesAfterInsertingRequestOrAppFile(
     itemProvider: TypedCollectionItemProvider,
     targetPosition: FileInsertionPosition,
@@ -18,40 +30,33 @@ export async function updateSequencesAfterInsertingRequestOrAppFile(
     },
 ) {
     const { targetDirectory, otherDirectory } = directoriesForNormalization;
+    const sequenceStep = getSequenceStepFromSettings();
 
-    const newSequence =
-        typeof targetPosition == "object"
-            ? targetPosition.item.getSequence()
-                ? (targetPosition.item.getSequence() as number) + 1
-                : ((await getMaxSequenceForRequestsAndAppFiles(
-                      itemProvider,
-                      targetDirectory,
-                  )) ?? 0) + 1
-            : ((await getMaxSequenceForRequestsAndAppFiles(
-                  itemProvider,
-                  targetDirectory,
-              )) ?? 0) + 1;
+    // The inserted file must not be considered, because it may already have a sequence (e.g. when moving it within the same directory).
+    const otherFiles = (
+        await getSequencesForRequestsAndAppFiles(itemProvider, targetDirectory)
+    ).filter(({ path }) => normalizePath(path) != normalizePath(newPath));
+
+    const { newSequence, shiftedItems } = calculateSequenceChangesForInsertion(
+        otherFiles,
+        getInsertionPoint(targetPosition),
+        sequenceStep,
+    );
 
     await replaceSequenceForFile(newPath, newSequence);
 
-    if (typeof targetPosition == "object") {
-        const filtered = (
-            await getSequencesForRequestsAndAppFiles(
-                itemProvider,
-                targetDirectory,
-            )
-        ).filter(
-            ({ path, sequence }) => path != newPath && sequence >= newSequence,
-        );
+    for (const { path, sequence } of shiftedItems) {
+        await replaceSequenceForFile(path, sequence);
+    }
 
-        for (const { path, sequence: initialSequence } of filtered) {
-            await replaceSequenceForFile(path, initialSequence + 1);
-        }
+    if (!shouldRenumberSequencesAutomatically()) {
+        return;
     }
 
     await normalizeSequencesForRequestsAndAppFiles(
         itemProvider,
         targetDirectory,
+        sequenceStep,
     );
 
     if (
@@ -61,6 +66,21 @@ export async function updateSequencesAfterInsertingRequestOrAppFile(
         await normalizeSequencesForRequestsAndAppFiles(
             itemProvider,
             otherDirectory,
+            sequenceStep,
         );
     }
+}
+
+function getInsertionPoint(
+    targetPosition: FileInsertionPosition,
+): SequenceInsertionPoint {
+    const targetSequence =
+        typeof targetPosition == "object"
+            ? targetPosition.item.getSequence()
+            : undefined;
+
+    // If the target is a directory (or has no sequence), the file is inserted at the end.
+    return targetSequence === undefined
+        ? { type: SequenceInsertionPointType.Append }
+        : { type: SequenceInsertionPointType.After, sequence: targetSequence };
 }

@@ -146,6 +146,11 @@
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Show a warning when collection root files are ignored, because other collection root files exist in the same directory or its subdirectories (nested collections)."
+                },
+                "bru-as-code.renumberSequencesAutomatically": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Renumber the sequences (`seq`) of all affected folders in the collection explorer after every insert (create, duplicate, paste, drag and drop), move and delete, so that they stay consecutive. If disabled, the sequences of all other items are kept whenever possible: A new or moved item gets a free sequence between its neighbors, and only if there is none, the directly consecutive following items are shifted by 1."
                 }
             }
         },

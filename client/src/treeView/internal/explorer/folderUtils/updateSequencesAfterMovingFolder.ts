@@ -3,15 +3,21 @@ import {
     BrunoFileType,
     CollectionFormat,
     getFolderSettingsFilePath,
+    normalizePath,
 } from "@global_shared";
 import {
-    getMaxSequenceForFolders,
     getSequencesForFolders,
+    getSequenceStepFromSettings,
+    shouldRenumberSequencesAutomatically,
     TypedCollectionItemProvider,
     BrunoTreeItem,
 } from "@shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";
+import {
+    calculateSequenceChangesForInsertion,
+    SequenceInsertionPointType,
+} from "../sequenceUtils/calculateSequenceChangesForInsertion";
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
@@ -35,6 +41,7 @@ export async function updateSequencesAfterMovingFolder(
     }
 
     const format = collection.getFormat();
+    const sequenceStep = getSequenceStepFromSettings();
 
     if (
         insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
@@ -47,10 +54,6 @@ export async function updateSequencesAfterMovingFolder(
             format,
         );
 
-        const newSequence =
-            1 +
-            ((await getMaxSequenceForFolders(itemProvider, parentFolder)) ?? 0);
-
         if (!newFolderSettingsFile) {
             window.showErrorMessage(
                 `An unexpected error occured while trying to find the folder settings file for the folder '${newFolderPath}'`,
@@ -58,9 +61,28 @@ export async function updateSequencesAfterMovingFolder(
             return;
         }
 
+        const { newSequence } = calculateSequenceChangesForInsertion(
+            await getSequencesOfOtherFolders(itemProvider, parentFolder, [
+                newFolderPath,
+            ]),
+            { type: SequenceInsertionPointType.Append },
+            sequenceStep,
+        );
+
         await replaceSequenceForFile(newFolderSettingsFile, newSequence);
-        await normalizeSequencesForFolders(itemProvider, parentFolder);
-        await normalizeSequencesForFolders(itemProvider, dirname(sourcePath));
+
+        if (shouldRenumberSequencesAutomatically()) {
+            await normalizeSequencesForFolders(
+                itemProvider,
+                parentFolder,
+                sequenceStep,
+            );
+            await normalizeSequencesForFolders(
+                itemProvider,
+                dirname(sourcePath),
+                sequenceStep,
+            );
+        }
         return;
     }
 
@@ -77,32 +99,63 @@ export async function updateSequencesAfterMovingFolder(
 
     const parentFolder = dirname(target.getPath());
 
-    const newSequence =
-        insertionOption == FolderDropInsertionOption.InsertBeforeTarget
-            ? (target.getSequence() as number)
-            : (target.getSequence() as number) + 1;
+    const { newSequence, shiftedItems } = calculateSequenceChangesForInsertion(
+        await getSequencesOfOtherFolders(itemProvider, parentFolder, [
+            sourcePath,
+            resolve(parentFolder, basename(sourcePath)),
+        ]),
+        {
+            type:
+                insertionOption == FolderDropInsertionOption.InsertBeforeTarget
+                    ? SequenceInsertionPointType.Before
+                    : SequenceInsertionPointType.After,
+            sequence: target.getSequence() as number,
+        },
+        sequenceStep,
+    );
 
     await replaceSequenceForFile(newFolderSettingsFile, newSequence);
 
-    const filtered = (
-        await getSequencesForFolders(itemProvider, parentFolder)
-    ).filter(
-        ({ folderPath, sequence }) =>
-            folderPath != sourcePath && sequence >= newSequence,
-    );
-
-    for (const { folderPath, sequence: initialSequence } of filtered) {
-        await replaceSequenceForFile(
-            (await getFolderSettingsFilePath(
-                false,
-                folderPath,
-                format,
-            )) as string,
-            initialSequence + 1,
-        );
+    for (const { path: settingsFile, sequence } of shiftedItems) {
+        await replaceSequenceForFile(settingsFile, sequence);
     }
 
-    await normalizeSequencesForFolders(itemProvider, parentFolder);
+    if (shouldRenumberSequencesAutomatically()) {
+        await normalizeSequencesForFolders(
+            itemProvider,
+            parentFolder,
+            sequenceStep,
+        );
+
+        if (normalizePath(dirname(sourcePath)) != normalizePath(parentFolder)) {
+            await normalizeSequencesForFolders(
+                itemProvider,
+                dirname(sourcePath),
+                sequenceStep,
+            );
+        }
+    }
+}
+
+/**
+ * Returns the sequences of the subfolders of the parent folder, excluding the moved folder.
+ * The path that stores the sequence is the folder settings file of the respective folder.
+ */
+async function getSequencesOfOtherFolders(
+    itemProvider: TypedCollectionItemProvider,
+    parentFolder: string,
+    excludedFolderPaths: string[],
+) {
+    const excluded = excludedFolderPaths.map((path) => normalizePath(path));
+
+    return (await getSequencesForFolders(itemProvider, parentFolder))
+        .filter(
+            ({ folderPath }) => !excluded.includes(normalizePath(folderPath)),
+        )
+        .map(({ settingsFile, sequence }) => ({
+            path: settingsFile,
+            sequence,
+        }));
 }
 
 async function copyFolderSettingsFile(

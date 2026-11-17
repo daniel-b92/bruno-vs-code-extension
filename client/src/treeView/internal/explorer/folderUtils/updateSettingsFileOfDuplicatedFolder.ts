@@ -4,7 +4,11 @@ import {
     getFolderSettingsFilePath,
     getSequenceForFolder,
 } from "@global_shared";
-import { getMaxSequenceForFolders, TypedCollectionItemProvider } from "@shared";
+import {
+    getMaxSequenceForFolders,
+    getSequenceStepFromSettings,
+    TypedCollectionItemProvider,
+} from "@shared";
 import { replaceItemName } from "../fileUtils/replaceItemName";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
@@ -50,11 +54,10 @@ export async function updateSettingsFileOfDuplicatedFolder(
     ) {
         await replaceSequenceForFile(
             newFolderSettingsFile,
-            1 +
-                ((await getMaxSequenceForFolders(
-                    itemProvider,
-                    dirname(originalPath),
-                )) ?? 0),
+            ((await getMaxSequenceForFolders(
+                itemProvider,
+                dirname(originalPath),
+            )) ?? 0) + getSequenceStepFromSettings(),
         );
     }
 }

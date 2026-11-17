@@ -55,10 +55,16 @@ const Uri = {
     file: (path: string) => ({ fsPath: path, scheme: "file", path }),
 };
 
+/** Does not record anything, since `applyEdit` does not apply any edits. Tests that need the edits to take effect have to write the files themselves. */
+class WorkspaceEdit {
+    createFile(_uri: unknown, _options?: unknown) {}
+}
+
 const workspace = {
     getConfiguration: () => ({ get: () => undefined }),
     workspaceFolders: undefined,
     textDocuments: [] as { fileName: string; eol: number }[],
+    applyEdit: (_edit: unknown) => Promise.resolve(true),
 };
 
 const EndOfLine = {
@@ -89,6 +95,7 @@ export {
     MarkdownString,
     Uri,
     workspace,
+    WorkspaceEdit,
     window,
     commands,
     EndOfLine,
