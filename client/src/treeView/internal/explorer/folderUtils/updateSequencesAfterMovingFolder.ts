@@ -1,9 +1,5 @@
 import { basename, dirname, resolve } from "path";
-import {
-    BrunoFileType,
-    CollectionFormat,
-    getFolderSettingsFilePath,
-} from "@global_shared";
+import { getFolderSettingsFilePath } from "@global_shared";
 import {
     getMaxSequenceForFolders,
     getSequencesForFolders,
@@ -12,12 +8,10 @@ import {
 } from "@shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";
-import { Uri, window, workspace, WorkspaceEdit } from "vscode";
+import { window } from "vscode";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
-import { replaceItemName } from "../fileUtils/replaceItemName";
-import { promisify } from "util";
-import { readFile } from "fs";
+import { setSequenceForFolder } from "./setSequenceForFolder";
 
 export async function updateSequencesAfterMovingFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -64,31 +58,27 @@ export async function updateSequencesAfterMovingFolder(
         return;
     }
 
-    const newFolderSettingsFile = await copyFolderSettingsFile(
-        target,
-        sourcePath,
-        format,
-    );
-
-    if (!newFolderSettingsFile) {
-        showErrorMessageForFailedDragAndDrop(sourcePath);
-        return;
-    }
-
     const parentFolder = dirname(target.getPath());
+    // The folder has already been moved, so `sourcePath` is only its old path (which can be in a different parent folder).
+    const newFolderPath = resolve(parentFolder, basename(sourcePath));
 
     const newSequence =
         insertionOption == FolderDropInsertionOption.InsertBeforeTarget
             ? (target.getSequence() as number)
             : (target.getSequence() as number) + 1;
 
-    await replaceSequenceForFile(newFolderSettingsFile, newSequence);
+    if (!(await setSequenceForFolder(newFolderPath, newSequence, format))) {
+        showErrorMessageForFailedDragAndDrop(sourcePath);
+        return;
+    }
 
     const filtered = (
         await getSequencesForFolders(itemProvider, parentFolder)
     ).filter(
         ({ folderPath, sequence }) =>
-            folderPath != sourcePath && sequence >= newSequence,
+            folderPath != sourcePath &&
+            folderPath != newFolderPath &&
+            sequence >= newSequence,
     );
 
     for (const { folderPath, sequence: initialSequence } of filtered) {
@@ -103,59 +93,4 @@ export async function updateSequencesAfterMovingFolder(
     }
 
     await normalizeSequencesForFolders(itemProvider, parentFolder);
-}
-
-async function copyFolderSettingsFile(
-    sourceFolderItem: BrunoTreeItem,
-    destinationFolder: string,
-    format: CollectionFormat,
-) {
-    const isCollectionSettings = false;
-    const targetFile = await getFolderSettingsFilePath(
-        isCollectionSettings,
-        sourceFolderItem.getPath(),
-        format,
-    );
-
-    if (!targetFile) {
-        window.showErrorMessage(
-            `An unexpected error occured. Could not find settings file for target folder '${basename(
-                sourceFolderItem.getPath(),
-            )}'`,
-        );
-        return;
-    }
-
-    const newPath = resolve(destinationFolder, basename(targetFile));
-
-    const workspaceEdit = new WorkspaceEdit();
-    const targetFileContent = await promisify(readFile)(targetFile).catch(
-        () => undefined,
-    );
-
-    if (targetFileContent === undefined) {
-        window.showErrorMessage(
-            `An unexpected error occured while trying to copy the folder settings file.`,
-        );
-        return undefined;
-    }
-
-    workspaceEdit.createFile(Uri.file(newPath), {
-        overwrite: true,
-        contents: Buffer.from(targetFileContent),
-    });
-    const wasSuccessful = await workspace.applyEdit(workspaceEdit);
-
-    if (!wasSuccessful) {
-        return undefined;
-    }
-
-    await replaceItemName(
-        newPath,
-        basename(destinationFolder),
-        BrunoFileType.FolderSettingsFile,
-        format,
-    );
-
-    return newPath;
 }
