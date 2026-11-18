@@ -426,62 +426,62 @@
                 {
                     "command": "brunoCollectionsView.createRequestFile",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
-                    "group": "crud@1"
+                    "group": "1_crud@1"
                 },
                 {
                     "command": "brunoCollectionsView.createEmptyFile",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
-                    "group": "crud@5"
+                    "group": "1_crud@5"
                 },
                 {
                     "command": "brunoCollectionsView.createFolder",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
-                    "group": "crud@10"
+                    "group": "1_crud@10"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",
                     "when": "view == brunoCollectionsView",
-                    "group": "crud@20"
+                    "group": "1_crud@20"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFile",
                     "when": "view == brunoCollectionsView && viewItem==file",
-                    "group": "crud@30"
+                    "group": "1_crud@30"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
                     "when": "view == brunoCollectionsView && viewItem == folder",
-                    "group": "crud@35"
+                    "group": "1_crud@35"
                 },
                 {
                     "command": "brunoCollectionsView.copyFile",
                     "when": "view == brunoCollectionsView && viewItem==file",
-                    "group": "crud@37"
+                    "group": "1_crud@37"
                 },
                 {
                     "command": "brunoCollectionsView.pasteFile",
                     "when": "view == brunoCollectionsView",
-                    "group": "crud@38"
+                    "group": "1_crud@38"
                 },
                 {
                     "command": "brunoCollectionsView.deleteItem",
                     "when": "view == brunoCollectionsView",
-                    "group": "crud@40"
+                    "group": "1_crud@40"
                 },
                 {
                     "command": "brunoCollectionsView.normalizeSequences",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
-                    "group": "crud@45"
+                    "group": "2_organize@1"
                 },
                 {
                     "command": "brunoCollectionsView.startTestRun",
                     "when": "view == brunoCollectionsView",
-                    "group": "execution@1"
+                    "group": "3_execution@1"
                 },
                 {
                     "command": "brunoCollectionsView.openDialogForTestRun",
                     "when": "view == brunoCollectionsView",
-                    "group": "execution@5"
+                    "group": "3_execution@5"
                 }
             ],
             "commandPalette": [
