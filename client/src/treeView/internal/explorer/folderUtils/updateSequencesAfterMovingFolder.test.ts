@@ -169,6 +169,66 @@ describe("updateSequencesAfterMovingFolder", () => {
         });
     });
 
+    describe("folder settings of the moved folder", () => {
+        const otherSettings = "vars:pre-request {\n  keepMe: 1\n}\n";
+
+        it("keeps all other settings when moving within the same parent", async () => {
+            const directory = await createTemporaryDirectory({
+                "a/folder.bru": `${folderSettingsFile("a", 1)}\n${otherSettings}`,
+                "b/folder.bru": folderSettingsFile("b", 2),
+            });
+
+            await updateSequencesAfterMovingFolder(
+                createItemProviderStub<TypedCollectionItemProvider>(
+                    directory,
+                    CollectionFormat.Bru,
+                ),
+                join(directory, "a"),
+                treeItem(join(directory, "b"), 2),
+                FolderDropInsertionOption.InsertAfterTarget,
+            );
+
+            expect(await readSettings(directory, "a")).toBe(
+                `${folderSettingsFile("a", 3)}\n${otherSettings}`,
+            );
+            expect(await readSettings(directory, "b")).toBe(
+                folderSettingsFile("b", 2),
+            );
+        });
+
+        it("updates the settings at the new location and does not create anything at the old location, when moving to another parent", async () => {
+            const directory = await createTemporaryDirectory({
+                "new/b/folder.bru": folderSettingsFile("b", 2),
+                "new/moved/folder.bru": `${folderSettingsFile("moved", 9)}\n${otherSettings}`,
+            });
+
+            // The new parent folder needs to be registered, so that the sequences of its subfolders are considered.
+            const { itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [new CollectionDirectory(join(directory, "new"))],
+                    CollectionFormat.Bru,
+                    [],
+                    directory,
+                );
+
+            await updateSequencesAfterMovingFolder(
+                itemProvider,
+                // The folder was already moved from its old location `old/moved`.
+                join(directory, "old", "moved"),
+                treeItem(join(directory, "new", "b"), 2),
+                FolderDropInsertionOption.InsertAfterTarget,
+            );
+
+            expect(await readSettings(directory, "new/b")).toBe(
+                folderSettingsFile("b", 2),
+            );
+            expect(await readSettings(directory, "new/moved")).toBe(
+                `${folderSettingsFile("moved", 3)}\n${otherSettings}`,
+            );
+            expect(await readSettings(directory, "old/moved")).toBeUndefined();
+        });
+    });
+
     /** The moved folder (`target/moved`) already has its new path and the sequence from its old parent. */
     async function createFoldersForMovingIntoTarget() {
         return await createTemporaryDirectory({
@@ -297,4 +357,10 @@ async function getSequences(directory: string) {
     }
 
     return sequences;
+}
+
+async function readSettings(directory: string, folder: string) {
+    return await readFile(join(directory, folder, "folder.bru"), "utf-8").catch(
+        () => undefined,
+    );
 }
