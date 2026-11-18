@@ -2,6 +2,8 @@
 
 ### Features
 
+- Add a configurable, recursive sequence normalization action to the collection explorer. The preselected step can be set via the new setting `bru-as-code.sequenceStep`.
+
 - Add completions and hovers for Bruno's built-in dynamic variables (e.g. `{{$guid}}`, `{{$timestamp}}`, `{{$randomEmail}}`) in all sections with variable support, in `.bru` and `yaml` collection files. The completions are offered once `{{$` is typed, the hover shows the description and an example value.
 
 ### Fixes / Maintenance
