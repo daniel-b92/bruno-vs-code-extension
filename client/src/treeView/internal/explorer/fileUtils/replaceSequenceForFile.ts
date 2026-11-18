@@ -6,6 +6,7 @@ import {
 import { promisify } from "util";
 import { window } from "vscode";
 
+/** @returns Whether the sequence was replaced. */
 export async function replaceSequenceForFile(
     filePath: string,
     newSequence: number,
@@ -23,7 +24,7 @@ export async function replaceSequenceForFile(
         window.showErrorMessage(
             `An unexpected error occured while trying to read the file content.`,
         );
-        return;
+        return false;
     }
 
     const sequenceRange = getSequenceValueRangeFromFileContent(
@@ -32,10 +33,10 @@ export async function replaceSequenceForFile(
     );
 
     if (!sequenceRange) {
-        return;
+        return false;
     }
 
-    await promisify(writeFile)(
+    return await promisify(writeFile)(
         filePath,
         new TextDocumentHelper(originalFileContent).getFullTextWithReplacement(
             {
@@ -45,9 +46,12 @@ export async function replaceSequenceForFile(
             },
             `${newSequence}`,
         ),
-    ).catch(() => {
-        window.showErrorMessage(
-            `An unexpected error occured while trying to replace the sequence.`,
-        );
-    });
+    )
+        .then(() => true)
+        .catch(() => {
+            window.showErrorMessage(
+                `An unexpected error occured while trying to replace the sequence.`,
+            );
+            return false;
+        });
 }
