@@ -1,8 +1,9 @@
 import { describe, it, expect } from "@jest/globals";
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { CollectionFormat } from "@global_shared";
+import { CollectionDirectory, CollectionFormat } from "@global_shared";
 import {
+    createCollectionWithItems,
     createItemProviderStub,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
@@ -47,19 +48,29 @@ describe("updateSequencesAfterMovingFolder", () => {
                 "new/moved/folder.bru": `${folderSettingsFile("moved", 9)}\n${otherSettings}`,
             });
 
-            await updateSequencesAfterMovingFolder(
-                createItemProviderStub<TypedCollectionItemProvider>(
-                    directory,
+            // The new parent folder needs to be registered, so that the sequences of its subfolders are normalized.
+            const { itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [new CollectionDirectory(join(directory, "new"))],
                     CollectionFormat.Bru,
-                ),
+                    [],
+                    directory,
+                );
+
+            await updateSequencesAfterMovingFolder(
+                itemProvider,
                 // The folder was already moved from its old location `old/moved`.
                 join(directory, "old", "moved"),
                 treeItem(join(directory, "new", "b"), 2),
                 FolderDropInsertionOption.InsertAfterTarget,
             );
 
+            // The moved folder is inserted after `b` and the sequences are normalized afterwards.
+            expect(await readSettings(directory, "new/b")).toBe(
+                folderSettingsFile("b", 1),
+            );
             expect(await readSettings(directory, "new/moved")).toBe(
-                `${folderSettingsFile("moved", 3)}\n${otherSettings}`,
+                `${folderSettingsFile("moved", 2)}\n${otherSettings}`,
             );
             expect(await readSettings(directory, "old/moved")).toBeUndefined();
         });

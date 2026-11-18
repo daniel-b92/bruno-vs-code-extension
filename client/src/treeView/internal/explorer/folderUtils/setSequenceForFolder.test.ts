@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { readFile } from "fs/promises";
 import { join } from "path";
+import { parse } from "yaml";
 import { CollectionFormat } from "@global_shared";
 import { useTemporaryDirectories } from "@global_shared/_testingUtils";
 import { setSequenceForFolder } from "./setSequenceForFolder";
@@ -94,6 +95,47 @@ describe("setSequenceForFolder", () => {
             );
         });
 
+        it("quotes the folder name in the minimal file, if necessary", async () => {
+            const directory = await createTemporaryDirectory({
+                "123/request.yml": "",
+            });
+
+            const result = await setSequenceForFolder(
+                join(directory, "123"),
+                5,
+                CollectionFormat.Yaml,
+            );
+
+            expect(result).toBe(true);
+            expect(
+                await readFile(join(directory, "123", "folder.yml"), "utf-8"),
+            ).toBe('info:\n  name: "123"\n  type: folder\n  seq: 5\n');
+        });
+
+        it("quotes the folder name for a folder name with special characters", async () => {
+            const directory = await createTemporaryDirectory({
+                "API: v2 #1/request.yml": "",
+            });
+
+            await setSequenceForFolder(
+                join(directory, "API: v2 #1"),
+                5,
+                CollectionFormat.Yaml,
+            );
+
+            const parsed = parse(
+                await readFile(
+                    join(directory, "API: v2 #1", "folder.yml"),
+                    "utf-8",
+                ),
+            );
+            expect(parsed.info).toEqual({
+                name: "API: v2 #1",
+                type: "folder",
+                seq: 5,
+            });
+        });
+
         it("only replaces the sequence, if there is one", async () => {
             const content =
                 "info:\n  name: my-folder\n  type: folder\n  seq: 1\nrequest:\n  headers: []\n";
@@ -135,6 +177,36 @@ describe("setSequenceForFolder", () => {
             expect(result).toBe(true);
             expect(await read(directory, "folder.yml")).toBe(
                 "info:\n  name: my-folder\n  type: folder\n  seq: 5\n\nrequest:\n  headers: []\n",
+            );
+        });
+
+        it.each(["seq: abc", "seq:"])(
+            "does not add a second sequence and reports a failure, if there is an invalid one ('%s')",
+            async (invalidSequence) => {
+                const content = `info:\n  name: my-folder\n  type: folder\n  ${invalidSequence}\nrequest:\n  headers: []\n`;
+                const directory = await createFolderWithSettings(
+                    "folder.yml",
+                    content,
+                );
+
+                const result = await set(directory, 5, CollectionFormat.Yaml);
+
+                expect(result).toBe(false);
+                expect(await read(directory, "folder.yml")).toBe(content);
+            },
+        );
+
+        it("adds the sequence, if only another section has a `seq` key", async () => {
+            const directory = await createFolderWithSettings(
+                "folder.yml",
+                "info:\n  name: my-folder\n  type: folder\nrequest:\n  seq: 7\n",
+            );
+
+            const result = await set(directory, 5, CollectionFormat.Yaml);
+
+            expect(result).toBe(true);
+            expect(await read(directory, "folder.yml")).toBe(
+                "info:\n  seq: 5\n  name: my-folder\n  type: folder\nrequest:\n  seq: 7\n",
             );
         });
 

@@ -35,24 +35,16 @@ export async function updateSequencesAfterMovingFolder(
     ) {
         const parentFolder = target.getPath();
         const newFolderPath = resolve(parentFolder, basename(sourcePath));
-        const newFolderSettingsFile = await getFolderSettingsFilePath(
-            false,
-            newFolderPath,
-            format,
-        );
 
         const newSequence =
             1 +
             ((await getMaxSequenceForFolders(itemProvider, parentFolder)) ?? 0);
 
-        if (!newFolderSettingsFile) {
-            window.showErrorMessage(
-                `An unexpected error occured while trying to find the folder settings file for the folder '${newFolderPath}'`,
-            );
+        if (!(await setSequenceForFolder(newFolderPath, newSequence, format))) {
+            showErrorMessageForFailedDragAndDrop(sourcePath);
             return;
         }
 
-        await replaceSequenceForFile(newFolderSettingsFile, newSequence);
         await normalizeSequencesForFolders(itemProvider, parentFolder);
         await normalizeSequencesForFolders(itemProvider, dirname(sourcePath));
         return;

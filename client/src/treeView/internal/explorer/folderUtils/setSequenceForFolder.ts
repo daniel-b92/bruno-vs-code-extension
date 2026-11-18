@@ -1,5 +1,6 @@
 import { basename, resolve } from "path";
 import { readFile, writeFile } from "fs/promises";
+import { stringify } from "yaml";
 import {
     CollectionFormat,
     getFolderSettingsFilePath,
@@ -46,8 +47,7 @@ export async function setSequenceForFolder(
     }
 
     if (getSequenceValueRangeFromFileContent(settingsFile, content)) {
-        await replaceSequenceForFile(settingsFile, sequence);
-        return true;
+        return await replaceSequenceForFile(settingsFile, sequence);
     }
 
     const contentWithSequence = addSequenceToContent(
@@ -69,8 +69,11 @@ function getMinimalContent(
     sequence: number,
     format: CollectionFormat,
 ) {
+    // Quotes the name if needed, so that it is read back as the same string (e.g. for names containing `: ` or ` #`, or names like `123`).
+    const yamlName = stringify(folderName, { lineWidth: 0 }).trimEnd();
+
     return format == CollectionFormat.Yaml
-        ? `info:\n  name: ${folderName}\n  type: folder\n  seq: ${sequence}\n`
+        ? `info:\n  name: ${yamlName}\n  type: folder\n  seq: ${sequence}\n`
         : `meta {\n  name: ${folderName}\n  seq: ${sequence}\n}\n`;
 }
 
@@ -107,6 +110,12 @@ function addSequenceToContent(
     }
 
     const insertionIndex = match.index + match[0].length;
+
+    if (hasSequenceKey(content.slice(insertionIndex))) {
+        // There is a `seq` key, but its value is not a valid sequence. Adding a second one would make the file invalid.
+        return undefined;
+    }
+
     // The new line needs to use the same indentation as the existing properties of the section.
     const indentation =
         /^([ \t]+)\S/.exec(content.slice(insertionIndex))?.[1] ?? "  ";
@@ -116,4 +125,19 @@ function addSequenceToContent(
         `${indentation}seq: ${sequence}${eol}` +
         content.slice(insertionIndex)
     );
+}
+
+/** Checks whether the section that starts at the beginning of the given content (up to the next non-indented line) contains a `seq` key. */
+function hasSequenceKey(contentAfterSectionStart: string) {
+    for (const line of contentAfterSectionStart.split(/\r?\n/)) {
+        if (/^\S/.test(line)) {
+            return false;
+        }
+
+        if (/^[ \t]+seq[ \t]*:/.test(line)) {
+            return true;
+        }
+    }
+
+    return false;
 }
