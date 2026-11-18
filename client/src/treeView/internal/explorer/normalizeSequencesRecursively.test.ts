@@ -9,18 +9,22 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithEnvironments,
-    createItemProviderStub,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
-import { TypedCollectionItemProvider } from "@shared";
 import { normalizeSequencesRecursively } from "./normalizeSequencesRecursively";
 
 describe("normalizeSequencesRecursively", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
 
-    it.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
-        "normalizes requests and folders recursively in %s collections",
-        async (format) => {
+    it.each([
+        [CollectionFormat.Bru, ".", [5, 10, 5, 10, 5, 5, 5]],
+        [CollectionFormat.Yaml, ".", [5, 10, 5, 10, 5, 5, 5]],
+        // Items outside of a selected subfolder must stay untouched.
+        [CollectionFormat.Bru, "alpha", [7, 9, 4, 4, 5, 5, 5]],
+        [CollectionFormat.Yaml, "alpha", [7, 9, 4, 4, 5, 5, 5]],
+    ] as const)(
+        "normalizes items in %s collections below folder '%s'",
+        async (format, selectedFolder, expectedSequences) => {
             const extension = format === CollectionFormat.Bru ? ".bru" : ".yml";
             const settingsFileName =
                 format === CollectionFormat.Bru ? "folder.bru" : "folder.yml";
@@ -98,53 +102,26 @@ describe("normalizeSequencesRecursively", () => {
                 ),
                 additionalData: undefined,
             });
-            const itemProvider =
-                createItemProviderStub<TypedCollectionItemProvider>(
-                    directory,
-                    format,
-                    collection,
-                );
-
             await normalizeSequencesRecursively(
-                itemProvider,
-                directory,
-                directory,
+                collection,
+                join(directory, selectedFolder),
                 5,
             );
 
-            expect(
-                await parseSequenceFromFile(
-                    join(directory, "root-request" + extension),
+            const actualSequences = await Promise.all(
+                [
+                    "root-request" + extension,
+                    "app" + extension,
+                    join("alpha", settingsFileName),
+                    join("zeta", settingsFileName),
+                    join("alpha", "request" + extension),
+                    join("alpha", "nested", settingsFileName),
+                    join("alpha", "nested", "request" + extension),
+                ].map((relativePath) =>
+                    parseSequenceFromFile(join(directory, relativePath)),
                 ),
-            ).toBe(5);
-            expect(
-                await parseSequenceFromFile(join(directory, "app" + extension)),
-            ).toBe(10);
-            expect(
-                await parseSequenceFromFile(
-                    join(directory, "alpha", settingsFileName),
-                ),
-            ).toBe(5);
-            expect(
-                await parseSequenceFromFile(
-                    join(directory, "zeta", settingsFileName),
-                ),
-            ).toBe(10);
-            expect(
-                await parseSequenceFromFile(
-                    join(directory, "alpha", "request" + extension),
-                ),
-            ).toBe(5);
-            expect(
-                await parseSequenceFromFile(
-                    join(directory, "alpha", "nested", settingsFileName),
-                ),
-            ).toBe(5);
-            expect(
-                await parseSequenceFromFile(
-                    join(directory, "alpha", "nested", "request" + extension),
-                ),
-            ).toBe(5);
+            );
+            expect(actualSequences).toEqual(expectedSequences);
         },
     );
 });

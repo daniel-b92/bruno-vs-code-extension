@@ -4,10 +4,9 @@ import {
     CollectionDirectory,
     isCollectionItemWithSequence,
     isPathEqualOrDescendant,
-    normalizePath,
     NonBrunoSpecificItemType,
 } from "@global_shared";
-import { TypedCollectionItemProvider } from "../../../shared";
+import { TypedCollection } from "../../../shared";
 import { replaceSequenceForFile } from "./fileUtils/replaceSequenceForFile";
 
 type SequenceEntry = {
@@ -17,20 +16,10 @@ type SequenceEntry = {
 };
 
 export async function normalizeSequencesRecursively(
-    itemProvider: TypedCollectionItemProvider,
+    collection: TypedCollection,
     folderPath: string,
-    collectionRootPath: string,
     sequenceStep: number,
 ) {
-    const collection = itemProvider.getAncestorCollectionForPath(folderPath);
-    if (
-        !collection ||
-        normalizePath(collection.getRootDirectory()) !==
-            normalizePath(collectionRootPath)
-    ) {
-        return;
-    }
-
     const requestGroups = new Map<string, SequenceEntry[]>();
     const folderGroups = new Map<string, SequenceEntry[]>();
 
@@ -38,16 +27,6 @@ export async function normalizeSequencesRecursively(
         const itemPath = item.getPath();
         const parentPath = dirname(itemPath);
         if (!isPathEqualOrDescendant(parentPath, folderPath)) {
-            continue;
-        }
-
-        const itemCollection =
-            itemProvider.getAncestorCollectionForPath(itemPath);
-        if (
-            !itemCollection ||
-            normalizePath(itemCollection.getRootDirectory()) !==
-                normalizePath(collectionRootPath)
-        ) {
             continue;
         }
 
@@ -103,8 +82,7 @@ async function normalizeGroups(
 ) {
     for (const entries of groups.values()) {
         entries.sort(
-            (a, b) =>
-                a.sequence - b.sequence || a.name.localeCompare(b.name),
+            (a, b) => a.sequence - b.sequence || a.name.localeCompare(b.name),
         );
 
         for (const [index, entry] of entries.entries()) {

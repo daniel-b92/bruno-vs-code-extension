@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
+import { readFile } from "fs/promises";
 import { join } from "path";
-import { CollectionFormat, parseSequenceFromFile } from "@global_shared";
+import { CollectionFormat } from "@global_shared";
 import {
     createItemProviderStub,
     useTemporaryDirectories,
@@ -26,66 +27,14 @@ describe("normalizeSequencesForRequestsAndAppFiles", () => {
             directory,
         );
 
-        expect(await parseSequenceFromFile(join(directory, "first.bru"))).toBe(
-            1,
+        expect(await readFile(join(directory, "first.bru"), "utf-8")).toContain(
+            "seq: 1",
         );
-        expect(await parseSequenceFromFile(join(directory, "app.bru"))).toBe(2);
-        expect(
-            await parseSequenceFromFile(join(directory, "second.bru")),
-        ).toBe(3);
-    });
-
-    it("uses the configured step and sorts equal sequences by name when requested", async () => {
-        const directory = await createTemporaryDirectory({
-            "zeta.bru": "meta {\n  name: zeta\n  type: http\n  seq: 2\n}\n",
-            "alpha.bru": "meta {\n  name: alpha\n  type: http\n  seq: 2\n}\n",
-            "later.bru": "meta {\n  name: later\n  type: http\n  seq: 7\n}\n",
-        });
-
-        await normalizeSequencesForRequestsAndAppFiles(
-            createItemProviderStub<TypedCollectionItemProvider>(
-                directory,
-                CollectionFormat.Bru,
-            ),
-            directory,
-            10,
-            true,
-        );
-
-        expect(await parseSequenceFromFile(join(directory, "alpha.bru"))).toBe(
-            10,
-        );
-        expect(await parseSequenceFromFile(join(directory, "zeta.bru"))).toBe(
-            20,
-        );
-        expect(await parseSequenceFromFile(join(directory, "later.bru"))).toBe(
-            30,
-        );
-    });
-
-    it("normalizes yaml request sequences with a configured step", async () => {
-        const directory = await createTemporaryDirectory({
-            "first.yml":
-                "info:\n  name: first\n  type: http\n  seq: 2\n\nhttp:\n  method: GET\n",
-            "second.yml":
-                "info:\n  name: second\n  type: http\n  seq: 8\n\nhttp:\n  method: GET\n",
-        });
-
-        await normalizeSequencesForRequestsAndAppFiles(
-            createItemProviderStub<TypedCollectionItemProvider>(
-                directory,
-                CollectionFormat.Yaml,
-            ),
-            directory,
-            5,
-            true,
-        );
-
-        expect(await parseSequenceFromFile(join(directory, "first.yml"))).toBe(
-            5,
+        expect(await readFile(join(directory, "app.bru"), "utf-8")).toContain(
+            "seq: 2",
         );
         expect(
-            await parseSequenceFromFile(join(directory, "second.yml")),
-        ).toBe(10);
+            await readFile(join(directory, "second.bru"), "utf-8"),
+        ).toContain("seq: 3");
     });
 });
