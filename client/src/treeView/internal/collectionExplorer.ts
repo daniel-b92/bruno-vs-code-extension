@@ -35,6 +35,8 @@ import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
 import { normalizeSequencesForRequestsAndAppFiles } from "./explorer/fileUtils/normalizeSequencesForRequestsAndAppFiles";
 import { normalizeSequencesForFolders } from "./explorer/folderUtils/normalizeSequencesForFolders";
+import { normalizeSequencesRecursively } from "./explorer/normalizeSequencesRecursively";
+import { selectSequenceStep } from "./explorer/selectSequenceStep";
 import { updateSettingsFileOfDuplicatedFolder } from "./explorer/folderUtils/updateSettingsFileOfDuplicatedFolder";
 import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderIntoTargetFolder";
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
@@ -378,6 +380,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             this.registerCommandForDeletingItem(),
             ...this.registerCommandsForStartingTestrun(startTestRunEmitter),
             this.registerCommandForEnvironmentSelection(),
+            this.registerCommandForNormalizingSequences(),
             ...this.registerCommandsForCopyingAndPastingFiles(),
         );
     }
@@ -920,6 +923,55 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         },
                     );
                 }
+            },
+        );
+    }
+
+    private registerCommandForNormalizingSequences() {
+        return vscode.commands.registerCommand(
+            `${this.treeViewId}.normalizeSequences`,
+            async (treeItem: BrunoTreeItem) => {
+                if (!treeItem || treeItem.isFile) {
+                    return;
+                }
+
+                const selectedPath = treeItem.getPath();
+                const collection =
+                    this.itemProvider.getAncestorCollectionForPath(
+                        selectedPath,
+                    );
+
+                if (!collection) {
+                    vscode.window.showErrorMessage(
+                        "Could not find collection for selected item.",
+                    );
+                    return;
+                }
+
+                const configuredStep = vscode.workspace
+                    .getConfiguration()
+                    .get<number>("bru-as-code.sequenceStep", 1);
+                const sequenceStep = await selectSequenceStep(
+                    basename(selectedPath),
+                    configuredStep,
+                );
+
+                if (sequenceStep === undefined) {
+                    return;
+                }
+
+                await vscode.window.withProgress(
+                    {
+                        location: { viewId: this.treeViewId },
+                        title: "Normalizing sequences",
+                    },
+                    () =>
+                        normalizeSequencesRecursively(
+                            collection,
+                            selectedPath,
+                            sequenceStep,
+                        ),
+                );
             },
         );
     }
