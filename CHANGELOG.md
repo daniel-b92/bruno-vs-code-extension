@@ -8,6 +8,7 @@
     - Items that are appended to the end of a folder get the highest sequence plus the configured step, and deleting or moving an item out of a folder does not change the sequences of the remaining items.
     - This changes the default behavior. The previous behavior can be restored by enabling the new setting `bru-as-code.renumberSequencesAutomatically`.
 - Add completions and hovers for Bruno's built-in dynamic variables (e.g. `{{$guid}}`, `{{$timestamp}}`, `{{$randomEmail}}`) in all sections with variable support, in `.bru` and `yaml` collection files. The completions are offered once `{{$` is typed, the hover shows the description and an example value.
+- Update the paths of `bru.runRequest` calls in the same collection (in request files, `folder.bru` / `folder.yml`, `collection.bru` / `opencollection.yml` and `.js` files) when renaming a request or folder, or moving it via drag-and-drop in the collection explorer. Only string literal paths are updated, and the changes can be undone together with the rename.
 
 ### Fixes / Maintenance
 

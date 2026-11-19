@@ -202,13 +202,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     running: true,
                 });
 
-                await moveFileIntoFolder(
-                    this.itemProvider,
-                    sourcePath,
-                    newPath,
-                    target,
-                    dirname(newPath),
-                    itemType,
+                await this.withProgressInExplorer(
+                    `Moving '${basename(sourcePath)}'`,
+                    () =>
+                        moveFileIntoFolder(
+                            this.itemProvider,
+                            sourcePath,
+                            newPath,
+                            target,
+                            dirname(newPath),
+                            itemType,
+                            this.logger,
+                        ),
                 );
 
                 this.multiFileOperationNotifier.fire({
@@ -247,12 +252,17 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 return;
             }
 
-            await moveFolderIntoTargetFolder(
-                this.itemProvider,
-                sourcePath,
-                target,
-                FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
-                originalTreeItem.getSequence(),
+            await this.withProgressInExplorer(
+                `Moving '${basename(sourcePath)}'`,
+                () =>
+                    moveFolderIntoTargetFolder(
+                        this.itemProvider,
+                        sourcePath,
+                        target,
+                        FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+                        originalTreeItem.getSequence(),
+                        this.logger,
+                    ),
             );
             return;
         }
@@ -277,12 +287,25 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             return;
         }
 
-        await moveFolderIntoTargetFolder(
-            this.itemProvider,
-            sourcePath,
-            target,
-            pickedOption,
-            originalTreeItem.getSequence(),
+        await this.withProgressInExplorer(
+            `Moving '${basename(sourcePath)}'`,
+            () =>
+                moveFolderIntoTargetFolder(
+                    this.itemProvider,
+                    sourcePath,
+                    target,
+                    pickedOption,
+                    originalTreeItem.getSequence(),
+                    this.logger,
+                ),
+        );
+    }
+
+    /** Shows the progress bar of the collection explorer while the task is running. */
+    private withProgressInExplorer<T>(title: string, task: () => Promise<T>) {
+        return vscode.window.withProgress(
+            { location: { viewId: this.treeViewId }, title },
+            task,
         );
     }
 
@@ -517,61 +540,70 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     isFile &&
                     oldItem.getItemType() == BrunoFileType.RequestFile;
 
-                const renamed = await renameFileOrFolder(
-                    originalPath,
-                    newPath,
-                    isFile,
-                );
+                await this.withProgressInExplorer(
+                    `Renaming '${basename(originalPath)}'`,
+                    async () => {
+                        const renamed = await renameFileOrFolder(
+                            this.itemProvider,
+                            originalPath,
+                            newPath,
+                            isFile,
+                            this.logger,
+                        );
 
-                if (!renamed) {
-                    return;
-                }
+                        if (!renamed) {
+                            return;
+                        }
 
-                if (isRequestFile) {
-                    await replaceItemName(
-                        newPath,
-                        newItemName.replace(
-                            getFileExtensionForFormat(
+                        if (isRequestFile) {
+                            await replaceItemName(
+                                newPath,
+                                newItemName.replace(
+                                    getFileExtensionForFormat(
+                                        oldCollection.getFormat(),
+                                    ),
+                                    "",
+                                ),
+                                oldItem.getItemType(),
                                 oldCollection.getFormat(),
-                            ),
-                            "",
-                        ),
-                        oldItem.getItemType(),
-                        oldCollection.getFormat(),
-                    );
-                    return;
-                }
+                            );
+                            return;
+                        }
 
-                if (!isFile) {
-                    const folderSettingsPath = await getFolderSettingsFilePath(
-                        isCollectionRootFolder,
-                        newPath,
-                        oldCollection.getFormat(),
-                    );
+                        if (!isFile) {
+                            const folderSettingsPath =
+                                await getFolderSettingsFilePath(
+                                    isCollectionRootFolder,
+                                    newPath,
+                                    oldCollection.getFormat(),
+                                );
 
-                    if (folderSettingsPath) {
-                        await replaceItemName(
-                            folderSettingsPath,
-                            newItemName,
-                            oldItem.getItemType(),
-                            oldCollection.getFormat(),
-                        );
-                    }
+                            if (folderSettingsPath) {
+                                await replaceItemName(
+                                    folderSettingsPath,
+                                    newItemName,
+                                    oldItem.getItemType(),
+                                    oldCollection.getFormat(),
+                                );
+                            }
 
-                    if (
-                        isCollectionRootFolder &&
-                        oldCollection.getFormat() == CollectionFormat.Bru
-                    ) {
-                        await replaceNameInBrunoJson(
-                            getBrunoJsonFilePath(newPath),
-                            newItemName,
-                        );
-                    }
+                            if (
+                                isCollectionRootFolder &&
+                                oldCollection.getFormat() ==
+                                    CollectionFormat.Bru
+                            ) {
+                                await replaceNameInBrunoJson(
+                                    getBrunoJsonFilePath(newPath),
+                                    newItemName,
+                                );
+                            }
 
-                    if (isCollectionRootFolder) {
-                        await removeConfigForCollection(originalPath);
-                    }
-                }
+                            if (isCollectionRootFolder) {
+                                await removeConfigForCollection(originalPath);
+                            }
+                        }
+                    },
+                );
             },
         );
     }

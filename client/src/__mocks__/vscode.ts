@@ -55,16 +55,53 @@ const Uri = {
     file: (path: string) => ({ fsPath: path, scheme: "file", path }),
 };
 
-/** Does not record anything, since `applyEdit` does not apply any edits. Tests that need the edits to take effect have to write the files themselves. */
+class Position {
+    constructor(
+        public readonly line: number,
+        public readonly character: number,
+    ) {}
+}
+
+class Range {
+    constructor(
+        public readonly start: Position,
+        public readonly end: Position,
+    ) {}
+}
+
+/** `applyEdit` does not apply any edits. Tests that need the edits to take effect have to write the files themselves. The recorded entries can be used to check what would be applied. */
 class WorkspaceEdit {
+    readonly renames: { from: { fsPath: string }; to: { fsPath: string } }[] =
+        [];
+    readonly replacements: {
+        uri: { fsPath: string };
+        range: Range;
+        newText: string;
+    }[] = [];
+
     createFile(_uri: unknown, _options?: unknown) {}
+
+    renameFile(from: { fsPath: string }, to: { fsPath: string }) {
+        this.renames.push({ from, to });
+    }
+
+    replace(uri: { fsPath: string }, range: Range, newText: string) {
+        this.replacements.push({ uri, range, newText });
+    }
 }
 
 const workspace = {
     getConfiguration: () => ({ get: () => undefined }),
     workspaceFolders: undefined,
-    textDocuments: [] as { fileName: string; eol: number }[],
-    applyEdit: (_edit: unknown) => Promise.resolve(true),
+    textDocuments: [] as {
+        fileName: string;
+        eol: number;
+        uri: { fsPath: string };
+        isDirty: boolean;
+        getText: () => string;
+    }[],
+    applyEdit: (_edit: unknown, _metadata?: unknown) => Promise.resolve(true),
+    save: (_uri: unknown): Promise<unknown> => Promise.resolve(undefined),
 };
 
 const EndOfLine = {
@@ -94,6 +131,8 @@ export {
     EventEmitter,
     MarkdownString,
     Uri,
+    Position,
+    Range,
     workspace,
     WorkspaceEdit,
     window,

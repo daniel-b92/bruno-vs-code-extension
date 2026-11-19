@@ -14,6 +14,8 @@ export interface YamlScriptBlock {
     /** The raw lines of the literal block scalar (including the indentation) or the text of the single-line plain scalar. */
     content: string;
     contentRange: Range;
+    /** True if the script is defined as a single-line plain scalar. Only possible if `includeSingleLinePlainScalars` is set. */
+    isSingleLinePlainScalar: boolean;
 }
 
 export interface YamlScriptBlockOptions extends YamlParsingOptions {
@@ -91,15 +93,18 @@ function mapToBlock(
     }
 
     const { valueRange } = code;
+    const isSingleLinePlainScalar =
+        !code.isLiteralBlockScalar &&
+        includeSingleLinePlainScalars &&
+        code.isPlainScalar &&
+        valueRange.start.line == valueRange.end.line;
     const contentRange = code.isLiteralBlockScalar
         ? getBlockScalarContentRange(
               valueRange.start.line,
               valueRange.end,
               docHelper,
           )
-        : includeSingleLinePlainScalars &&
-            code.isPlainScalar &&
-            valueRange.start.line == valueRange.end.line
+        : isSingleLinePlainScalar
           ? valueRange
           : undefined;
 
@@ -112,5 +117,6 @@ function mapToBlock(
         scriptType: type.value,
         content: docHelper.getText(contentRange),
         contentRange,
+        isSingleLinePlainScalar,
     };
 }

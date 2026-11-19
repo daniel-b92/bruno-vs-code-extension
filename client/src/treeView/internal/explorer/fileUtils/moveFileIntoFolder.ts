@@ -1,4 +1,5 @@
 import { BrunoFileType, ItemType } from "@global_shared";
+import { Logger } from "@global_shared";
 import { TypedCollectionItemProvider, BrunoTreeItem } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
@@ -13,8 +14,15 @@ export async function moveFileIntoFolder(
     target: BrunoTreeItem,
     targetDirectoryForDragAndDrop: string,
     fileType: ItemType,
+    logger?: Logger,
 ) {
-    const wasSuccessful = await renameFileOrFolder(sourcePath, newPath, true);
+    const wasSuccessful = await renameFileOrFolder(
+        itemProvider,
+        sourcePath,
+        newPath,
+        true,
+        logger,
+    );
 
     if (!wasSuccessful) {
         showErrorMessageForFailedDragAndDrop(sourcePath);

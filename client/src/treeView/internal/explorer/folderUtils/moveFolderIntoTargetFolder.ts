@@ -1,5 +1,5 @@
 import { basename, dirname, resolve } from "path";
-import { normalizePath } from "@global_shared";
+import { Logger, normalizePath } from "@global_shared";
 import { TypedCollectionItemProvider, BrunoTreeItem } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
@@ -12,11 +12,14 @@ export async function moveFolderIntoTargetFolder(
     targetItem: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,
     originalItemSequence?: number,
+    logger?: Logger,
 ) {
     const movedSuccessfully = await moveFolderIfNecessary(
+        itemProvider,
         sourcePath,
         targetItem,
         insertionOption,
+        logger,
     );
 
     if (!movedSuccessfully) {
@@ -37,9 +40,11 @@ export async function moveFolderIntoTargetFolder(
 }
 
 async function moveFolderIfNecessary(
+    itemProvider: TypedCollectionItemProvider,
     sourcePath: string,
     targetItem: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,
+    logger?: Logger,
 ) {
     if (
         (insertionOption ==
@@ -55,11 +60,13 @@ async function moveFolderIfNecessary(
     }
 
     const wasSuccessful = await renameFileOrFolder(
+        itemProvider,
         sourcePath,
         insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
             ? resolve(targetItem.getPath(), basename(sourcePath))
             : resolve(dirname(targetItem.getPath()), basename(sourcePath)),
         false,
+        logger,
     );
 
     if (!wasSuccessful) {
