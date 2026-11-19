@@ -209,6 +209,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     target,
                     dirname(newPath),
                     itemType,
+                    this.logger,
                 );
 
                 this.multiFileOperationNotifier.fire({
@@ -253,6 +254,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 target,
                 FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
                 originalTreeItem.getSequence(),
+                this.logger,
             );
             return;
         }
@@ -283,6 +285,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             target,
             pickedOption,
             originalTreeItem.getSequence(),
+            this.logger,
         );
     }
 
@@ -518,9 +521,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     oldItem.getItemType() == BrunoFileType.RequestFile;
 
                 const renamed = await renameFileOrFolder(
+                    this.itemProvider,
                     originalPath,
                     newPath,
                     isFile,
+                    this.logger,
                 );
 
                 if (!renamed) {
