@@ -178,6 +178,19 @@ describe("getEditsForRunRequestPaths", () => {
                 join(root, "helpers/util2.js"),
                 true,
             ],
+            // E.g. when changing the sequence of a request via drag-and-drop within the same folder.
+            [
+                "a request that is moved to its own path",
+                join(root, `users/a${extension}`),
+                join(root, `users/a${extension}`),
+                true,
+            ],
+            [
+                "a folder that is moved to its own path",
+                join(root, "users"),
+                join(root, "users"),
+                false,
+            ],
         ])(
             "returns no edits for %s",
             async (_, sourcePath, targetPath, isFile) => {

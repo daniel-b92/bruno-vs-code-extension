@@ -7,6 +7,7 @@ import {
     ItemType,
     Logger,
     NonBrunoSpecificItemType,
+    normalizePath,
     Range,
 } from "@global_shared";
 import { TypedCollection } from "@shared";
@@ -48,6 +49,8 @@ export async function getEditsForRunRequestPaths(
 
     const relevantRenames = renames.filter(
         ({ sourcePath, targetPath, isFile }) =>
+            // E.g. when changing the sequence of a request via drag-and-drop within the same folder.
+            normalizePath(sourcePath) != normalizePath(targetPath) &&
             !collection.isRootDirectory(sourcePath) &&
             isPathEqualOrDescendant(sourcePath, rootDirectory) &&
             isPathEqualOrDescendant(targetPath, rootDirectory) &&
