@@ -13,6 +13,7 @@ import {
     getVariableScopeSectionKindForBlockName,
     getCodeBlocks,
     getScriptBlocksFromYamlFile,
+    YamlScriptBlockOptions,
     isDictionaryBlockSimpleField,
     parseBruFile,
 } from "../../../..";
@@ -24,18 +25,22 @@ export interface JsCodeBlock {
     contentRange: Range;
     executionGroup: BlockRuntimeExecutionGroup;
     isTestsBlock: boolean;
+    /** Only possible for Yaml files and only if `includeSingleLinePlainScalars` is set. The content range then does not consist of whole lines. */
+    isSingleLinePlainScalar: boolean;
 }
 
 export function getJsCodeBlocksFromFile(
     fileContent: string,
     itemType: ItemType,
     format: CollectionFormat,
+    /** Only relevant for Yaml files. */
+    yamlOptions?: YamlScriptBlockOptions,
 ): { requestType?: RequestType; blocks: JsCodeBlock[] } {
     const docHelper = new TextDocumentHelper(fileContent);
 
     return format == CollectionFormat.Bru
         ? getBlocksFromBruFile(docHelper, itemType)
-        : getBlocksFromYamlFile(docHelper, itemType);
+        : getBlocksFromYamlFile(docHelper, itemType, yamlOptions);
 }
 
 function getBlocksFromBruFile(
@@ -55,6 +60,7 @@ function getBlocksFromBruFile(
                     getVariableScopeSectionKindForBlockName(name),
                 ),
                 isTestsBlock: name == RequestFileBlockName.Tests,
+                isSingleLinePlainScalar: false,
             }),
         ),
     };
@@ -63,16 +69,24 @@ function getBlocksFromBruFile(
 function getBlocksFromYamlFile(
     docHelper: TextDocumentHelper,
     itemType: ItemType,
+    options?: YamlScriptBlockOptions,
 ) {
     const { requestType, blocks } = getScriptBlocksFromYamlFile(
         docHelper,
         itemType,
+        options,
     );
 
     return {
         requestType: requestType && mapToRequestType(requestType),
         blocks: blocks.map(
-            ({ name, content, contentRange, scriptType }): JsCodeBlock => ({
+            ({
+                name,
+                content,
+                contentRange,
+                scriptType,
+                isSingleLinePlainScalar,
+            }): JsCodeBlock => ({
                 name,
                 content,
                 contentRange,
@@ -81,6 +95,7 @@ function getBlocksFromYamlFile(
                         ? BlockRuntimeExecutionGroup.PreRequest
                         : BlockRuntimeExecutionGroup.PostResponse,
                 isTestsBlock: scriptType == ScriptType.Tests,
+                isSingleLinePlainScalar,
             }),
         ),
     };
