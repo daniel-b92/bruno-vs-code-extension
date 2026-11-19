@@ -6,7 +6,7 @@
 - Keep the existing sequences (`seq`) of other requests and folders when inserting, moving or deleting items in the collection explorer, instead of renumbering the whole folder to 1, 2, 3, ... This avoids unnecessary file changes.
     - A new or moved item gets a free sequence between its neighbors (e.g. 15 between 10 and 20). Only if there is none, the directly consecutive following items are shifted by 1, up to the next gap.
     - Items that are appended to the end of a folder get the highest sequence plus the configured step, and deleting or moving an item out of a folder does not change the sequences of the remaining items.
-    - The previous behavior can be restored with the new setting `bru-as-code.renumberSequencesAutomatically`.
+    - This changes the default behavior. The previous behavior can be restored by enabling the new setting `bru-as-code.renumberSequencesAutomatically`.
 - Add completions and hovers for Bruno's built-in dynamic variables (e.g. `{{$guid}}`, `{{$timestamp}}`, `{{$randomEmail}}`) in all sections with variable support, in `.bru` and `yaml` collection files. The completions are offered once `{{$` is typed, the hover shows the description and an example value.
 
 ### Fixes / Maintenance
