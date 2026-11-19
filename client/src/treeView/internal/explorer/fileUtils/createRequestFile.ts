@@ -22,6 +22,7 @@ import {
     getYamlParamsForUrl,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
+    getSequenceStepFromSettings,
 } from "@shared";
 import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
@@ -135,7 +136,7 @@ export async function createRequestFile(
             ((await getMaxSequenceForRequestsAndAppFiles(
                 itemProvider,
                 parentFolderPath,
-            )) ?? 0) + 1;
+            )) ?? 0) + getSequenceStepFromSettings();
 
         const requestType = pickedLabels[0] as RequestType;
         const url = sanitizeUrlForNewRequest(presets?.requestUrl ?? "");

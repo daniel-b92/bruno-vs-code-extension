@@ -23,6 +23,8 @@ import {
     FileSystemCacheSyncingHelper,
     removeConfigForCollection,
     BrunoTreeItem,
+    getSequenceStepFromSettings,
+    shouldRenumberSequencesAutomatically,
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
@@ -688,15 +690,22 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
                 // ToDo: Replace usage of item provider in called utility functions with passing collection as a parameter directly.
 
+                // Unless renumbering is enabled in the settings, the sequences of the remaining items are kept after a deletion.
+                const shouldRenumber = shouldRenumberSequencesAutomatically();
+                const sequenceStep = getSequenceStepFromSettings();
+
                 if (
                     (itemType == BrunoFileType.RequestFile ||
                         itemType == BrunoFileType.AppFile) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
-                    await normalizeSequencesForRequestsAndAppFiles(
-                        this.itemProvider,
-                        dirname(path),
-                    );
+                    if (shouldRenumber) {
+                        await normalizeSequencesForRequestsAndAppFiles(
+                            this.itemProvider,
+                            dirname(path),
+                            sequenceStep,
+                        );
+                    }
                 } else if (
                     (itemType == BrunoFileType.FolderSettingsFile ||
                         (!itemType &&
@@ -704,12 +713,15 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             treeItem.getSequence())) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
-                    normalizeSequencesForFolders(
-                        this.itemProvider,
-                        itemType == BrunoFileType.FolderSettingsFile
-                            ? dirname(dirname(path))
-                            : dirname(path),
-                    );
+                    if (shouldRenumber) {
+                        await normalizeSequencesForFolders(
+                            this.itemProvider,
+                            itemType == BrunoFileType.FolderSettingsFile
+                                ? dirname(dirname(path))
+                                : dirname(path),
+                            sequenceStep,
+                        );
+                    }
                 } else if (collection.isRootDirectory(treeItem.getPath())) {
                     await removeConfigForCollection(treeItem.getPath());
                 }

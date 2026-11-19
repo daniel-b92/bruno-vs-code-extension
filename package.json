@@ -156,7 +156,12 @@
                         100
                     ],
                     "default": 1,
-                    "markdownDescription": "Default sequence increment used by the collection explorer's Normalize sequences action."
+                    "markdownDescription": "Step between the sequences (`seq`) of consecutive requests and folders. It is used by the collection explorer's Normalize sequences action (as the preselected step), for items that are added at the end of a folder (e.g. new or duplicated requests and folders) and when sequences are renumbered automatically (see `bru-as-code.renumberSequencesAutomatically`)."
+                },
+                "bru-as-code.renumberSequencesAutomatically": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Renumber the sequences (`seq`) of all affected folders in the collection explorer after every insert (create, duplicate, paste, drag and drop), move and delete, so that they stay consecutive. If disabled, the sequences of all other items are kept whenever possible: A new or moved item gets a free sequence between its neighbors, and only if there is none, the directly consecutive following items are shifted by 1."
                 }
             }
         },

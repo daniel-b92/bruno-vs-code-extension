@@ -1,6 +1,6 @@
 import { afterEach } from "@jest/globals";
 import { mkdirSync, writeFileSync } from "fs";
-import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
 
@@ -51,4 +51,37 @@ export function writeFilesSync(
         mkdirSync(dirname(absolutePath), { recursive: true });
         writeFileSync(absolutePath, content, "utf-8");
     }
+}
+
+const unmodifiedTime = new Date("2000-01-01T00:00:00Z");
+
+/**
+ * Sets the modification time of the files (relative to the directory) to a fixed time in the past,
+ * so that it can be detected afterwards with `getModifiedFiles` whether they were written.
+ * Returns the absolute paths of the files.
+ */
+export async function markFilesAsUnmodified(
+    directory: string,
+    relativePaths: string[],
+) {
+    const paths = relativePaths.map((path) => join(directory, path));
+
+    for (const path of paths) {
+        await utimes(path, unmodifiedTime, unmodifiedTime);
+    }
+
+    return paths;
+}
+
+/** Returns those of the given files, whose modification time differs from the one that was set by `markFilesAsUnmodified`. */
+export async function getModifiedFiles(filePaths: string[]) {
+    const modified: string[] = [];
+
+    for (const path of filePaths) {
+        if ((await stat(path)).mtime.getTime() != unmodifiedTime.getTime()) {
+            modified.push(path);
+        }
+    }
+
+    return modified;
 }
