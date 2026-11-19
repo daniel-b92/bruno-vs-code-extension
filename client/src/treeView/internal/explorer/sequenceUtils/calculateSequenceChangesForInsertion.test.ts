@@ -86,6 +86,23 @@ describe("calculateSequenceChangesForInsertion", () => {
             });
         });
 
+        it("keeps the order of following items with sequences that are not integers", () => {
+            expect(after(items(["a", 1], ["b", 2], ["c", 2.5]), 1)).toEqual({
+                newSequence: 2,
+                shiftedItems: [
+                    { path: "b", sequence: 3 },
+                    { path: "c", sequence: 3.5 },
+                ],
+            });
+        });
+
+        it("does not shift items, if the following item has a sequence that is not an integer and the new one fits before it", () => {
+            expect(after(items(["a", 2], ["b", 3.5]), 2)).toEqual({
+                newSequence: 3,
+                shiftedItems: [],
+            });
+        });
+
         it("uses the sequence plus the step if the item is the last one", () => {
             expect(after(items(["a", 1], ["b", 2], ["c", 3]), 3, 1)).toEqual({
                 newSequence: 4,

@@ -2,7 +2,7 @@
 
 ### Features
 
-- Add a configurable, recursive sequence normalization action to the collection explorer. The preselected step can be set via the new setting `bru-as-code.sequenceStep`.
+- Add a configurable, recursive sequence normalization action to the collection explorer. The preselected step can be set via the new setting `bru-as-code.sequenceStep`. The step is also used for items that are added at the end of a folder (e.g. new or duplicated requests and folders) and when sequences are renumbered automatically.
 - Keep the existing sequences (`seq`) of other requests and folders when inserting, moving or deleting items in the collection explorer, instead of renumbering the whole folder to 1, 2, 3, ... This avoids unnecessary file changes.
     - A new or moved item gets a free sequence between its neighbors (e.g. 15 between 10 and 20). Only if there is none, the directly consecutive following items are shifted by 1, up to the next gap.
     - Items that are appended to the end of a folder get the highest sequence plus the configured step, and deleting or moving an item out of a folder does not change the sequences of the remaining items.

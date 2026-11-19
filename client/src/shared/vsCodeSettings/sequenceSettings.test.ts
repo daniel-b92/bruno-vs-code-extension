@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
-import { workspace } from "vscode";
+import { mockVsCodeSettings } from "../../_testingUtils";
 import {
     getSequenceStepFromSettings,
     shouldRenumberSequencesAutomatically,
@@ -12,7 +12,7 @@ describe("sequenceSettings", () => {
 
     describe("getSequenceStepFromSettings", () => {
         it("returns the configured step", () => {
-            mockSettings({ "bru-as-code.sequenceStep": 10 });
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
 
             expect(getSequenceStepFromSettings()).toBe(10);
         });
@@ -20,7 +20,7 @@ describe("sequenceSettings", () => {
         it.each([undefined, 0, -5, 2.5, "10", null, "\n"])(
             "falls back to 1 for the invalid value %p",
             (value) => {
-                mockSettings({ "bru-as-code.sequenceStep": value });
+                mockVsCodeSettings({ "bru-as-code.sequenceStep": value });
 
                 expect(getSequenceStepFromSettings()).toBe(1);
             },
@@ -29,13 +29,13 @@ describe("sequenceSettings", () => {
 
     describe("shouldRenumberSequencesAutomatically", () => {
         it("is disabled by default", () => {
-            mockSettings({});
+            mockVsCodeSettings({});
 
             expect(shouldRenumberSequencesAutomatically()).toBe(false);
         });
 
         it("is enabled if the setting is `true`", () => {
-            mockSettings({
+            mockVsCodeSettings({
                 "bru-as-code.renumberSequencesAutomatically": true,
             });
 
@@ -43,7 +43,7 @@ describe("sequenceSettings", () => {
         });
 
         it("is disabled for values that are not a boolean", () => {
-            mockSettings({
+            mockVsCodeSettings({
                 "bru-as-code.renumberSequencesAutomatically": "true",
             });
 
@@ -51,9 +51,3 @@ describe("sequenceSettings", () => {
         });
     });
 });
-
-function mockSettings(settings: Record<string, unknown>) {
-    jest.spyOn(workspace, "getConfiguration").mockReturnValue({
-        get: (key: string) => settings[key],
-    } as never);
-}

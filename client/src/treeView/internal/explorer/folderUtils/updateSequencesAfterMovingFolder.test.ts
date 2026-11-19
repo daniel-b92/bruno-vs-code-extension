@@ -1,20 +1,26 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
-import { readFile, stat, utimes } from "fs/promises";
-import { join } from "path";
-import { workspace } from "vscode";
-import { CollectionDirectory, CollectionFormat } from "@global_shared";
+import { readdir, readFile } from "fs/promises";
+import { basename, dirname, join } from "path";
+import {
+    CollectionDirectory,
+    CollectionFormat,
+    getFileExtensionForFormat,
+    parseSequenceFromFile,
+} from "@global_shared";
 import {
     createCollectionWithItems,
     createItemProviderStub,
+    getModifiedFiles,
+    markFilesAsUnmodified,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
+import { mockVsCodeSettings } from "../../../../_testingUtils";
 import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
 
 describe("updateSequencesAfterMovingFolder", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
-    const unmodifiedTime = new Date("2000-01-01T00:00:00Z");
 
     afterEach(() => {
         jest.restoreAllMocks();
@@ -23,11 +29,11 @@ describe("updateSequencesAfterMovingFolder", () => {
     describe("moving into a target folder", () => {
         it("appends the folder with the highest sequence plus one, without changing other folders", async () => {
             const directory = await createFoldersForMovingIntoTarget();
-            const unmodifiedFolders = await markAsUnmodified(directory, [
-                "target/s1",
-                "target/s2",
-                "old/a",
-                "old/b",
+            const unmodifiedFolders = await markFilesAsUnmodified(directory, [
+                "target/s1/folder.bru",
+                "target/s2/folder.bru",
+                "old/a/folder.bru",
+                "old/b/folder.bru",
             ]);
 
             await moveIntoTarget(directory);
@@ -40,13 +46,11 @@ describe("updateSequencesAfterMovingFolder", () => {
                 "old/a": 2,
                 "old/b": 5,
             });
-            expect(
-                await getModifiedFolders(directory, unmodifiedFolders),
-            ).toEqual([]);
+            expect(await getModifiedFiles(unmodifiedFolders)).toEqual([]);
         });
 
         it("appends the folder with the highest sequence plus the configured step", async () => {
-            mockSettings({ "bru-as-code.sequenceStep": 10 });
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
             const directory = await createFoldersForMovingIntoTarget();
 
             await moveIntoTarget(directory);
@@ -55,7 +59,7 @@ describe("updateSequencesAfterMovingFolder", () => {
         });
 
         it("renumbers the target folder and the old parent with the configured step, if enabled", async () => {
-            mockSettings({
+            mockVsCodeSettings({
                 "bru-as-code.renumberSequencesAutomatically": true,
                 "bru-as-code.sequenceStep": 10,
             });
@@ -76,9 +80,9 @@ describe("updateSequencesAfterMovingFolder", () => {
     describe("inserting before or after a target folder within the same parent", () => {
         it("only changes the sequence of the moved folder, if there is a gap", async () => {
             const directory = await createFoldersForReordering([10, 20, 30]);
-            const unmodifiedFolders = await markAsUnmodified(directory, [
-                "f1",
-                "f2",
+            const unmodifiedFolders = await markFilesAsUnmodified(directory, [
+                "f1/folder.bru",
+                "f2/folder.bru",
             ]);
 
             await moveWithinParent(
@@ -93,9 +97,7 @@ describe("updateSequencesAfterMovingFolder", () => {
                 f3: 15,
                 f2: 20,
             });
-            expect(
-                await getModifiedFolders(directory, unmodifiedFolders),
-            ).toEqual([]);
+            expect(await getModifiedFiles(unmodifiedFolders)).toEqual([]);
         });
 
         it("inserts after the target folder", async () => {
@@ -134,7 +136,7 @@ describe("updateSequencesAfterMovingFolder", () => {
         });
 
         it("uses the highest sequence plus the step when moving behind the last folder", async () => {
-            mockSettings({ "bru-as-code.sequenceStep": 10 });
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
             const directory = await createFoldersForReordering([10, 20, 30]);
 
             await moveWithinParent(
@@ -148,7 +150,7 @@ describe("updateSequencesAfterMovingFolder", () => {
         });
 
         it("renumbers the parent folder with the configured step, if enabled", async () => {
-            mockSettings({
+            mockVsCodeSettings({
                 "bru-as-code.renumberSequencesAutomatically": true,
                 "bru-as-code.sequenceStep": 5,
             });
@@ -165,6 +167,63 @@ describe("updateSequencesAfterMovingFolder", () => {
                 f1: 5,
                 f3: 10,
                 f2: 15,
+            });
+        });
+    });
+
+    describe("with a yaml collection", () => {
+        const format = CollectionFormat.Yaml;
+
+        it("only changes the sequence of the moved folder, if there is a gap", async () => {
+            const directory = await createTemporaryDirectory({
+                "f1/folder.yml": folderSettingsFile("f1", 10, format),
+                "f2/folder.yml": folderSettingsFile("f2", 20, format),
+                "f3/folder.yml": folderSettingsFile("f3", 30, format),
+            });
+            const unmodifiedFolders = await markFilesAsUnmodified(directory, [
+                "f1/folder.yml",
+                "f2/folder.yml",
+            ]);
+
+            await moveWithinParent(
+                directory,
+                "f3",
+                { folder: "f2", sequence: 20 },
+                FolderDropInsertionOption.InsertBeforeTarget,
+                format,
+            );
+
+            expect(await getSequences(directory, format)).toEqual({
+                f1: 10,
+                f3: 15,
+                f2: 20,
+            });
+            expect(await getModifiedFiles(unmodifiedFolders)).toEqual([]);
+        });
+
+        it("only shifts the directly consecutive following folders, if there is no gap", async () => {
+            const directory = await createTemporaryDirectory({
+                "f1/folder.yml": folderSettingsFile("f1", 1, format),
+                "f2/folder.yml": folderSettingsFile("f2", 2, format),
+                "f3/folder.yml": folderSettingsFile("f3", 3, format),
+                "f4/folder.yml": folderSettingsFile("f4", 10, format),
+                "f5/folder.yml": folderSettingsFile("f5", 11, format),
+            });
+
+            await moveWithinParent(
+                directory,
+                "f5",
+                { folder: "f1", sequence: 1 },
+                FolderDropInsertionOption.InsertAfterTarget,
+                format,
+            );
+
+            expect(await getSequences(directory, format)).toEqual({
+                f1: 1,
+                f5: 2,
+                f2: 3,
+                f3: 4,
+                f4: 10,
             });
         });
     });
@@ -278,50 +337,28 @@ describe("updateSequencesAfterMovingFolder", () => {
         movedFolder: string,
         target: { folder: string; sequence: number },
         insertionOption: FolderDropInsertionOption,
+        format = CollectionFormat.Bru,
     ) {
         await updateSequencesAfterMovingFolder(
             createItemProviderStub<TypedCollectionItemProvider>(
                 directory,
-                CollectionFormat.Bru,
+                format,
             ),
             join(directory, movedFolder),
             treeItem(join(directory, target.folder), target.sequence),
             insertionOption,
         );
     }
-
-    /** Sets the modification time of the folder settings files to a fixed time in the past, so that it can be detected afterwards whether they were written. */
-    async function markAsUnmodified(directory: string, folders: string[]) {
-        for (const folder of folders) {
-            await utimes(
-                join(directory, folder, "folder.bru"),
-                unmodifiedTime,
-                unmodifiedTime,
-            );
-        }
-
-        return folders;
-    }
-
-    async function getModifiedFolders(directory: string, folders: string[]) {
-        const modified: string[] = [];
-
-        for (const folder of folders) {
-            if (
-                (
-                    await stat(join(directory, folder, "folder.bru"))
-                ).mtime.getTime() != unmodifiedTime.getTime()
-            ) {
-                modified.push(folder);
-            }
-        }
-
-        return modified;
-    }
 });
 
-function folderSettingsFile(name: string, sequence: number) {
-    return `meta {\n  name: ${name}\n  seq: ${sequence}\n}\n`;
+function folderSettingsFile(
+    name: string,
+    sequence: number,
+    format = CollectionFormat.Bru,
+) {
+    return format == CollectionFormat.Yaml
+        ? `info:\n  name: ${name}\n  type: folder\n  seq: ${sequence}\n`
+        : `meta {\n  name: ${name}\n  seq: ${sequence}\n}\n`;
 }
 
 function treeItem(path: string, sequence?: number) {
@@ -331,28 +368,16 @@ function treeItem(path: string, sequence?: number) {
     } as unknown as BrunoTreeItem;
 }
 
-function mockSettings(settings: Record<string, unknown>) {
-    jest.spyOn(workspace, "getConfiguration").mockReturnValue({
-        get: (key: string) => settings[key],
-    } as never);
-}
+/** Returns the sequences of all folders below the directory that have a settings file (keys are the relative folder paths). */
+async function getSequences(directory: string, format = CollectionFormat.Bru) {
+    const settingsFileName = `folder${getFileExtensionForFormat(format)}`;
+    const sequences: Record<string, number | undefined> = {};
 
-/** Returns the sequences of the given folders (keys are relative folder paths), by default of all folders that contain a `folder.bru` file. */
-async function getSequences(directory: string) {
-    const folders = [
-        ...["f1", "f2", "f3", "f4"],
-        ...["target/s1", "target/s2", "target/moved", "old/a", "old/b"],
-    ];
-    const sequences: Record<string, number> = {};
-
-    for (const folder of folders) {
-        const content = await readFile(
-            join(directory, folder, "folder.bru"),
-            "utf-8",
-        ).catch(() => undefined);
-
-        if (content !== undefined) {
-            sequences[folder] = Number(/seq: (-?\d+)/.exec(content)?.[1]);
+    for (const relativePath of await readdir(directory, { recursive: true })) {
+        if (basename(relativePath) == settingsFileName) {
+            sequences[dirname(relativePath)] = await parseSequenceFromFile(
+                join(directory, relativePath),
+            );
         }
     }
 

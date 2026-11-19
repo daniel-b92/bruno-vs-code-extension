@@ -86,28 +86,21 @@ function insertBetween(
     }
 
     const newSequence = previousSequence + 1;
-    const itemsBySequence = new Map<number, SequencedItem[]>();
-
-    for (const item of existingItems) {
-        itemsBySequence.set(item.sequence, [
-            ...(itemsBySequence.get(item.sequence) ?? []),
-            item,
-        ]);
-    }
-
     const shiftedItems: SequencedItem[] = [];
 
-    // Every item that occupies the sequence needed by the previous one is shifted, until a gap is reached.
-    for (
-        let occupied = newSequence;
-        itemsBySequence.has(occupied);
-        occupied++
-    ) {
-        shiftedItems.push(
-            ...(itemsBySequence.get(occupied) as SequencedItem[]).map(
-                ({ path }) => ({ path, sequence: occupied + 1 }),
-            ),
-        );
+    // The following items are shifted by 1 one after another, as long as they would otherwise not be behind the previous one anymore.
+    // Sequences are not necessarily integers (e.g. in hand-edited files), so comparing to the last assigned sequence keeps the order in any case.
+    let lastAssigned = newSequence;
+
+    for (const { path, sequence } of [...existingItems]
+        .filter((item) => item.sequence >= nextSequence)
+        .sort((a, b) => a.sequence - b.sequence)) {
+        if (sequence > lastAssigned) {
+            break;
+        }
+
+        lastAssigned = sequence + 1;
+        shiftedItems.push({ path, sequence: lastAssigned });
     }
 
     return { newSequence, shiftedItems };

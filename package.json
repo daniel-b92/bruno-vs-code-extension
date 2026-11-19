@@ -156,7 +156,7 @@
                         100
                     ],
                     "default": 1,
-                    "markdownDescription": "Default sequence increment used by the collection explorer's Normalize sequences action."
+                    "markdownDescription": "Step between the sequences (`seq`) of consecutive requests and folders. It is used by the collection explorer's Normalize sequences action (as the preselected step), for items that are added at the end of a folder (e.g. new or duplicated requests and folders) and when sequences are renumbered automatically (see `bru-as-code.renumberSequencesAutomatically`)."
                 },
                 "bru-as-code.renumberSequencesAutomatically": {
                     "type": "boolean",
