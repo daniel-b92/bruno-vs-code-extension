@@ -67,7 +67,7 @@
         "acorn": "^8.16.0",
         "eslint": "^10.14.0",
         "eslint-import-resolver-typescript": "^4.3.0",
-        "eslint-plugin-boundaries": "^7.2.0",
+        "eslint-plugin-boundaries": "^7.4.3",
         "evt": "^2.5.9",
         "glob": "^13.0.1",
         "jest": "^30.4.2",
