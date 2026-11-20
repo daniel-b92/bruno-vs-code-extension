@@ -2,7 +2,11 @@ import {
     Block,
     BlockBracket,
     BrunoFileType,
+    EnvironmentFileTopLevelField,
     getDefaultIndentationForDictionaryBlockFields,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    MetaBlockKey,
+    RequestFileBlockName,
     LineBreakType,
     Position,
     Range,
@@ -17,11 +21,13 @@ import {
     InsertTextFormat,
     TextEdit,
 } from "vscode-languageserver";
+import { getAvailableEnvironmentNamesForExtends } from "../../shared/getAvailableEnvironmentNamesForExtends";
 import { MissingBlock } from "../shared/interfaces";
 import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
-import { findBlockEnd } from "../../../../shared/fileParsing/internal/findBlockEnd";
 import { getDictionaryBlockSnippetInsertionContent } from "./dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent";
+import { getTextEditForDictionaryBlockSimpleValue } from "./dictionaryBlocks/generic/getTextEditForDictionaryBlockSimpleValue";
+import { escapeSnippetChoiceOption } from "../../shared/escapeSnippetChoiceOption";
 
 interface BlockData {
     blockName: string;
@@ -34,7 +40,21 @@ export function getCompletionsForPositionOutsideOfBlocks(
     allBlocks: Block[],
     collection: TypedCollection,
 ): CompletionItem[] | undefined {
-    const { position, documentHelper } = request;
+    const { position, documentHelper, filePath } = request;
+
+    if (fileType == BrunoFileType.EnvironmentFile) {
+        const extendsValueCompletions = getCompletionsForExtendsFieldValue(
+            position,
+            documentHelper,
+            filePath,
+            collection,
+        );
+
+        if (extendsValueCompletions) {
+            return extendsValueCompletions;
+        }
+    }
+
     const startLineData = parseBlockStartLine(position, documentHelper);
 
     if (
@@ -58,14 +78,13 @@ export function getCompletionsForPositionOutsideOfBlocks(
     );
 
     const allMissingBlocks = mapToBlockData(
-        request,
         missingMandatoryBlocks.concat(missingOptionalBlocks),
     );
     const filteredItems = openingBracket
         ? filterOutNonMatchingBlockTypes(allMissingBlocks, openingBracket)
         : allMissingBlocks;
 
-    return mapToCompletionItems(request, {
+    const completionItems = mapToCompletionItems(request, {
         validBlocks: filteredItems,
         blocksRequiringAdditionalTextEdits: blocksThatCannotBeOptional
             .filter(
@@ -78,10 +97,105 @@ export function getCompletionsForPositionOutsideOfBlocks(
             })),
         fileType,
         collection,
+        requestType: getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+            allBlocks,
+            RequestFileBlockName.Meta,
+            MetaBlockKey.Type,
+        )?.value,
         blockStartBracketPosition: openingBracketIndex
             ? new Position(position.line, openingBracketIndex)
             : undefined,
     });
+
+    if (
+        fileType != BrunoFileType.EnvironmentFile ||
+        openingBracket ||
+        documentAlreadyHasExtendsField(documentHelper)
+    ) {
+        return completionItems;
+    }
+
+    const extendsKeyCompletion = getExtendsKeyCompletionItem(
+        documentHelper,
+        position.line,
+        filePath,
+        collection,
+    );
+
+    return extendsKeyCompletion
+        ? completionItems.concat(extendsKeyCompletion)
+        : completionItems;
+}
+
+function documentAlreadyHasExtendsField(documentHelper: TextDocumentHelper) {
+    const pattern = new RegExp(
+        `^\\s*${EnvironmentFileTopLevelField.Extends}\\s*:`,
+    );
+
+    return documentHelper
+        .getAllLines()
+        .some(({ content }) => pattern.test(content));
+}
+
+function getExtendsKeyCompletionItem(
+    documentHelper: TextDocumentHelper,
+    lineIndex: number,
+    filePath: string,
+    collection: TypedCollection,
+): CompletionItem | undefined {
+    const fullLineRange = documentHelper.getRangeForLine(lineIndex);
+
+    if (!fullLineRange) {
+        return undefined;
+    }
+
+    const availableEnvironmentNames = getAvailableEnvironmentNamesForExtends(
+        filePath,
+        collection,
+    );
+
+    const valuePlaceholder =
+        availableEnvironmentNames.length > 0
+            ? `\${1|${availableEnvironmentNames.map(escapeSnippetChoiceOption).join(",")}|}`
+            : "${0}";
+
+    return {
+        label: EnvironmentFileTopLevelField.Extends,
+        textEdit: {
+            newText: `${EnvironmentFileTopLevelField.Extends}: ${valuePlaceholder}`,
+            range: fullLineRange,
+        },
+        insertTextFormat: InsertTextFormat.Snippet,
+        sortText: `b_${EnvironmentFileTopLevelField.Extends}`,
+        labelDetails: { description: "optional" },
+    };
+}
+
+function getCompletionsForExtendsFieldValue(
+    position: Position,
+    documentHelper: TextDocumentHelper,
+    filePath: string,
+    collection: TypedCollection,
+): CompletionItem[] | undefined {
+    const currentLineContent = documentHelper.getLineByIndex(position.line);
+    const match = new RegExp(
+        `^\\s*${EnvironmentFileTopLevelField.Extends}\\s*:\\s*`,
+    ).exec(currentLineContent);
+
+    if (!match || position.character < match[0].length) {
+        return undefined;
+    }
+
+    return getAvailableEnvironmentNamesForExtends(filePath, collection).map(
+        (environmentName) => ({
+            label: environmentName,
+            textEdit: getTextEditForDictionaryBlockSimpleValue(
+                position.line,
+                currentLineContent,
+                environmentName,
+            ),
+        }),
+    );
 }
 
 function parseBlockStartLine(
@@ -130,6 +244,7 @@ function mapToCompletionItems(
         }[];
         fileType: BrunoFileType;
         collection: TypedCollection;
+        requestType?: string;
         blockStartBracketPosition?: Position;
     },
 ): CompletionItem[] {
@@ -138,6 +253,7 @@ function mapToCompletionItems(
         blocksRequiringAdditionalTextEdits,
         collection,
         fileType,
+        requestType,
         blockStartBracketPosition,
     } = additionalData;
     return validBlocks
@@ -151,6 +267,7 @@ function mapToCompletionItems(
                 blockName,
                 fileType,
                 collection,
+                requestType,
                 blockStartBracketPosition,
             );
 
@@ -181,6 +298,7 @@ function getTextEditWithInsertFormat(
     blockName: string,
     fileType: BrunoFileType,
     collection: TypedCollection,
+    requestType?: string,
     blockStartBracketPosition?: Position,
 ):
     | { textEdit: TextEdit | undefined; insertTextFormat?: InsertTextFormat }
@@ -229,6 +347,7 @@ function getTextEditWithInsertFormat(
                               fileType,
                               collection,
                               lineBreak,
+                              requestType,
                           },
                           fileType == BrunoFileType.CollectionSettingsFile,
                       ) ?? defaultContent)
@@ -241,30 +360,17 @@ function getTextEditWithInsertFormat(
     };
 }
 
-function mapToBlockData(
-    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
-    missingBlocks: MissingBlock[],
-) {
+function mapToBlockData(missingBlocks: MissingBlock[]): BlockData[] {
     return missingBlocks.flatMap((entry) =>
         "mutuallyExclusiveBlocks" in entry
             ? entry.mutuallyExclusiveBlocks.map((name) => ({
                   blockName: name,
                   mandatory: entry.mandatory,
-                  endPosition: findBlockEnd(
-                      documentHelper,
-                      line + 1,
-                      shouldBeArrayBlock(name),
-                  ),
               }))
             : [
                   {
                       blockName: entry.name,
                       mandatory: entry.mandatory,
-                      endPosition: findBlockEnd(
-                          documentHelper,
-                          line + 1,
-                          shouldBeArrayBlock(entry.name),
-                      ),
                   },
               ],
     );

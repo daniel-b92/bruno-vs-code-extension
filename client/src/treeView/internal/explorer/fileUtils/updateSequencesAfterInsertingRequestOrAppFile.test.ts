@@ -1,0 +1,394 @@
+import { describe, it, expect, jest, afterEach } from "@jest/globals";
+import { readdir } from "fs/promises";
+import { join } from "path";
+import {
+    CollectionDirectory,
+    CollectionFormat,
+    getFileExtensionForFormat,
+    parseSequenceFromFile,
+} from "@global_shared";
+import {
+    createCollectionWithItems,
+    getModifiedFiles,
+    markFilesAsUnmodified,
+    useTemporaryDirectories,
+} from "@global_shared/_testingUtils";
+import { mockVsCodeSettings } from "../../../../_testingUtils";
+import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
+import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
+import {
+    FileInsertionPosition,
+    RequestFileInsertionPositionType,
+} from "./interfaces";
+
+describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    describe("with the default settings", () => {
+        it("only changes the sequence of the inserted file, if there is a gap after the target", async () => {
+            const directory = await createTemporaryDirectory({
+                "get-user.bru": requestFile("get-user", 10),
+                "create-user.bru": requestFile("create-user", 20),
+                "delete-user.bru": requestFile("delete-user", 30),
+                "new.bru": requestFile("new", 10),
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "get-user.bru",
+                "create-user.bru",
+                "delete-user.bru",
+            ]);
+
+            await runUpdate(directory, afterFile(10), "new.bru");
+
+            expect(await getSequences(directory)).toEqual({
+                "get-user.bru": 10,
+                "new.bru": 15,
+                "create-user.bru": 20,
+                "delete-user.bru": 30,
+            });
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        });
+
+        it("only shifts the directly consecutive following files, if there is no gap after the target", async () => {
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 1),
+                "b.bru": requestFile("b", 2),
+                "c.bru": requestFile("c", 3),
+                "d.bru": requestFile("d", 10),
+                "new.bru": requestFile("new", 1),
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "a.bru",
+                "d.bru",
+            ]);
+
+            await runUpdate(directory, afterFile(1), "new.bru");
+
+            expect(await getSequences(directory)).toEqual({
+                "a.bru": 1,
+                "new.bru": 2,
+                "b.bru": 3,
+                "c.bru": 4,
+                "d.bru": 10,
+            });
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        });
+
+        it("considers app files like request files", async () => {
+            const directory = await createTemporaryDirectory({
+                "app.bru": "meta {\n  name: app\n  type: app\n  seq: 2\n}\n",
+                "b.bru": requestFile("b", 3),
+                "new.bru": requestFile("new", 1),
+            });
+
+            await runUpdate(directory, afterFile(2), "new.bru");
+
+            expect(await getSequences(directory)).toEqual({
+                "app.bru": 2,
+                "new.bru": 3,
+                "b.bru": 4,
+            });
+        });
+
+        it("appends the file with the highest sequence plus one, if the target is a folder", async () => {
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 1),
+                "b.bru": requestFile("b", 7),
+                "new.bru": requestFile("new", 1),
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "a.bru",
+                "b.bru",
+            ]);
+
+            await runUpdate(
+                directory,
+                RequestFileInsertionPositionType.Folder,
+                "new.bru",
+            );
+
+            expect((await getSequences(directory))["new.bru"]).toBe(8);
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        });
+
+        it("appends the file with the highest sequence plus the configured step", async () => {
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 10),
+                "b.bru": requestFile("b", 20),
+                "new.bru": requestFile("new", 1),
+            });
+
+            await runUpdate(
+                directory,
+                RequestFileInsertionPositionType.Folder,
+                "new.bru",
+            );
+
+            expect((await getSequences(directory))["new.bru"]).toBe(30);
+        });
+
+        it("uses the sequence of the target plus the step, if the target is the last file", async () => {
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 10),
+                "b.bru": requestFile("b", 20),
+                "new.bru": requestFile("new", 1),
+            });
+
+            await runUpdate(directory, afterFile(20), "new.bru");
+
+            expect((await getSequences(directory))["new.bru"]).toBe(30);
+        });
+
+        it("ignores the previous sequence of a file that is moved within its directory", async () => {
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 1),
+                "b.bru": requestFile("b", 2),
+                "c.bru": requestFile("c", 3),
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "b.bru",
+                "c.bru",
+            ]);
+
+            // Moves `a` behind `c`.
+            await runUpdate(directory, afterFile(3), "a.bru");
+
+            expect(await getSequences(directory)).toEqual({
+                "b.bru": 2,
+                "c.bru": 3,
+                "a.bru": 4,
+            });
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        });
+
+        it("reorders files within a directory by only shifting the necessary files", async () => {
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 1),
+                "b.bru": requestFile("b", 2),
+                "c.bru": requestFile("c", 3),
+            });
+
+            // Moves `c` behind `a`.
+            await runUpdate(directory, afterFile(1), "c.bru");
+
+            expect(await getSequences(directory)).toEqual({
+                "a.bru": 1,
+                "c.bru": 2,
+                "b.bru": 3,
+            });
+        });
+
+        it("does not modify the files of the directory that the file was moved away from", async () => {
+            const { directory, otherDirectory, itemProvider } =
+                await createDirectoriesForMovingFile();
+            const unmodifiedFiles = await markFilesAsUnmodified(
+                otherDirectory,
+                ["x.bru", "z.bru"],
+            );
+
+            await updateSequencesAfterInsertingRequestOrAppFile(
+                itemProvider,
+                RequestFileInsertionPositionType.Folder,
+                join(directory, "new.bru"),
+                { targetDirectory: directory, otherDirectory },
+            );
+
+            expect(await getSequences(otherDirectory)).toEqual({
+                "x.bru": 1,
+                "z.bru": 3,
+            });
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        });
+    });
+
+    describe("with a yaml collection", () => {
+        const format = CollectionFormat.Yaml;
+
+        it("only changes the sequence of the inserted file, if there is a gap after the target", async () => {
+            const directory = await createTemporaryDirectory({
+                "get-user.yml": requestFile("get-user", 10, format),
+                "create-user.yml": requestFile("create-user", 20, format),
+                "new.yml": requestFile("new", 10, format),
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "get-user.yml",
+                "create-user.yml",
+            ]);
+
+            await runUpdate(directory, afterFile(10), "new.yml", format);
+
+            expect(await getSequences(directory)).toEqual({
+                "get-user.yml": 10,
+                "new.yml": 15,
+                "create-user.yml": 20,
+            });
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        });
+
+        it("only shifts the directly consecutive following files, if there is no gap after the target", async () => {
+            const directory = await createTemporaryDirectory({
+                "a.yml": requestFile("a", 1, format),
+                "b.yml": requestFile("b", 2, format),
+                "c.yml": requestFile("c", 3, format),
+                "d.yml": requestFile("d", 10, format),
+                "new.yml": requestFile("new", 1, format),
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "a.yml",
+                "d.yml",
+            ]);
+
+            await runUpdate(directory, afterFile(1), "new.yml", format);
+
+            expect(await getSequences(directory)).toEqual({
+                "a.yml": 1,
+                "new.yml": 2,
+                "b.yml": 3,
+                "c.yml": 4,
+                "d.yml": 10,
+            });
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        });
+
+        it("appends the file with the highest sequence plus the configured step, if the target is a folder", async () => {
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+            const directory = await createTemporaryDirectory({
+                "a.yml": requestFile("a", 10, format),
+                "b.yml": requestFile("b", 20, format),
+                "new.yml": requestFile("new", 1, format),
+            });
+
+            await runUpdate(
+                directory,
+                RequestFileInsertionPositionType.Folder,
+                "new.yml",
+                format,
+            );
+
+            expect((await getSequences(directory))["new.yml"]).toBe(30);
+        });
+    });
+
+    describe("with automatic renumbering enabled", () => {
+        it("renumbers the target directory with the configured step", async () => {
+            mockVsCodeSettings({
+                "bru-as-code.renumberSequencesAutomatically": true,
+                "bru-as-code.sequenceStep": 10,
+            });
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 3),
+                "b.bru": requestFile("b", 40),
+                "new.bru": requestFile("new", 1),
+            });
+
+            await runUpdate(directory, afterFile(3), "new.bru");
+
+            expect(await getSequences(directory)).toEqual({
+                "a.bru": 10,
+                "new.bru": 20,
+                "b.bru": 30,
+            });
+        });
+
+        it("renumbers the directory that the file was moved away from", async () => {
+            mockVsCodeSettings({
+                "bru-as-code.renumberSequencesAutomatically": true,
+            });
+            const { directory, otherDirectory, itemProvider } =
+                await createDirectoriesForMovingFile();
+
+            await updateSequencesAfterInsertingRequestOrAppFile(
+                itemProvider,
+                RequestFileInsertionPositionType.Folder,
+                join(directory, "new.bru"),
+                { targetDirectory: directory, otherDirectory },
+            );
+
+            expect(await getSequences(otherDirectory)).toEqual({
+                "x.bru": 1,
+                "z.bru": 2,
+            });
+        });
+    });
+
+    async function createDirectoriesForMovingFile() {
+        const directory = await createTemporaryDirectory({
+            "a.bru": requestFile("a", 1),
+            "new.bru": requestFile("new", 2),
+            // The file with the sequence 2 has already been moved away.
+            "other/x.bru": requestFile("x", 1),
+            "other/z.bru": requestFile("z", 3),
+        });
+        const otherDirectory = join(directory, "other");
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [new CollectionDirectory(otherDirectory)],
+                CollectionFormat.Bru,
+                [],
+                directory,
+            );
+
+        return { directory, otherDirectory, itemProvider };
+    }
+
+    async function runUpdate(
+        directory: string,
+        targetPosition: FileInsertionPosition,
+        newFileName: string,
+        format = CollectionFormat.Bru,
+    ) {
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [],
+                format,
+                [],
+                directory,
+            );
+
+        await updateSequencesAfterInsertingRequestOrAppFile(
+            itemProvider,
+            targetPosition,
+            join(directory, newFileName),
+            { targetDirectory: directory },
+        );
+    }
+});
+
+function requestFile(
+    name: string,
+    sequence: number,
+    format = CollectionFormat.Bru,
+) {
+    return format == CollectionFormat.Yaml
+        ? `info:\n  name: ${name}\n  type: http\n  seq: ${sequence}\n\nhttp:\n  method: GET\n  url: ""\n`
+        : `meta {\n  name: ${name}\n  type: http\n  seq: ${sequence}\n}\n`;
+}
+
+function afterFile(sequence: number): FileInsertionPosition {
+    return {
+        type: RequestFileInsertionPositionType.AfterFile,
+        item: { getSequence: () => sequence } as unknown as BrunoTreeItem,
+    };
+}
+
+/** Returns the sequences of all request files in the directory (keys are the file names). */
+async function getSequences(directory: string) {
+    const sequences: Record<string, number | undefined> = {};
+    const extensions = [CollectionFormat.Bru, CollectionFormat.Yaml].map(
+        getFileExtensionForFormat,
+    );
+
+    for (const name of (await readdir(directory)).filter((name) =>
+        extensions.some((extension) => name.endsWith(extension)),
+    )) {
+        sequences[name] = await parseSequenceFromFile(join(directory, name));
+    }
+
+    return sequences;
+}

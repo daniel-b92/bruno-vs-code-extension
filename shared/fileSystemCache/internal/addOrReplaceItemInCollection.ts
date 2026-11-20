@@ -1,10 +1,10 @@
 import {
-    AdditionalCollectionDataProviderType,
     AdditionalCollectionDataProvider,
     Collection,
     CollectionData,
     getItemType,
-    parseFileByPath,
+    getAdditionalCollectionData,
+    isCollectionRootFile,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
@@ -33,6 +33,30 @@ export async function addOrReplaceItemInCollection<T>(newItem: {
         collection,
         data,
     });
+}
+
+/**
+ * Unlike `addOrReplaceItemInCollection`, this always replaces an already registered item with the same path, even if it is not outdated.
+ * The old item is only removed once the new data has been read, so that the item is never missing from the cache in between.
+ */
+export async function replaceItemInCollection<T>(newItem: {
+    fileSystemData: FileSystemData;
+    collection: Collection<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
+}) {
+    const { collection, fileSystemData } = newItem;
+
+    const data = await getCollectionData(newItem);
+
+    collection.removeTestItemIfRegistered(
+        getFileSystemDataPath(fileSystemData),
+    );
+
+    if (data) {
+        collection.addItem(data);
+    }
+
+    return data;
 }
 
 export function addOrReplaceCollectionData<T>(newItem: {
@@ -83,41 +107,20 @@ async function getCollectionData<T>(params: {
         return undefined;
     }
 
-    if (
-        additionalDataProvider.paramType ==
-        AdditionalCollectionDataProviderType.SimpleCollectionItem
-    ) {
-        return {
+    return {
+        item,
+        additionalData: await getAdditionalCollectionData(
             item,
-            additionalData: additionalDataProvider.callback(
+            additionalDataProvider,
+            collection.isRootDirectory(item.getPath()),
+            isCollectionRootFile(
                 item,
-                collection.isRootDirectory(item.getPath()),
+                collection.getRootDirectory(),
+                collection.getFormat(),
             ),
-        };
-    }
-
-    const {
-        callbacksForItemsRequiringFullParsing: {
-            getData,
-            getFilePathForParsing,
-        },
-        callbackForOtherItems,
-        itemTypesRequiringFullFileParsing,
-    } = additionalDataProvider;
-
-    if (itemTypesRequiringFullFileParsing.includes(item.getItemType())) {
-        const toParse = getFilePathForParsing(item);
-        return {
-            item,
-            additionalData: getData(
-                toParse
-                    ? await parseFileByPath(toParse, item.getItemType())
-                    : undefined,
-            ),
-        };
-    }
-
-    return { item, additionalData: callbackForOtherItems(item) };
+            collection.getFormat(),
+        ),
+    };
 }
 
 function handleAlreadyRegisteredItemWithSamePath<T>(
@@ -126,7 +129,10 @@ function handleAlreadyRegisteredItemWithSamePath<T>(
     newData: CollectionData<T>,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
-    if (isModifiedItemOutdated(oldData, newData, additionalDataProvider)) {
+    if (
+        isModifiedItemOutdated(oldData, newData, additionalDataProvider)
+            .isOutdated
+    ) {
         collection.removeTestItemIfRegistered(oldData.item.getPath());
         collection.addItem(newData);
     }

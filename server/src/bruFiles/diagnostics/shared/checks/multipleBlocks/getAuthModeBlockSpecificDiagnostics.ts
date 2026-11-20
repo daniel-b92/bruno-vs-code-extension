@@ -31,12 +31,13 @@ export function getAuthModeBlockSpecificDiagnostics(
             mandatoryKeys,
             RelevantWithinAuthModeBlockDiagnosticCode.UnknownKeysDefinedInAuthModeBlock,
         ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            authBlock,
-            RelevantWithinAuthModeBlockDiagnosticCode.DuplicateKeysDefinedInAuthModeBlock,
-            mandatoryKeys,
-        ) ?? []),
+            block: authBlock,
+            diagnosticCode:
+                RelevantWithinAuthModeBlockDiagnosticCode.DuplicateKeysDefinedInAuthModeBlock,
+            expectedKeys: mandatoryKeys,
+        }) ?? []),
     );
 
     return diagnostics;

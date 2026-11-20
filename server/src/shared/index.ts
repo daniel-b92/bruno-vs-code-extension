@@ -6,3 +6,10 @@ export * from "./groupReferencesByName";
 // environment variables
 export * from "./environmentVariables/getHoverContentForStaticEnvVariables";
 export * from "./environmentVariables/mapStaticEnvVariablesToCompletions";
+export * from "./environmentVariables/mapStaticEnvVariablesFromMultipleCollectionsToCompletions";
+
+// markdown
+export * from "./markdown/wrapInCodeSpan";
+
+// diagnostics
+export * from "./diagnostics/checkJsonSyntax";

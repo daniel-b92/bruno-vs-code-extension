@@ -5,6 +5,7 @@
         "outDir": "out",
         "paths": {
             "@global_shared": ["../shared/index.ts"],
+            "@global_shared/*": ["../shared/*"],
             "@shared": ["./src/shared/index.ts"]
         }
     },

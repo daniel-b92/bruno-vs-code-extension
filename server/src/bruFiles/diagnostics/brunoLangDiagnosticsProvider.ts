@@ -5,6 +5,7 @@ import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiag
 import { determineDiagnosticsForEnvironmentFile } from "./environmentFiles/determineDiagnosticsForEnvironmentFile";
 import { determineDiagnosticsForCollectionSettingsFile } from "./collectionSettingsFiles/determineDiagnosticsForCollectionSettingsFile";
 import { BrunoFileType } from "@global_shared";
+import { determineDiagnosticsForAppFile } from "./appFiles/determineDiagnosticsForAppFile";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(private itemProvider: TypedCollectionItemProvider) {
@@ -13,17 +14,20 @@ export class BrunoLangDiagnosticsProvider {
 
     private relatedRequestsHelper: RelatedFilesDiagnosticsHelper;
 
-    public async getDiagnostics(
+    public getDiagnosticsForBruFile(
         filePath: string,
         content: string,
         brunoFileType: BrunoFileType,
     ) {
         switch (brunoFileType) {
             case BrunoFileType.AppFile:
-                // For App files, intellisense is currently very limited.
-                return [];
+                return determineDiagnosticsForAppFile(
+                    filePath,
+                    content,
+                    this.itemProvider,
+                );
             case BrunoFileType.RequestFile:
-                return await determineDiagnosticsForRequestFile(
+                return determineDiagnosticsForRequestFile(
                     filePath,
                     content,
                     this.itemProvider,
@@ -33,9 +37,10 @@ export class BrunoLangDiagnosticsProvider {
                 return determineDiagnosticsForEnvironmentFile(
                     filePath,
                     content,
+                    this.itemProvider,
                 );
             case BrunoFileType.FolderSettingsFile:
-                return await determineDiagnosticsForFolderSettingsFile(
+                return determineDiagnosticsForFolderSettingsFile(
                     filePath,
                     content,
                     this.itemProvider,

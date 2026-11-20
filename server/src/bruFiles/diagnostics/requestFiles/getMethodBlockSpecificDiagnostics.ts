@@ -30,11 +30,12 @@ export function getMethodBlockSpecificDiagnostics(
             mandatoryKeys,
             RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
         ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            methodBlock,
-            RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
-            mandatoryKeys,
-        ) ?? []),
+            block: methodBlock,
+            diagnosticCode:
+                RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
+            expectedKeys: mandatoryKeys,
+        }) ?? []),
     ];
 }

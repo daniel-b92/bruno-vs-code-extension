@@ -2,32 +2,43 @@ import {
     TextDocumentHelper,
     parseBruFile,
     EnvironmentFileBlockName,
+    EnvironmentFileTopLevelField,
     isBlockDictionaryBlock,
     BrunoFileType,
     isDictionaryBlockField,
+    getAllExtendsFields,
 } from "@global_shared";
+import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
-import { checkDictionaryBlocksAreNotEmpty } from "../shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
-import { checkDictionaryBlocksHaveDictionaryStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
-import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
-import { checkDescriptionsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
+import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
+import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
+import { checkExtendsFieldIsValid } from "../../../shared/diagnostics/environmentFiles/checkExtendsFieldIsValid";
+import { checkExtendsFieldIsNotDefinedMultipleTimes } from "./checkExtendsFieldIsNotDefinedMultipleTimes";
+import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "../../../shared/diagnostics/environmentFiles/checkExtendsFieldDoesNotCreateInheritanceLoop";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
     documentText: string,
+    itemProvider?: TypedCollectionItemProvider,
 ): DiagnosticWithCode[] {
-    const document = new TextDocumentHelper(documentText);
+    const docHelper = new TextDocumentHelper(documentText);
 
     const { blocks, textOutsideOfBlocks } = parseBruFile(
-        document,
+        docHelper,
         BrunoFileType.EnvironmentFile,
     );
+    const extendsFields = getAllExtendsFields(docHelper, textOutsideOfBlocks);
+    const extendsField = extendsFields[0];
+    const collection = itemProvider?.getAncestorCollectionForPath(filePath);
+    const knownEnvironmentNames = collection
+        ?.getEnvironments()
+        .map(({ environmentName }) => environmentName);
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) => name == EnvironmentFileBlockName.Vars,
     );
@@ -40,7 +51,27 @@ export function determineDiagnosticsForEnvironmentFile(
 
     results.push(
         checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
-        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
+        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks, [
+            EnvironmentFileTopLevelField.Extends,
+        ]),
+        extendsField
+            ? checkExtendsFieldIsValid(
+                  filePath,
+                  extendsField,
+                  knownEnvironmentNames,
+              )
+            : undefined,
+        extendsField && collection
+            ? checkExtendsFieldDoesNotCreateInheritanceLoop(
+                  filePath,
+                  extendsField,
+                  collection,
+              )
+            : undefined,
+        ...(checkExtendsFieldIsNotDefinedMultipleTimes(
+            filePath,
+            extendsFields,
+        ) ?? []),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,
@@ -52,12 +83,12 @@ export function determineDiagnosticsForEnvironmentFile(
                 ({ name }) => name == EnvironmentFileBlockName.SecretVars,
             ),
         ),
-        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
-            ? checkDictionaryBlocksHaveDictionaryStructure(
-                  filePath,
-                  blocksThatShouldBeDictionaryBlocks,
-              )
-            : undefined,
+        ...runDictionaryBlocksBaseChecks(
+            blocksThatShouldBeDictionaryBlocks,
+            validDictionaryBlocks,
+            docHelper,
+            filePath,
+        ),
         checkDictionaryBlocksSimpleFieldsStructure(
             filePath,
             validDictionaryBlocks.map((block) => ({
@@ -67,21 +98,14 @@ export function determineDiagnosticsForEnvironmentFile(
                     .map(({ key }) => key),
             })),
         ),
-        checkDictionaryBlocksAreNotEmpty(
-            filePath,
-            blocksThatShouldBeDictionaryBlocks,
-        ),
         ...validDictionaryBlocks.flatMap(
             (block) =>
-                checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                checkNoDuplicateKeysAreDefinedForDictionaryBlock({
                     filePath,
                     block,
-                    RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
-                ) ?? [],
-        ),
-        checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
-            filePath,
-            validDictionaryBlocks,
+                    diagnosticCode:
+                        RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
+                }) ?? [],
         ),
     );
 

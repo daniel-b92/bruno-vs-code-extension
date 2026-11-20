@@ -1,0 +1,48 @@
+meta {
+  name: grpc_example
+  type: grpc
+  seq: 7
+}
+
+grpc {
+  url: address/{{other}}
+  body: grpc
+  auth: basic
+}
+
+metadata {
+  @description('cyxcyxc')
+  sd: sd
+}
+
+auth:basic {
+  username: asdas
+  password: adsasd
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {{other}}
+  '''
+}
+
+script:grpc:before-call-start {
+  sadds
+}
+
+script:grpc:before-message-send {
+  asd
+}
+
+script:grpc:after-message-receive {
+  asd
+}
+
+script:grpc:after-call-end {
+  asd
+}
+
+docs {
+  **adsasdasds**
+}

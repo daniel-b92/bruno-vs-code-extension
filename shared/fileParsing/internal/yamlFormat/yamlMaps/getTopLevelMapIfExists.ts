@@ -1,0 +1,19 @@
+import { isMap, YAMLMap } from "yaml";
+import { YamlParsingError, YamlParsingErrorCode } from "../../../..";
+import { CommonParsingArgs } from "../interfaces";
+
+export function getTopLevelMapIfExists({
+    node,
+    fullDocumentRange,
+}: CommonParsingArgs & { node: unknown }):
+    { map: YAMLMap } | { error: YamlParsingError } {
+    return isMap(node)
+        ? { map: node }
+        : {
+              error: {
+                  message: "A top level Yaml map is required",
+                  range: fullDocumentRange,
+                  code: YamlParsingErrorCode.ItemDoesNotExist,
+              },
+          };
+}

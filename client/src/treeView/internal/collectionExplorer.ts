@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    getExtensionForBrunoFiles,
-    getSequenceForFolder,
+    getFileExtensionForFormat,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
     normalizePath,
@@ -11,28 +10,34 @@ import {
     CollectionItem,
     CollectionItemWithSequence,
     isCollectionItemWithSequence,
+    CollectionFormat,
+    getBrunoJsonFilePath,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     OutputChannelLogger,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,
-    getMaxSequenceForFolders,
     TypedCollectionData,
     TypedCollection,
     FileSystemCacheSyncingHelper,
     removeConfigForCollection,
     BrunoTreeItem,
+    getSequenceStepFromSettings,
+    shouldRenumberSequencesAutomatically,
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
-import { replaceNameInMetaBlock } from "./explorer/fileUtils/replaceNameInMetaBlock";
+import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
+import { replaceNameInBrunoJson } from "./explorer/fileUtils/replaceNameInBrunoJson";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
-import { replaceSequenceForFile } from "./explorer/fileUtils/replaceSequenceForFile";
-import { normalizeSequencesForRequestFiles } from "./explorer/fileUtils/normalizeSequencesForRequestFiles";
+import { normalizeSequencesForRequestsAndAppFiles } from "./explorer/fileUtils/normalizeSequencesForRequestsAndAppFiles";
 import { normalizeSequencesForFolders } from "./explorer/folderUtils/normalizeSequencesForFolders";
+import { normalizeSequencesRecursively } from "./explorer/normalizeSequencesRecursively";
+import { selectSequenceStep } from "./explorer/selectSequenceStep";
+import { updateSettingsFileOfDuplicatedFolder } from "./explorer/folderUtils/updateSettingsFileOfDuplicatedFolder";
 import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderIntoTargetFolder";
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
 import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
@@ -40,6 +45,7 @@ import { promisify } from "util";
 import { cp, mkdir, readFile, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 import { showDialogForSettingEnvironment } from "./explorer/showDialogForSettingEnvironment";
+import { getDeleteConfirmationMessage } from "./explorer/getDeleteConfirmationMessage";
 import { handleFileInsertion } from "./explorer/fileUtils/handleFileInsertion";
 import {
     FileInsertionPosition,
@@ -196,13 +202,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     running: true,
                 });
 
-                await moveFileIntoFolder(
-                    this.itemProvider,
-                    sourcePath,
-                    newPath,
-                    target,
-                    dirname(newPath),
-                    itemType,
+                await this.withProgressInExplorer(
+                    `Moving '${basename(sourcePath)}'`,
+                    () =>
+                        moveFileIntoFolder(
+                            this.itemProvider,
+                            sourcePath,
+                            newPath,
+                            target,
+                            dirname(newPath),
+                            itemType,
+                            this.logger,
+                        ),
                 );
 
                 this.multiFileOperationNotifier.fire({
@@ -241,12 +252,17 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 return;
             }
 
-            await moveFolderIntoTargetFolder(
-                this.itemProvider,
-                sourcePath,
-                target,
-                FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
-                originalTreeItem.getSequence(),
+            await this.withProgressInExplorer(
+                `Moving '${basename(sourcePath)}'`,
+                () =>
+                    moveFolderIntoTargetFolder(
+                        this.itemProvider,
+                        sourcePath,
+                        target,
+                        FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+                        originalTreeItem.getSequence(),
+                        this.logger,
+                    ),
             );
             return;
         }
@@ -271,12 +287,25 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             return;
         }
 
-        await moveFolderIntoTargetFolder(
-            this.itemProvider,
-            sourcePath,
-            target,
-            pickedOption,
-            originalTreeItem.getSequence(),
+        await this.withProgressInExplorer(
+            `Moving '${basename(sourcePath)}'`,
+            () =>
+                moveFolderIntoTargetFolder(
+                    this.itemProvider,
+                    sourcePath,
+                    target,
+                    pickedOption,
+                    originalTreeItem.getSequence(),
+                    this.logger,
+                ),
+        );
+    }
+
+    /** Shows the progress bar of the collection explorer while the task is running. */
+    private withProgressInExplorer<T>(title: string, task: () => Promise<T>) {
+        return vscode.window.withProgress(
+            { location: { viewId: this.treeViewId }, title },
+            task,
         );
     }
 
@@ -315,6 +344,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         const targetCollection = this.itemProvider.getAncestorCollectionForPath(
             target.getPath(),
         );
+
+        // TODO: Support drag-and-drop between collections with different formats (Bru <-> Yaml).
+        // This would require converting the file content and adjusting the file extension.
+        if (
+            targetCollection &&
+            targetCollection.getFormat() != sourceCollection.getFormat()
+        ) {
+            vscode.window.showErrorMessage(
+                `Moving items between collections with different formats (Bru and Yaml) is not supported.`,
+            );
+            return undefined;
+        }
 
         return {
             originalItemData,
@@ -362,6 +403,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             this.registerCommandForDeletingItem(),
             ...this.registerCommandsForStartingTestrun(startTestRunEmitter),
             this.registerCommandForEnvironmentSelection(),
+            this.registerCommandForNormalizingSequences(),
             ...this.registerCommandsForCopyingAndPastingFiles(),
         );
     }
@@ -498,43 +540,70 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     isFile &&
                     oldItem.getItemType() == BrunoFileType.RequestFile;
 
-                const renamed = await renameFileOrFolder(
-                    originalPath,
-                    newPath,
-                    isFile,
-                );
-
-                if (!renamed) {
-                    return;
-                }
-
-                if (isRequestFile) {
-                    await replaceNameInMetaBlock(
-                        newPath,
-                        newItemName.replace(getExtensionForBrunoFiles(), ""),
-                        oldItem.getItemType(),
-                    );
-                    return;
-                }
-
-                if (!isFile) {
-                    const folderSettingsPath = await getFolderSettingsFilePath(
-                        isCollectionRootFolder,
-                        newPath,
-                    );
-
-                    if (folderSettingsPath) {
-                        await replaceNameInMetaBlock(
-                            folderSettingsPath,
-                            newItemName,
-                            oldItem.getItemType(),
+                await this.withProgressInExplorer(
+                    `Renaming '${basename(originalPath)}'`,
+                    async () => {
+                        const renamed = await renameFileOrFolder(
+                            this.itemProvider,
+                            originalPath,
+                            newPath,
+                            isFile,
+                            this.logger,
                         );
-                    }
 
-                    if (isCollectionRootFolder) {
-                        await removeConfigForCollection(originalPath);
-                    }
-                }
+                        if (!renamed) {
+                            return;
+                        }
+
+                        if (isRequestFile) {
+                            await replaceItemName(
+                                newPath,
+                                newItemName.replace(
+                                    getFileExtensionForFormat(
+                                        oldCollection.getFormat(),
+                                    ),
+                                    "",
+                                ),
+                                oldItem.getItemType(),
+                                oldCollection.getFormat(),
+                            );
+                            return;
+                        }
+
+                        if (!isFile) {
+                            const folderSettingsPath =
+                                await getFolderSettingsFilePath(
+                                    isCollectionRootFolder,
+                                    newPath,
+                                    oldCollection.getFormat(),
+                                );
+
+                            if (folderSettingsPath) {
+                                await replaceItemName(
+                                    folderSettingsPath,
+                                    newItemName,
+                                    oldItem.getItemType(),
+                                    oldCollection.getFormat(),
+                                );
+                            }
+
+                            if (
+                                isCollectionRootFolder &&
+                                oldCollection.getFormat() ==
+                                    CollectionFormat.Bru
+                            ) {
+                                await replaceNameInBrunoJson(
+                                    getBrunoJsonFilePath(newPath),
+                                    newItemName,
+                                );
+                            }
+
+                            if (isCollectionRootFolder) {
+                                await removeConfigForCollection(originalPath);
+                            }
+                        }
+                    },
+                );
             },
         );
     }
@@ -544,11 +613,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             `${this.treeViewId}.duplicateFolder`,
             async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
-                const isCollectionRootFolder = false;
 
                 const collection =
                     this.itemProvider.getAncestorCollectionForPath(
-                        item.getPath(),
+                        originalPath,
                     );
 
                 const newFolderPath =
@@ -571,33 +639,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     },
                 );
 
-                const newFolderSettingsFile = await getFolderSettingsFilePath(
-                    isCollectionRootFolder,
+                await updateSettingsFileOfDuplicatedFolder(
+                    this.itemProvider,
+                    originalPath,
                     newFolderPath,
                 );
-
-                if (
-                    (await getSequenceForFolder(
-                        collection.getRootDirectory(),
-                        originalPath,
-                    )) &&
-                    newFolderSettingsFile
-                ) {
-                    await replaceSequenceForFile(
-                        newFolderSettingsFile,
-                        1 +
-                            ((await getMaxSequenceForFolders(
-                                this.itemProvider,
-                                dirname(originalPath),
-                            )) ?? 0),
-                    );
-
-                    await replaceNameInMetaBlock(
-                        newFolderSettingsFile,
-                        basename(newFolderPath),
-                        BrunoFileType.FolderSettingsFile,
-                    );
-                }
             },
         );
     }
@@ -640,14 +686,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         return vscode.commands.registerCommand(
             `${this.treeViewId}.deleteItem`,
             async (treeItem: BrunoTreeItem) => {
-                const picked = await vscode.window.showInformationMessage(
-                    `Delete '${treeItem.label}'?`,
-                    { modal: true },
-                    this.confirmationOptionForModals,
-                );
-                if (picked != this.confirmationOptionForModals) {
-                    return;
-                }
                 const path = treeItem.getPath();
 
                 const itemDataWithCollection =
@@ -664,20 +702,42 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
                 const itemType = item.getItemType();
 
+                const picked = await vscode.window.showInformationMessage(
+                    getDeleteConfirmationMessage(
+                        `${treeItem.label}`,
+                        path,
+                        itemType,
+                        collection,
+                    ),
+                    { modal: true },
+                    this.confirmationOptionForModals,
+                );
+                if (picked != this.confirmationOptionForModals) {
+                    return;
+                }
+
                 await promisify(rm)(path, {
                     recursive: treeItem.isFile ? false : true,
                 });
 
                 // ToDo: Replace usage of item provider in called utility functions with passing collection as a parameter directly.
 
+                // Unless renumbering is enabled in the settings, the sequences of the remaining items are kept after a deletion.
+                const shouldRenumber = shouldRenumberSequencesAutomatically();
+                const sequenceStep = getSequenceStepFromSettings();
+
                 if (
-                    itemType == BrunoFileType.RequestFile &&
+                    (itemType == BrunoFileType.RequestFile ||
+                        itemType == BrunoFileType.AppFile) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
-                    await normalizeSequencesForRequestFiles(
-                        this.itemProvider,
-                        dirname(path),
-                    );
+                    if (shouldRenumber) {
+                        await normalizeSequencesForRequestsAndAppFiles(
+                            this.itemProvider,
+                            dirname(path),
+                            sequenceStep,
+                        );
+                    }
                 } else if (
                     (itemType == BrunoFileType.FolderSettingsFile ||
                         (!itemType &&
@@ -685,12 +745,15 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             treeItem.getSequence())) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
-                    normalizeSequencesForFolders(
-                        this.itemProvider,
-                        itemType == BrunoFileType.FolderSettingsFile
-                            ? dirname(dirname(path))
-                            : dirname(path),
-                    );
+                    if (shouldRenumber) {
+                        await normalizeSequencesForFolders(
+                            this.itemProvider,
+                            itemType == BrunoFileType.FolderSettingsFile
+                                ? dirname(dirname(path))
+                                : dirname(path),
+                            sequenceStep,
+                        );
+                    }
                 } else if (collection.isRootDirectory(treeItem.getPath())) {
                     await removeConfigForCollection(treeItem.getPath());
                 }
@@ -731,8 +794,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
                     const sourceItem = dataWithCollection.data.item;
                     const baseItemForCopying:
-                        | CollectionItem
-                        | CollectionItemWithSequence = {
+                        CollectionItem | CollectionItemWithSequence = {
                         getItemType: () => sourceItem.getItemType(),
                         getPath: () => sourceItem.getPath(),
                         isFile: () => sourceItem.isFile(),
@@ -791,6 +853,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             sourceItem.getPath(),
                             targetPath,
                             collection,
+                            true,
                         ))
                     ) {
                         return;
@@ -896,11 +959,62 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         );
     }
 
+    private registerCommandForNormalizingSequences() {
+        return vscode.commands.registerCommand(
+            `${this.treeViewId}.normalizeSequences`,
+            async (treeItem: BrunoTreeItem) => {
+                if (!treeItem || treeItem.isFile) {
+                    return;
+                }
+
+                const selectedPath = treeItem.getPath();
+                const collection =
+                    this.itemProvider.getAncestorCollectionForPath(
+                        selectedPath,
+                    );
+
+                if (!collection) {
+                    vscode.window.showErrorMessage(
+                        "Could not find collection for selected item.",
+                    );
+                    return;
+                }
+
+                const configuredStep = vscode.workspace
+                    .getConfiguration()
+                    .get<number>("bru-as-code.sequenceStep", 1);
+                const sequenceStep = await selectSequenceStep(
+                    basename(selectedPath),
+                    configuredStep,
+                );
+
+                if (sequenceStep === undefined) {
+                    return;
+                }
+
+                await vscode.window.withProgress(
+                    {
+                        location: { viewId: this.treeViewId },
+                        title: "Normalizing sequences",
+                    },
+                    () =>
+                        normalizeSequencesRecursively(
+                            collection,
+                            selectedPath,
+                            sequenceStep,
+                        ),
+                );
+            },
+        );
+    }
+
     private async tryToRevealItem(
         path: string,
         treeView: vscode.TreeView<BrunoTreeItem>,
         logger?: OutputChannelLogger,
     ) {
+        await this.itemProvider.ensureCacheIsLoaded();
+
         const maybeCollection =
             this.itemProvider.getAncestorCollectionForPath(path);
 
@@ -983,22 +1097,27 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         sourcePath: string,
         newPath: string,
         targetCollection?: TypedCollection,
+        // confirmation should not be required in most cases, e.g. when moving a request within the same folder (e.g. to update the sequence).
+        confirmOnOverwritingSourceItem = false,
     ) {
-        if (
+        const needsConfirmation =
             targetCollection &&
             this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
-            normalizePath(newPath) != normalizePath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
-        ) {
-            const pickedOption = await vscode.window.showInformationMessage(
-                `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
-                { modal: true },
-                this.confirmationOptionForModals,
-            );
+            (confirmOnOverwritingSourceItem
+                ? true
+                : normalizePath(newPath) != normalizePath(sourcePath));
 
-            return pickedOption == this.confirmationOptionForModals;
+        if (!needsConfirmation) {
+            return true;
         }
 
-        return true;
+        const pickedOption = await vscode.window.showInformationMessage(
+            `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
+            { modal: true },
+            this.confirmationOptionForModals,
+        );
+
+        return pickedOption == this.confirmationOptionForModals;
     }
 
     private async writeFileAndOpenItOnSuccess(

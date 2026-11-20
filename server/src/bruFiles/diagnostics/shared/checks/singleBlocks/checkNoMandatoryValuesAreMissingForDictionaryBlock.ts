@@ -42,7 +42,9 @@ function getDiagnostic(
                       2,
                   )}' are missing.`,
         range: getRange(
-            getSortedDictionaryBlockFieldsByPosition(fieldsWithMissingValues),
+            getSortedDictionaryBlockFieldsByPosition(
+                fieldsWithMissingValues,
+            ) as DictionaryBlockSimpleField[],
         ),
         severity: DiagnosticSeverity.Error,
         code: diagnosticCode,

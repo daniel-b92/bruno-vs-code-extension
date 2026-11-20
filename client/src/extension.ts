@@ -16,10 +16,13 @@ import {
     AdditionalCollectionData,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
+    getIconForItem,
+    TypedCollectionItemProvider,
 } from "@shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
 import { join } from "path";
+import { warnAboutConflictingCollectionRoots } from "./warnAboutConflictingCollectionRoots";
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -32,8 +35,8 @@ import {
     CollectionWatcher,
     FileChangedEvent,
     CollectionItem,
-    isRequestFile,
-    isCollectionItemWithSequence,
+    isCollectionItemWithTags,
+    isRequestFileOrCollectionDirectory,
     CollectionItemProvider,
     getPathsToIgnoreForCollections,
     AdditionalCollectionSimpleDataProvider,
@@ -54,7 +57,6 @@ export async function activate(context: ExtensionContext) {
         testController: ctrl,
         startTestRunEmitter,
         multiFileOperationNotifier,
-        collectionWatcher,
         cacheSyncingHelper,
     } = createNeededHandlers(context);
 
@@ -65,43 +67,44 @@ export async function activate(context: ExtensionContext) {
         ),
     );
 
-    toAwait.push(
-        window.withProgress(
-            {
-                location: ProgressLocation.Window,
-                title: "Starting bru-as-code extension...",
-            },
-            async () => {
-                await collectionItemProvider.refreshCache(
-                    workspace.workspaceFolders?.map((f) => f.uri.fsPath) ?? [],
-                );
-                await activateRunner(
-                    context,
-                    ctrl,
-                    collectionItemProvider,
-                    startTestRunEmitter.event,
-                );
-                activateTreeView(
-                    context,
-                    collectionItemProvider,
-                    cacheSyncingHelper,
-                    startTestRunEmitter,
-                    multiFileOperationNotifier,
-                );
-
-                await activateLanguageFeatures(
-                    context,
-                    collectionWatcher,
-                    collectionItemProvider,
-                    cacheSyncingHelper,
-                    startTestRunEmitter.event,
-                );
-            },
-        ),
+    // The collection cache is loaded lazily, as soon as something needs it.
+    collectionItemProvider.subscribeToInitialCacheLoad(
+        () =>
+            void suggestCreatingTsConfigsForCollections(collectionItemProvider),
     );
 
+    await activateRunner(
+        context,
+        ctrl,
+        collectionItemProvider,
+        startTestRunEmitter.event,
+    );
+    activateTreeView(
+        context,
+        collectionItemProvider,
+        cacheSyncingHelper,
+        startTestRunEmitter,
+        multiFileOperationNotifier,
+    );
+
+    toAwait.push(activateLanguageFeatures(context, collectionItemProvider));
+
     await Promise.all(toAwait);
-    suggestCreatingTsConfigsForCollections(collectionItemProvider);
+
+    // Nothing else reacts to editors that were restored on startup.
+    if (hasVisibleEditorForRelevantFile(collectionItemProvider)) {
+        void collectionItemProvider.ensureCacheIsLoaded();
+    }
+}
+
+function hasVisibleEditorForRelevantFile(
+    collectionItemProvider: TypedCollectionItemProvider,
+) {
+    return window.visibleTextEditors.some(
+        ({ document: { uri, fileName } }) =>
+            uri.scheme == "file" &&
+            collectionItemProvider.isFileRelevantForCollections(fileName),
+    );
 }
 
 export function deactivate() {
@@ -127,13 +130,22 @@ function createLanguagClient(context: ExtensionContext) {
         },
     };
 
+    // The channel is created here (instead of by the client), so that it is not disposed when the client gets stopped.
+    // Otherwise, output of the old server process during a restart would be written to a closed channel.
+    const outputChannel = window.createOutputChannel(
+        `${getExtensionNameLabel()} Language Server`,
+        { log: true },
+    );
+    context.subscriptions.push(outputChannel);
+
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
-        // Register the server for `.bru` files
         documentSelector: [
             { scheme: "file", language: "bru" },
             { scheme: "file", language: "javascript" },
+            { scheme: "file", language: "yaml", pattern: "**/*.yml" },
         ],
+        outputChannel,
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
@@ -182,10 +194,21 @@ function createNeededHandlers(context: ExtensionContext) {
     const collectionItemProvider =
         new CollectionItemProvider<AdditionalCollectionData>(
             collectionWatcher,
+            workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ??
+                [],
             getAdditionalCollectionDataProvider(testRunnerDataHelper),
             getPathsToIgnoreForCollections(),
             cacheRefreshNotifier,
             logger,
+            (conflicts) => void warnAboutConflictingCollectionRoots(conflicts),
+            async (load) =>
+                await window.withProgress(
+                    {
+                        location: ProgressLocation.Window,
+                        title: "Loading Bruno collections...",
+                    },
+                    load,
+                ),
         );
 
     const cacheSyncingHelper = new FileSystemCacheSyncingHelper(
@@ -231,15 +254,20 @@ function getAdditionalCollectionDataProvider(
 ): AdditionalCollectionSimpleDataProvider<AdditionalCollectionData> {
     return {
         paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem,
-        callback: (item: CollectionItem, isCollectionRoot: boolean) => ({
+        callback: (
+            item: CollectionItem,
+            isCollectionRoot: boolean,
+            isCollectionRootFile: boolean,
+        ) => ({
             treeItem: new BrunoTreeItem(
                 item.getPath(),
                 item.isFile(),
                 isCollectionRoot,
-                isCollectionItemWithSequence(item)
+                isRequestFileOrCollectionDirectory(item)
                     ? item.getSequence()
                     : undefined,
-                isRequestFile(item) ? item.getTags() : undefined,
+                isCollectionItemWithTags(item) ? item.getTags() : undefined,
+                getIconForItem(item, isCollectionRootFile),
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),

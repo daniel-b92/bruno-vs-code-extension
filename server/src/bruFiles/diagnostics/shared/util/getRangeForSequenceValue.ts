@@ -1,5 +1,3 @@
-import { readFile } from "fs";
-import { promisify } from "util";
 import {
     getSequenceFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
@@ -8,11 +6,11 @@ import {
     TextDocumentHelper,
 } from "@global_shared";
 
-export async function getRangeForSequenceValue(filePath: string) {
-    const readFileAsync = promisify(readFile);
-    const fileContent = await readFileAsync(filePath, "utf-8").catch(
-        () => undefined,
-    );
+export function getRangeForSequenceValue(
+    filePath: string,
+    docHelper: TextDocumentHelper,
+) {
+    const fileContent = docHelper.getText();
 
     const sequenceField = fileContent
         ? getSequenceFieldFromMetaBlock(new TextDocumentHelper(fileContent))

@@ -1,0 +1,59 @@
+meta {
+  name: websocket-sample
+  type: ws
+  seq: 8
+}
+
+ws {
+  url: fghfghfgh
+  body: ws
+  auth: basic
+}
+
+headers {
+  @description('sdfsdf')
+  dsfdsf: sdfsdf
+  @description('sdfsdf')
+  ~sdfsdf: sdfsdf
+}
+
+auth:basic {
+  username: dsfsd
+  password: sdfsdf
+}
+
+body:ws {
+  name: message 1
+  type: json
+  content: '''
+    {
+      "a": 44
+    }
+  '''
+}
+
+body:ws {
+  name: message 2
+  type: xml
+  content: '''
+    dsfsdfdsf
+  '''
+}
+
+body:ws {
+  name: message 3
+  type: text
+  selected: true
+  content: '''
+    sadasdas
+  '''
+}
+
+settings {
+  encodeUrl: false
+  timeout: 55
+}
+
+docs {
+  **dfgdfg**
+}

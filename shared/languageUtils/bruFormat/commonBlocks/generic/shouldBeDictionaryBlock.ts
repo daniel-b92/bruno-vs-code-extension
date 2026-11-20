@@ -1,0 +1,55 @@
+import {
+    getPossibleMethodBlocks,
+    RequestFileBlockName,
+    isAuthBlock,
+    isParamsBlock,
+    isVarsBlockInRequestFile,
+    isVarsBlockInEnvironmentFile,
+    EnvironmentFileBlockName,
+    SettingsFileSpecificBlock,
+    Oauth2AdditionalParamsBlockNames,
+    appFileSpecificBlocks,
+} from "../../../..";
+
+export function shouldBeDictionaryBlock(blockName: string) {
+    const allBlockNames = (
+        Object.values(RequestFileBlockName) as string[]
+    ).concat(
+        (Object.values(EnvironmentFileBlockName) as string[]).concat(
+            Object.values(SettingsFileSpecificBlock),
+            appFileSpecificBlocks.app,
+        ),
+    );
+
+    if (!allBlockNames.includes(blockName)) {
+        return undefined;
+    }
+
+    return (
+        blockName == RequestFileBlockName.Meta ||
+        blockName == RequestFileBlockName.Headers ||
+        blockName == RequestFileBlockName.Metadata ||
+        blockName == RequestFileBlockName.Assertions ||
+        blockName == RequestFileBlockName.Settings ||
+        blockName == RequestFileBlockName.App ||
+        blockName == appFileSpecificBlocks.app ||
+        (getPossibleMethodBlocks() as string[]).includes(blockName) ||
+        isAuthBlock(blockName) ||
+        isParamsBlock(blockName) ||
+        isVarsBlockInRequestFile(blockName) ||
+        (
+            [
+                RequestFileBlockName.MultipartFormBody,
+                RequestFileBlockName.FormUrlEncodedBody,
+                RequestFileBlockName.FileOrBinaryBody,
+                RequestFileBlockName.GrpcBody,
+                RequestFileBlockName.WsBody,
+            ] as string[]
+        ).includes(blockName) ||
+        isVarsBlockInEnvironmentFile(blockName) ||
+        blockName == SettingsFileSpecificBlock.AuthMode ||
+        (Object.values(Oauth2AdditionalParamsBlockNames) as string[]).includes(
+            blockName,
+        )
+    );
+}

@@ -8,7 +8,7 @@ import {
 import {
     isCollectionItemWithSequence,
     normalizePath,
-    parseSequenceFromMetaBlock,
+    parseSequenceFromFile,
 } from "@global_shared";
 import { dirname } from "path";
 import { determineFilesToCheckWhetherInSync } from "../internal/determineFilesToCheckWhetherInSync";
@@ -202,7 +202,7 @@ export class FileSystemCacheSyncingHelper {
         return (
             cachedData != undefined &&
             isCollectionItemWithSequence(cachedData.item) &&
-            (await parseSequenceFromMetaBlock(filePath)) ==
+            (await parseSequenceFromFile(filePath)) ==
                 cachedData.item.getSequence()
         );
     }

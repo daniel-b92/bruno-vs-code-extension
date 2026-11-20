@@ -1,37 +1,37 @@
 import {
     DictionaryBlockSimpleField,
-    normalizePath,
     Block,
-    MetaBlockKey,
-    BrunoRequestFile,
     BrunoFileType,
-    isCollectionItemWithSequence,
+    MetaBlockKey,
     getActiveFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
+    TextDocumentHelper,
 } from "@global_shared";
-import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getRangeForSequenceValue } from "../../../shared/util/getRangeForSequenceValue";
 import { TypedCollectionItemProvider } from "../../../../../shared";
+import { getSequencesForOtherFilesInFolder } from "../../../../../shared/diagnostics/relatedFiles/getSequencesForOtherFilesInFolder";
 import {
     DiagnosticRelatedInformation,
     DiagnosticSeverity,
 } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 
-export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
-    itemProvider: TypedCollectionItemProvider,
-    metaBlock: Block,
-    filePath: string,
-): Promise<{
+export function checkSequenceInMetaBlockIsUniqueWithinFolder(data: {
+    metaBlock: Block;
+    filePath: string;
+    docHelper: TextDocumentHelper;
+    itemProvider: TypedCollectionItemProvider;
+}): {
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
     };
-}> {
+} {
+    const { docHelper, filePath, itemProvider, metaBlock } = data;
     const sequenceField = getActiveFieldFromMetaBlock(
         metaBlock,
         MetaBlockKey.Sequence,
@@ -44,10 +44,10 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         return { code: getDiagnosticCode() };
     }
 
-    const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
+    const otherRequestsInFolder = getSequencesForOtherFilesInFolder(
         itemProvider,
         filePath,
-        dirname(filePath),
+        [BrunoFileType.RequestFile],
     );
 
     const otherRequestsWithSameSequence = otherRequestsInFolder
@@ -63,8 +63,9 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
 
     const allAffectedFiles = otherRequestsWithSameSequence.concat(filePath);
 
-    const relatedInformation = await getDiagnosticRelatedInformation(
+    const relatedInformation = getDiagnosticRelatedInformation(
         otherRequestsWithSameSequence,
+        docHelper,
     );
 
     if (relatedInformation.length == 0) {
@@ -102,84 +103,25 @@ function getDiagnostic(
     };
 }
 
-function getSequencesForOtherRequestsInFolder(
-    itemProvider: TypedCollectionItemProvider,
-    filePath: string,
-    directoryPath: string,
-) {
-    const result: { file: string; sequence: number }[] = [];
-
-    const otherRequestsInFolder = getOtherRequestsInFolder(
-        itemProvider,
-        directoryPath,
-        filePath,
-    );
-
-    result.push(
-        ...otherRequestsInFolder.map((requestFile) => ({
-            file: requestFile.getPath(),
-            sequence: requestFile.getSequence() as number,
-        })),
-    );
-
-    return result;
-}
-
-function getOtherRequestsInFolder(
-    itemProvider: TypedCollectionItemProvider,
-    directoryPath: string,
-    filePath: string,
-): BrunoRequestFile[] {
-    const result: BrunoRequestFile[] = [];
-
-    const collection = itemProvider.getAncestorCollectionForPath(directoryPath);
-
-    if (!collection) {
-        console.warn(
-            `Could not determine collection for directory path '${directoryPath}'`,
-        );
-        return result;
-    }
-
-    return collection
-        .getAllStoredDataForCollection()
-        .slice()
-        .filter(({ item }) => {
-            const itemPath = item.getPath();
-
-            return (
-                item.isFile() &&
-                normalizePath(dirname(itemPath)) ==
-                    normalizePath(directoryPath) &&
-                isCollectionItemWithSequence(item) &&
-                item.getSequence() != undefined &&
-                normalizePath(itemPath) != normalizePath(filePath) &&
-                item.getItemType() == BrunoFileType.RequestFile
-            );
-        })
-        .map(({ item }) => item as BrunoRequestFile);
-}
-
-async function getDiagnosticRelatedInformation(
+function getDiagnosticRelatedInformation(
     otherRequestsWithSameSequence: string[],
+    docHelper: TextDocumentHelper,
 ) {
-    return (
-        await Promise.all(
-            otherRequestsWithSameSequence.map(async (path) => {
-                const range = await getRangeForSequenceValue(path);
+    return otherRequestsWithSameSequence
+        .map((path) => {
+            const range = getRangeForSequenceValue(path, docHelper);
 
-                return range
-                    ? {
-                          message: `Request with same sequence`,
-                          location: {
-                              uri: URI.file(path).toString(),
-                              range,
-                          },
-                      }
-                    : undefined;
-            }),
-        )
-    ).filter((val) => val != undefined);
+            return range
+                ? {
+                      message: `Request with same sequence`,
+                      location: {
+                          uri: URI.file(path).toString(),
+                          range,
+                      },
+                  }
+                : undefined;
+        })
+        .filter((val) => val != undefined);
 }
 
 function getDiagnosticCode() {

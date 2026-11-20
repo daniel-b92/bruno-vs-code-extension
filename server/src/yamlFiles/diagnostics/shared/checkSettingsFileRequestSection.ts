@@ -1,0 +1,46 @@
+import { ParsedFolderSettingsFile, YamlMapDescriptor } from "@global_shared";
+import { Diagnostic } from "vscode-languageserver";
+import { CommonDiagnosticParams } from "../../interfaces";
+import { checkHeaderNamesAreUnique } from "./checkHeaderNamesAreUnique";
+import { checkNamePropertyIsUniqueAcrossMaps } from "./checkNamePropertyIsUniqueAcrossMaps";
+import { checkVariableTypesMatchValueData } from "./checkVariableValuesMatchTypes";
+import { checkTypePropertyIsUniqueAcrossMaps } from "./checkTypePropertyIsUniqueAcrossMaps";
+import { checkAuthHasRequiredFields } from "../checks/requestFiles/checkAuthHasRequiredFields";
+
+/**
+ * Checks the `request` section, which has the same structure for folder settings files and collection settings files.
+ */
+export function checkSettingsFileRequestSection(
+    request: ParsedFolderSettingsFile["properties"]["request"],
+    commonParams: CommonDiagnosticParams,
+    mapDescriptors: YamlMapDescriptor[],
+): (Diagnostic | undefined)[] {
+    if (!request) {
+        return [];
+    }
+    const { actions, auth, headers, scripts, variables } = request.properties;
+
+    return [
+        checkAuthHasRequiredFields(auth, mapDescriptors),
+        ...(variables
+            ? checkNamePropertyIsUniqueAcrossMaps(
+                  variables.enabled,
+                  commonParams,
+              ).concat(
+                  checkVariableTypesMatchValueData(
+                      variables.enabled,
+                      commonParams,
+                  ),
+              )
+            : []),
+        ...(headers
+            ? checkHeaderNamesAreUnique(headers.enabled, commonParams.filePath)
+            : []),
+        ...(actions
+            ? checkTypePropertyIsUniqueAcrossMaps(actions.enabled, commonParams)
+            : []),
+        ...(scripts
+            ? checkTypePropertyIsUniqueAcrossMaps(scripts, commonParams)
+            : []),
+    ];
+}

@@ -3,19 +3,22 @@ import {
     CollectionItem,
     doesFileNameMatchCollectionSettingsFile,
     doesFileNameMatchFolderSettingsFileName,
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
+    getFolderSettingsFileName,
+    getCollectionSettingsFileName,
     isCollectionItemWithSequence,
-    isInFolderForEnvironmentFiles,
+    isInEnvironmentsFolderOfCollection,
     ItemType,
     normalizePath,
+    ReadyOnlyCollection,
 } from "@global_shared";
 import { DialogOptionLabelEnum, TypedCollectionItemProvider } from "@shared";
 import { copyFile } from "fs";
 import { basename, dirname } from "path";
 import { promisify } from "util";
-import { replaceNameInMetaBlock } from "./replaceNameInMetaBlock";
+import { replaceItemName } from "./replaceItemName";
 import { window } from "vscode";
-import { updateSequencesAfterInsertingRequestFile } from "./updateSequencesAfterInsertingRequestFile";
+import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { FileInsertionPosition } from "./interfaces";
 import { writeFile } from "fs/promises";
 
@@ -30,8 +33,42 @@ export async function handleFileInsertion(
 ) {
     const { newPath } = target;
     const itemType = sourceItem.getItemType();
+    const targetCollection = itemProvider.getAncestorCollectionForPath(newPath);
 
-    const shouldContinue = await requestConfirmationIfNeeded(itemType, newPath);
+    if (!targetCollection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${newPath}'.`,
+        );
+        return false;
+    }
+
+    const sourceCollection = itemProvider.getAncestorCollectionForPath(
+        sourceItem.getPath(),
+    );
+
+    if (!sourceCollection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${sourceItem.getPath()}'.`,
+        );
+        return false;
+    }
+
+    const format = targetCollection.getFormat();
+
+    // TODO: Support copying/moving items between collections with different formats (Bru <-> Yaml).
+    // This would require converting the file content and adjusting the file extension.
+    if (sourceCollection.getFormat() != format) {
+        window.showErrorMessage(
+            `Inserting files between collections with different formats (Bru and Yaml) is not supported.`,
+        );
+        return false;
+    }
+
+    const shouldContinue = await requestConfirmationIfNeeded(
+        itemType,
+        newPath,
+        targetCollection,
+    );
 
     if (!shouldContinue) {
         return false;
@@ -44,11 +81,12 @@ export async function handleFileInsertion(
         newContent,
     );
 
-    if (itemType == BrunoFileType.RequestFile) {
-        await replaceNameInMetaBlock(
+    if (wasSuccessful && itemType == BrunoFileType.RequestFile) {
+        await replaceItemName(
             newPath,
-            basename(newPath).replace(getExtensionForBrunoFiles(), ""),
+            basename(newPath).replace(getFileExtensionForFormat(format), ""),
             itemType,
+            format,
         );
     }
 
@@ -58,10 +96,17 @@ export async function handleFileInsertion(
 async function requestConfirmationIfNeeded(
     itemType: ItemType,
     newPath: string,
+    targetCollection: ReadyOnlyCollection<unknown>,
 ) {
+    const format = targetCollection.getFormat();
+    const isInEnvironmentsFolder = isInEnvironmentsFolderOfCollection(
+        targetCollection,
+        newPath,
+    );
+
     if (itemType == BrunoFileType.EnvironmentFile) {
         return (
-            isInFolderForEnvironmentFiles(newPath) ||
+            isInEnvironmentsFolder ||
             (await showWarningDialog(
                 "Insert environment file?",
                 `Environment files are only valid within the 'environments' folder.`,
@@ -69,7 +114,7 @@ async function requestConfirmationIfNeeded(
         );
     }
 
-    if (isInFolderForEnvironmentFiles(newPath)) {
+    if (isInEnvironmentsFolder) {
         return await showWarningDialog(
             `Insert file of type '${itemType}'?`,
             `In the 'environments' folder only environment files are valid.`,
@@ -78,20 +123,20 @@ async function requestConfirmationIfNeeded(
 
     if (itemType == BrunoFileType.FolderSettingsFile) {
         return (
-            doesFileNameMatchFolderSettingsFileName(newPath) ||
+            doesFileNameMatchFolderSettingsFileName(newPath, format) ||
             (await showWarningDialog(
                 "Insert folder settings file?",
-                `Only one folder settings file named 'folder${getExtensionForBrunoFiles()}' can be defined per folder.`,
+                `Only one folder settings file named '${getFolderSettingsFileName(format)}' can be defined per folder.`,
             ))
         );
     }
 
     if (itemType == BrunoFileType.CollectionSettingsFile) {
         return (
-            doesFileNameMatchCollectionSettingsFile(newPath) ||
+            doesFileNameMatchCollectionSettingsFile(newPath, format) ||
             (await showWarningDialog(
                 "Insert collection settings file?",
-                `Only one collection settings file named 'collection${getExtensionForBrunoFiles()}' can be defined per collection.`,
+                `Only one collection settings file named '${getCollectionSettingsFileName(format)}' can be defined per collection.`,
             ))
         );
     }
@@ -131,14 +176,16 @@ async function insertFile(
     }
 
     if (
+        (sourceItem.getItemType() == BrunoFileType.RequestFile ||
+            sourceItem.getItemType() == BrunoFileType.AppFile) &&
         isCollectionItemWithSequence(sourceItem) &&
         sourceItem.getSequence() != undefined
     ) {
         const sourceItemDirectory = dirname(sourceItem.getPath());
         const targetDirectory = dirname(newPath);
-        // Only if the source file has a sequence, sequences of requests may need to be adjusted.
+        // Only if the source file has a sequence, sequences of requests and app files may need to be adjusted.
 
-        await updateSequencesAfterInsertingRequestFile(
+        await updateSequencesAfterInsertingRequestOrAppFile(
             itemProvider,
             insertionPosition,
             newPath,

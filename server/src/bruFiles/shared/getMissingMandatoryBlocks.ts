@@ -1,4 +1,5 @@
 import {
+    appFileSpecificBlocks,
     AuthBlockName,
     AuthModeBlockKey,
     AuthTypes,
@@ -14,6 +15,8 @@ import {
     getBodyTypeFromBlockName,
     getExpectedAuthBlockForType,
     getPossibleMethodBlocks,
+    getPossibleMethodBlocksForRequestType,
+    MetaBlockKey,
     MethodBlockBodies,
     MethodBlockKey,
     RequestFileBlockName,
@@ -37,8 +40,8 @@ export function getMissingMandatoryBlocks(
     allBlocks: Block[],
 ): MissingMandatoryBlocks {
     switch (fileType) {
-        // For App files, it is currently assumed that they are valid. Implementing diagnostics and other language features is still to do.
         case BrunoFileType.AppFile:
+            return getMissingMandatoryBlocksForAppFile(allBlocks);
         case BrunoFileType.EnvironmentFile:
             return { blocksThatCannotBeOptional: [], missingBlocks: [] };
         case BrunoFileType.CollectionSettingsFile:
@@ -145,7 +148,13 @@ function getMissingMandatoryBlocksForRequestFile(
             blocksThatCannotBeOptional,
             missingBlocks: result.concat({
                 mandatory: true,
-                mutuallyExclusiveBlocks: getPossibleMethodBlocks(),
+                mutuallyExclusiveBlocks: getPossibleMethodBlocksForRequestType(
+                    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                        allBlocks,
+                        RequestFileBlockName.Meta,
+                        MetaBlockKey.Type,
+                    )?.value,
+                ),
             }),
         };
     }
@@ -251,6 +260,27 @@ function getMissingMandatoryBlocksForRequestFile(
         blocksThatCannotBeOptional,
         missingBlocks: result,
     };
+}
+
+function getMissingMandatoryBlocksForAppFile(
+    allBlocks: Block[],
+): MissingMandatoryBlocks {
+    const mandatoryBlocks = [
+        RequestFileBlockName.Meta,
+        appFileSpecificBlocks.app,
+    ];
+    const blocksThatCannotBeOptional: BlockThatCannotBeOptional[] =
+        mandatoryBlocks.map((name) => ({ name }));
+    const missingBlocks: MissingBlock[] = checkIfSimpleMandatoryBlockIsMissing(
+        allBlocks,
+        RequestFileBlockName.Meta,
+    ).concat(
+        checkIfSimpleMandatoryBlockIsMissing(
+            allBlocks,
+            appFileSpecificBlocks.app,
+        ),
+    );
+    return { blocksThatCannotBeOptional, missingBlocks };
 }
 
 function checkIfSimpleMandatoryBlockIsMissing(

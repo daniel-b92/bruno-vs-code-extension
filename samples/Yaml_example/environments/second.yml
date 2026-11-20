@@ -1,0 +1,8 @@
+name: second
+extends: Env1
+variables:
+  - name: gffgn
+    value:
+      type: number
+      data: "4545"
+    description: dfgdgf

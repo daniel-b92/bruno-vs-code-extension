@@ -4,13 +4,29 @@ This directory provides an `npm` package for a Typescript language service plugi
 
 **Disclaimer: All Bruno names, brands, trademarks, service marks and logos are the property of Bruno.**
 
+The plugin does not ship its own copy of Typescript. It uses the module that the Typescript server passes when initializing it, so it always works with the same Typescript version as the server. `typescript` is only a dev dependency of this package (for the types and the tests).
+
 ## Main Features
 
-Only some of the intellisense features for `Bruno` files are provided by this npm package. For a fuller set of intellisense features, you can use the VS Code extension, that is built from the root folder of this git repository.
+The code blocks are analyzed as follows:
+
+- Only the code blocks of `.bru` files (and the scripts of Yaml collection files) are seen by the Typescript server. All other content is replaced by spaces, so that positions in the file stay the same.
+- Each code block of a `.bru` file is wrapped in an `async` arrow function by overwriting the characters in front of the opening bracket. This makes `await` and `return` available at the top level and scopes declarations per block. If the block is preceded by too little content, a plain block is used instead.
+- Hovers, completions and signature help are only provided within code blocks. Completions that would insert an `import` or `require` statement are not offered in `.bru` files, since they would be inserted outside of the code blocks.
+- `.bru` and `.yml` files are added to configured projects like Javascript files, so the compiler options of a `tsconfig.json` / `jsconfig.json` in the collection apply to them (only if it allows Javascript files via `allowJs`).
+- The objects that `Bruno` provides at runtime (`bru`, `req`, `res`, `test`, `expect`) are declared in a virtual file in the root folder of each collection. `chai` and `mocha` are resolved from the `node_modules` of the collection.
+    - The declarations are global for the whole project. So they are also visible to files outside of collections that are part of the same project (e.g. a `jsconfig.json` or `tsconfig.json` with `allowJs` in a parent folder of the collection). In particular, `expect` and `test` replace the globals of other test frameworks like `jest`. A separate `jsconfig.json` / `tsconfig.json` in the collection root folder avoids this. Results that point to the virtual file (e.g. definitions) and the declarations used for wrapping code blocks are hidden in all files.
+    - If a project contains several collections, the types of `chai` and `mocha` are taken from the collection that comes first.
 
 ## Debugging
 
 For using the local TS plugin within the VS Code extension, please follow these steps:
 
-- Replace the `name` in the base [package.json](../package.json) for the `typescriptServerPlugins` contibution field with the name `typescript-for-bruno`.
+- Replace the `name` in the base [package.json](../package.json) for the `typescriptServerPlugins` contribution field with the name `typescript-for-bruno`.
 - Use the launch configuration `Run Extension With local TS plugin` for launching the extension
+
+## Configuration
+
+Collection files are only added to configured projects, if the plugin is configured with the formats of the collections in the workspace (e.g. `{ "collectionFormats": ["bru", "yaml"] }` via the `configurePlugin` function of the API of the VS Code Typescript extension).
+
+Javascript files within the additional context roots of a collection (`scripts.additionalContextRoots` in `bruno.json`) can also use the objects that `Bruno` provides at runtime. The plugin does not read the setting itself, so the absolute paths of these folders have to be passed with the configuration option `additionalContextRoots` (e.g. `{ "additionalContextRoots": ["/path/to/shared/scripts"] }`).

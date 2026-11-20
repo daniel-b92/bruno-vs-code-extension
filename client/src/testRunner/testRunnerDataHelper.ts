@@ -1,12 +1,13 @@
 import * as vscode from "vscode";
 import { getTestId, getTestLabel, addTestItemAndAncestorsToTestTree } from ".";
 import {
-    normalizePath,
+    isPathEqualOrDescendant,
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
-    isCollectionItemWithSequence,
+    isCollectionItemWithTags,
     isRequestFile,
+    isRequestFileOrCollectionDirectory,
 } from "@global_shared";
 import { TypedCollection } from "@shared";
 
@@ -24,7 +25,7 @@ export class TestRunnerDataHelper {
         testItem.canResolveChildren = !item.isFile();
         testItem.sortText = this.getVsCodeTestItemSortText(item);
 
-        if (isRequestFile(item) && item.getTags()) {
+        if (isCollectionItemWithTags(item) && item.getTags()) {
             testItem.description = "tags: (".concat(
                 (item.getTags() as string[]).map((t) => `'${t}'`).join(","),
                 ")",
@@ -56,8 +57,6 @@ export class TestRunnerDataHelper {
         collectionForDirectory: TypedCollection,
         directory: CollectionDirectory,
     ) {
-        const normalizedDirectoryPath = normalizePath(directory.getPath());
-
         return collectionForDirectory
             .getAllStoredDataForCollection()
             .slice()
@@ -65,8 +64,11 @@ export class TestRunnerDataHelper {
             .filter(
                 (item) =>
                     item.isFile() &&
-                    item.getPath().startsWith(normalizedDirectoryPath) &&
-                    isCollectionItemWithSequence(item) &&
+                    isPathEqualOrDescendant(
+                        item.getPath(),
+                        directory.getPath(),
+                    ) &&
+                    isRequestFile(item) &&
                     item.getSequence() != undefined,
             ) as CollectionItemWithSequence[];
     }
@@ -74,7 +76,7 @@ export class TestRunnerDataHelper {
     public dispose() {}
 
     private getVsCodeTestItemSortText(item: CollectionItem) {
-        return isCollectionItemWithSequence(item) && item.getSequence()
+        return isRequestFileOrCollectionDirectory(item) && item.getSequence()
             ? (item instanceof CollectionDirectory ? "" : "b").concat(
                   new Array((item.getSequence() as number) + 1).join("a"),
               )

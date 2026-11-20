@@ -2,10 +2,12 @@ import { basename } from "path";
 import {
     BrunoEnvironmentFile,
     CollectionData,
+    CollectionFormat,
     CollectionDirectory,
     CollectionItem,
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
     isEnvironmentFile,
+    isPathEqualOrDescendant,
     normalizePath,
 } from "..";
 
@@ -14,6 +16,7 @@ export class Collection<T> {
         private rootFolderItem: CollectionDirectory,
         rootFolderAdditionalData: T,
         private additionalContextRoots: string[],
+        private format: CollectionFormat,
     ) {
         this.testData.push({
             item: rootFolderItem,
@@ -25,6 +28,10 @@ export class Collection<T> {
 
     public getRootDirectory() {
         return this.rootFolderItem.getPath();
+    }
+
+    public getFormat() {
+        return this.format;
     }
 
     public isRootDirectory(path: string) {
@@ -56,9 +63,42 @@ export class Collection<T> {
                 item: item as BrunoEnvironmentFile,
                 environmentName: basename(
                     item.getPath(),
-                    getExtensionForBrunoFiles(),
+                    getFileExtensionForFormat(this.format),
                 ),
             }));
+    }
+
+    public getEnvironmentInheritanceChain(environmentName: string): string[] {
+        const environments = this.getEnvironments();
+        const chain: string[] = [];
+        const visited = new Set<string>([environmentName]);
+
+        let currentEnvironmentName = environmentName;
+
+        for (;;) {
+            const extendsName = environments
+                .find(
+                    ({ environmentName: name }) =>
+                        name == currentEnvironmentName,
+                )
+                ?.item.getExtends();
+
+            if (extendsName == undefined || visited.has(extendsName)) {
+                break;
+            }
+
+            chain.push(extendsName);
+            visited.add(extendsName);
+            currentEnvironmentName = extendsName;
+        }
+
+        return chain;
+    }
+
+    public getEnvironmentsExtending(environmentName: string): string[] {
+        return this.getEnvironments()
+            .filter(({ item }) => item.getExtends() == environmentName)
+            .map(({ environmentName: name }) => name);
     }
 
     public getAdditionalContextRoots() {
@@ -86,9 +126,10 @@ export class Collection<T> {
         if (item instanceof CollectionDirectory) {
             const descendantsToRemove = this.testData.filter(
                 ({ item: registered }) =>
-                    registered
-                        .getPath()
-                        .startsWith(normalizePath(item.getPath())),
+                    isPathEqualOrDescendant(
+                        registered.getPath(),
+                        item.getPath(),
+                    ),
             );
             for (const { item: toRemove } of descendantsToRemove) {
                 this.removeTestItemIfRegistered(toRemove.getPath());

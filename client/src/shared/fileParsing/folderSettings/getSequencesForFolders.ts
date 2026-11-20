@@ -41,10 +41,12 @@ export async function getSequencesForFolders(
                     settingsFile: await getFolderSettingsFilePath(
                         false,
                         folderPath,
+                        collection.getFormat(),
                     ),
                     sequence: await getSequenceForFolder(
                         collection.getRootDirectory(),
                         folderPath,
+                        collection.getFormat(),
                     ),
                 };
             }),

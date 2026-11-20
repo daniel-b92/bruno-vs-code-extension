@@ -1,4 +1,5 @@
 import {
+    doesRequestTypeSupportUrlParams,
     DictionaryBlockSimpleField,
     getExpectedUrlQueryParamsForQueryParamsBlock,
     getQueryParamsFromUrl,
@@ -19,7 +20,12 @@ import { URI } from "vscode-uri";
 export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
     filePath: string,
     blocks: Block[],
+    requestType: string | undefined,
 ): DiagnosticWithCode | undefined {
+    if (!doesRequestTypeSupportUrlParams(requestType)) {
+        return undefined;
+    }
+
     const queryParamsBlocks = getValidDictionaryBlocksWithName(
         blocks,
         RequestFileBlockName.QueryParams,
@@ -93,7 +99,7 @@ function getDiagnosticForUrlNotMatchingQueryParamsBlock(
             RequestFileBlockName.QueryParams
         }' block '${getUrlSubstringForQueryParams(
             queryParamsFromQueryParamsBlock,
-        )}'. Saving may fix this issue since the url will be automatically updated, to match the query params on saving.`,
+        )}'. Use the quick fix to update either of them to match the other.`,
         range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Error,
         relatedInformation: [

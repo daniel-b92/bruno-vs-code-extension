@@ -4,6 +4,7 @@ import {
     isBlockDictionaryBlock,
     isDictionaryBlockSimpleField,
     parseBlockFromFile,
+    parseBruFile,
     RequestFileBlockName,
     isDictionaryBlockField,
     Collection,
@@ -19,9 +20,16 @@ import {
     ItemType,
     CollectionItem,
     getFileContent,
-    parseFileByPath,
+    getAllExtendsFields,
     BrunoCollectionSettingsFile,
+    BrunoAppFile,
+    CollectionFormat,
 } from "../..";
+import {
+    createYamlEnvironmentFileInstance,
+    createYamlAppFileInstance,
+    createYamlRequestFileInstance,
+} from "./yamlFormat/createYamlCollectionItems";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function getCollectionItem<T>(
@@ -34,32 +42,47 @@ export async function getCollectionItem<T>(
         case NonBrunoSpecificItemType.Directory:
             return await createCollectionDirectoryInstance(
                 path,
+                collection.getFormat(),
                 await getFolderSettingsFilePath(
                     collection.isRootDirectory(path),
                     path,
+                    collection.getFormat(),
                 ),
             );
         default:
-            return await getCollectionItemForFile(path, itemType);
+            return await getCollectionItemForFile(
+                path,
+                itemType,
+                collection.getFormat(),
+            );
     }
 }
 
 export async function getCollectionItemForFile(
     path: string,
     itemType: ItemType,
+    format: CollectionFormat,
 ): Promise<CollectionItem | undefined> {
+    const isYaml = format == CollectionFormat.Yaml;
+
     switch (itemType) {
         case BrunoFileType.CollectionSettingsFile:
             return new BrunoCollectionSettingsFile(path);
         case BrunoFileType.FolderSettingsFile:
             return new BrunoFolderSettingsFile(path);
         case BrunoFileType.EnvironmentFile:
-            return await createEnvironmentFileInstance(path);
+            return isYaml
+                ? await createYamlEnvironmentFileInstance(path)
+                : await createEnvironmentFileInstance(path);
         case BrunoFileType.RequestFile:
-            return await createRequestFileInstance(path);
-        case NonBrunoSpecificItemType.OtherFileType:
+            return isYaml
+                ? await createYamlRequestFileInstance(path)
+                : await createRequestFileInstance(path);
         case BrunoFileType.AppFile:
-            // For App files, it is currently assumed that they are valid. Implementing diagnostics and other language features is still to do.
+            return isYaml
+                ? await createYamlAppFileInstance(path)
+                : await createAppFileInstance(path);
+        case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
         default:
             return undefined;
@@ -67,21 +90,34 @@ export async function getCollectionItemForFile(
 }
 
 async function createEnvironmentFileInstance(path: string) {
-    const blocks = (await parseFileByPath(path, BrunoFileType.EnvironmentFile))
-        ?.blocks;
+    const content = await getFileContent(path);
 
-    const varsBlocks = blocks
-        ? blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars)
-        : undefined;
-
-    if (!varsBlocks || varsBlocks.length != 1) {
+    if (content == undefined) {
         return new BrunoEnvironmentFile(path, []);
+    }
+
+    const docHelper = new TextDocumentHelper(content);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(
+        docHelper,
+        BrunoFileType.EnvironmentFile,
+    );
+
+    const extendsFields = getAllExtendsFields(docHelper, textOutsideOfBlocks);
+    const extendsEnvironmentName =
+        extendsFields.length == 1 ? extendsFields[0].value : undefined;
+
+    const varsBlocks = blocks.filter(
+        ({ name }) => name == EnvironmentFileBlockName.Vars,
+    );
+
+    if (varsBlocks.length != 1) {
+        return new BrunoEnvironmentFile(path, [], extendsEnvironmentName);
     }
 
     const varsBlock = varsBlocks[0];
 
     if (!isBlockDictionaryBlock(varsBlock)) {
-        return new BrunoEnvironmentFile(path, []);
+        return new BrunoEnvironmentFile(path, [], extendsEnvironmentName);
     }
 
     return new BrunoEnvironmentFile(
@@ -89,6 +125,7 @@ async function createEnvironmentFileInstance(path: string) {
         varsBlock.content.filter(
             (field) => isDictionaryBlockSimpleField(field) && !field.disabled,
         ) as DictionaryBlockSimpleField[],
+        extendsEnvironmentName,
     );
 }
 
@@ -115,4 +152,23 @@ async function createRequestFileInstance(path: string) {
     const { sequence, tags } =
         getSequenceAndTagsFromMetaBlock(metaBlockContent);
     return new BrunoRequestFile(path, sequence, tags);
+}
+
+async function createAppFileInstance(path: string) {
+    const fileContent = await getFileContent(path);
+    const metaBlockContent =
+        fileContent === undefined
+            ? undefined
+            : parseBlockFromFile(
+                  new TextDocumentHelper(fileContent),
+                  RequestFileBlockName.Meta,
+              )?.content;
+
+    return new BrunoAppFile(
+        path,
+        Array.isArray(metaBlockContent) &&
+            metaBlockContent.every((field) => isDictionaryBlockField(field))
+            ? getSequenceAndTagsFromMetaBlock(metaBlockContent).sequence
+            : undefined,
+    );
 }

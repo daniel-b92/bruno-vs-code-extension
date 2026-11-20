@@ -10,26 +10,27 @@ import {
     window,
     ProgressLocation,
     ExtensionContext,
-    workspace,
+    commands,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
-import { getTestId } from "./testTreeUtils/testTreeHelper";
-import { dirname, extname } from "path";
+import { removeTestItemFromTree } from "./testTreeUtils/removeTestItemFromTree";
 import {
     normalizePath,
-    getExtensionForBrunoFiles,
+    isPathEqualOrDescendant,
     FileChangeType,
     CollectionDirectory,
     CollectionItemWithSequence,
-    isCollectionItemWithSequence,
+    isCollectionDirectory,
+    isRequestFileOrCollectionDirectory,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     getLoggerFromSubscriptions,
     TypedCollection,
 } from "@shared";
+import { showLastHtmlReport } from "./internal/testExecutionUtils/showHtmlReport";
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
 import { TestRunUserInputData } from "./internal/interfaces";
 import { TestRunnerDataHelper } from ".";
@@ -50,10 +51,40 @@ export async function activateRunner(
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
+    const htmlReportStorageDir = (
+        context.storageUri ?? context.globalStorageUri
+    ).fsPath;
+
+    context.subscriptions.push(
+        commands.registerCommand("bruAsCode.showLastHtmlReport", () =>
+            showLastHtmlReport(),
+        ),
+    );
 
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
     collectionItemProvider.subscribeToUpdates(async (updates) => {
+        // Stop watching items that don't exist anymore (the deleted item itself and all of its descendants).
+        // This is done for the whole batch up front, because the loop below can return early.
+        for (const {
+            data: { item: deletedItem },
+        } of updates.filter(
+            ({ updateType }) => updateType == FileChangeType.Deleted,
+        )) {
+            for (const watchedItem of Array.from(watchingTests.keys())) {
+                if (
+                    watchedItem != "ALL" &&
+                    watchedItem.uri &&
+                    isPathEqualOrDescendant(
+                        watchedItem.uri.fsPath,
+                        deletedItem.getPath(),
+                    )
+                ) {
+                    watchingTests.delete(watchedItem);
+                }
+            }
+        }
+
         for (const {
             data: { item: changedItem },
         } of updates) {
@@ -69,6 +100,7 @@ export async function activateRunner(
                     {
                         collectionItemProvider,
                         queue,
+                        htmlReportStorageDir,
                         logger,
                     },
                 );
@@ -84,7 +116,10 @@ export async function activateRunner(
                 // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
                 if (
                     cast.uri?.fsPath
-                        ? changedItem.getPath().includes(cast.uri.fsPath)
+                        ? isPathEqualOrDescendant(
+                              changedItem.getPath(),
+                              cast.uri.fsPath,
+                          )
                         : false
                 ) {
                     include.push(cast);
@@ -99,22 +134,40 @@ export async function activateRunner(
                     {
                         collectionItemProvider,
                         queue,
+                        htmlReportStorageDir,
                         logger,
                     },
                 );
             }
         }
     });
+    let hasResolvedTestTree = false;
+    async function resolveTestTree() {
+        await addMissingTestCollectionsAndItemsToTestTree(
+            ctrl,
+            testRunnerDataHelper,
+            collectionItemProvider.getRegisteredCollections(),
+        );
+        hasResolvedTestTree = true;
+    }
+
     async function runHandler(
         request: TestRunRequest,
         cancellation: CancellationToken,
     ) {
         const { include, continuous } = request;
 
+        await collectionItemProvider.ensureCacheIsLoaded();
+        if (!hasResolvedTestTree) {
+            // The test tree might not have been resolved yet (e.g. if the test explorer was not opened before).
+            await resolveTestTree();
+        }
+
         if (!continuous) {
             return await startTestRun(ctrl, request, {
                 collectionItemProvider,
                 queue,
+                htmlReportStorageDir,
                 logger,
             });
         }
@@ -142,31 +195,26 @@ export async function activateRunner(
                 return new Promise<void>((resolve) => {
                     ctrl.items.replace([]);
 
-                    collectionItemProvider
-                        .refreshCache(
-                            workspace.workspaceFolders?.map(
-                                (f) => f.uri.fsPath,
-                            ) ?? [],
-                        )
-                        .then(() => {
-                            const collections =
-                                collectionItemProvider.getRegisteredCollections();
+                    collectionItemProvider.refreshCache().then(() => {
+                        const collections =
+                            collectionItemProvider.getRegisteredCollections();
 
-                            addMissingTestCollectionsAndItemsToTestTree(
-                                ctrl,
-                                testRunnerDataHelper,
-                                collections,
-                            ).then(() => {
-                                // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
-                                collections.forEach((collection) =>
-                                    addCollectionTestItemToTestTree(
-                                        ctrl,
-                                        collection,
-                                    ),
-                                );
-                                resolve();
-                            });
+                        addMissingTestCollectionsAndItemsToTestTree(
+                            ctrl,
+                            testRunnerDataHelper,
+                            collections,
+                        ).then(() => {
+                            hasResolvedTestTree = true;
+                            // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
+                            collections.forEach((collection) =>
+                                addCollectionTestItemToTestTree(
+                                    ctrl,
+                                    collection,
+                                ),
+                            );
+                            resolve();
                         });
+                    });
                 });
             },
         );
@@ -182,12 +230,10 @@ export async function activateRunner(
     );
 
     ctrl.resolveHandler = async (item) => {
+        await collectionItemProvider.ensureCacheIsLoaded();
+
         if (!item) {
-            await addMissingTestCollectionsAndItemsToTestTree(
-                ctrl,
-                testRunnerDataHelper,
-                collectionItemProvider.getRegisteredCollections(),
-            );
+            await resolveTestTree();
             return;
         }
         const path = (item.uri as Uri).fsPath;
@@ -213,6 +259,8 @@ export async function activateRunner(
     };
 
     startTestRunEvent(async ({ uri, withDialog }) => {
+        await collectionItemProvider.ensureCacheIsLoaded();
+
         const showMessageForNonRunnableItem = () =>
             window.showInformationMessage(
                 "No bruno tests found for selected item.",
@@ -235,7 +283,7 @@ export async function activateRunner(
         } = maybeData;
 
         if (
-            !isCollectionItemWithSequence(item) ||
+            !isRequestFileOrCollectionDirectory(item) ||
             !isRelevantForTestTree(testRunnerDataHelper, collection, item)
         ) {
             showMessageForNonRunnableItem();
@@ -258,6 +306,7 @@ export async function activateRunner(
             {
                 collectionItemProvider,
                 queue,
+                htmlReportStorageDir,
                 logger,
                 userInput,
             },
@@ -298,8 +347,8 @@ function handleTestTreeUpdates(
                 updateType,
             } = update;
 
-            if (!isCollectionItemWithSequence(item)) {
-                return;
+            if (!isRequestFileOrCollectionDirectory(item)) {
+                continue;
             }
 
             if (
@@ -307,17 +356,31 @@ function handleTestTreeUpdates(
                 isRelevantForTestTree(testRunnerDataHelper, collection, item)
             ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
-                // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
-                item.isFile() &&
-                extname(item.getPath()) == getExtensionForBrunoFiles() &&
+                isCollectionDirectory(item) &&
                 (update.changedData?.sequenceChanged ||
                     update.changedData?.tagsChanged ||
                     update.changedData?.additionalDataChanged)
             ) {
-                /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
-                new name and a deletion of the directory with the old name. */
+                /* The cache only replaces a directory if one of these properties has changed. The directory then has a new (empty) test item,
+                so the directory needs to be re-added together with its descendants. */
+                removeTestItemFromTree(
+                    controller,
+                    collection,
+                    testItem.uri as Uri,
+                );
+                void testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
+                    collection,
+                    item,
+                );
+            } else if (
+                updateType == FileChangeType.Modified &&
+                item.isFile() &&
+                (update.changedData?.sequenceChanged ||
+                    update.changedData?.tagsChanged ||
+                    update.changedData?.additionalDataChanged)
+            ) {
                 if (item.getSequence() != undefined) {
                     removeTestItemFromTree(
                         controller,
@@ -330,17 +393,16 @@ function handleTestTreeUpdates(
                         item,
                     );
                 } else if (item.getSequence() == undefined) {
-                    // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
+                    // This case can e.g. happen if the sequence in the a request file is changed to an invalid value
                     removeTestItemFromTree(
                         controller,
                         collection,
                         testItem.uri as Uri,
                     );
                 }
-            } else if (
-                updateType == FileChangeType.Deleted &&
-                isRelevantForTestTree(testRunnerDataHelper, collection, item)
-            ) {
+            } else if (updateType == FileChangeType.Deleted) {
+                /* The relevance for the test tree must not be checked here: The cache has already removed deleted items and their descendants,
+                so e.g. a deleted directory never has any test files left. Removing an item that is not in the tree does nothing. */
                 removeTestItemFromTree(
                     controller,
                     collection,
@@ -370,30 +432,14 @@ function addCollectionTestItemToTestTree(
     );
 }
 
-function removeTestItemFromTree(
-    controller: TestController,
-    collection: TypedCollection,
-    itemUri: Uri,
-) {
-    const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
-
-    if (parentItem) {
-        parentItem.additionalData.testItem.children.delete(getTestId(itemUri));
-    } else {
-        controller.items.delete(getTestId(itemUri));
-    }
-}
-
 function isRelevantForTestTree(
     testRunnerDataHelper: TestRunnerDataHelper,
     collection: TypedCollection,
     item: CollectionItemWithSequence,
 ) {
     return (
-        (item.isFile() &&
-            extname(item.getPath()) == getExtensionForBrunoFiles() &&
-            item.getSequence() != undefined) ||
-        (item instanceof CollectionDirectory &&
+        (item.isFile() && item.getSequence() != undefined) ||
+        (isCollectionDirectory(item) &&
             testRunnerDataHelper.getTestFileDescendants(collection, item)
                 .length > 0)
     );

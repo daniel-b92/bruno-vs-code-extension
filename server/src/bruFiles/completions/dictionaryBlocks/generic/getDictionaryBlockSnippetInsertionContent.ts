@@ -8,12 +8,16 @@ import {
     BooleanFieldValue,
     BrunoFileType,
     getDefaultIndentationForDictionaryBlockFields,
-    getExtensionForBrunoFiles,
     getMandatoryKeysForMethodBlock,
     getMandatoryKeysForNonOAuth2Block,
     getMetaBlockMandatoryKeys,
     getOptionalKeysForSettingsBlock,
     getPossibleMethodBlocks,
+    GrpcBodyBlockKey,
+    getMandatoryKeysForWsBodyBlock,
+    getOptionalKeysForWsBodyBlock,
+    WsBodyBlockKey,
+    WsBodyBlockMessageType,
     isAuthBlock,
     LineBreakType,
     MetaBlockKey,
@@ -29,19 +33,23 @@ import {
     RequestType,
     SettingsBlockKey,
     SettingsFileSpecificBlock,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import {
     LanguageFeatureBaseRequest,
     TypedCollection,
 } from "../../../../shared";
 import { basename } from "path";
-import { getSequenceValueCompletion } from "../../../shared/getSequenceValueCompletion";
+import { getSequenceValueCompletion } from "../../../../shared/getSequenceValueCompletion";
 
 interface CommonParams {
     baseRequest: LanguageFeatureBaseRequest;
     fileType: BrunoFileType;
     collection: TypedCollection;
     lineBreak: LineBreakType;
+    /** The request type defined in the meta block (if any). Only relevant for request files. */
+    requestType?: string;
 }
 
 export function getDictionaryBlockSnippetInsertionContent(
@@ -59,7 +67,18 @@ export function getDictionaryBlockSnippetInsertionContent(
     }
 
     if (blockName == RequestFileBlockName.Settings) {
-        return getContentForSettingsBlock(lineBreak);
+        return getContentForSettingsBlock(lineBreak, commonParams.requestType);
+    }
+
+    if (blockName == RequestFileBlockName.GrpcBody) {
+        return getContentForDictionaryBlock(
+            Object.values(GrpcBodyBlockKey).map((key) => ({ key })),
+            lineBreak,
+        );
+    }
+
+    if (blockName == RequestFileBlockName.WsBody) {
+        return getContentForWsBodyBlock(lineBreak);
     }
 
     if (blockName == SettingsFileSpecificBlock.AuthMode) {
@@ -91,7 +110,7 @@ function getContentForMetaBlock({
                 key,
                 predefinedValues: basename(
                     filePath,
-                    getExtensionForBrunoFiles(),
+                    getFileExtensionForFormat(CollectionFormat.Bru),
                 ),
             };
         }
@@ -205,8 +224,29 @@ function getContentForAuthBlock(blockName: string, lineBreak: LineBreakType) {
     );
 }
 
-function getContentForSettingsBlock(lineBreak: LineBreakType) {
-    const fields = getOptionalKeysForSettingsBlock().map((key) => ({
+function getContentForWsBodyBlock(lineBreak: LineBreakType) {
+    return getContentForDictionaryBlock(
+        [
+            ...getMandatoryKeysForWsBodyBlock(),
+            ...getOptionalKeysForWsBodyBlock(),
+        ].map((key) => ({
+            key,
+            predefinedValues:
+                key == WsBodyBlockKey.Type
+                    ? Object.values(WsBodyBlockMessageType)
+                    : key == WsBodyBlockKey.Selected
+                      ? Object.values(BooleanFieldValue)
+                      : undefined,
+        })),
+        lineBreak,
+    );
+}
+
+function getContentForSettingsBlock(
+    lineBreak: LineBreakType,
+    requestType?: string,
+) {
+    const fields = getOptionalKeysForSettingsBlock(requestType).map((key) => ({
         key,
         predefinedValues: (
             [
@@ -215,7 +255,7 @@ function getContentForSettingsBlock(lineBreak: LineBreakType) {
             ] as string[]
         ).includes(key)
             ? Object.values(BooleanFieldValue)
-            : key == SettingsBlockKey.FollowRedirects
+            : key == SettingsBlockKey.MaxRedirects
               ? "5"
               : key == SettingsBlockKey.Timeout
                 ? "inherit"
@@ -245,7 +285,7 @@ function getContentForAuthModeBlock(
     );
 }
 
-function getContentForDictionaryBlock(
+export function getContentForDictionaryBlock(
     fields: { key: string; predefinedValues?: string | string[] }[],
     lineBreak: LineBreakType,
     lastSelectedKeyWithoutPredefinedValues?: string,

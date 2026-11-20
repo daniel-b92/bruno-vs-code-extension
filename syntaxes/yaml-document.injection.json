@@ -1,0 +1,24 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "scopeName": "source.bruno.yaml-document.injection",
+    "comment": "Marks yaml files as Bruno files if their first line is one of the top-level keys that Bruno yaml files start with. All other Bruno yaml injection grammars only apply within this scope, so that they do not affect arbitrary yaml files. Bruno files whose first line is a different one (e.g. a comment) are therefore only highlighted as plain yaml. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
+    "injectionSelector": "L:source.yaml -meta.bruno.document.yaml",
+    "patterns": [
+        {
+            "include": "#bruno-document"
+        }
+    ],
+    "repository": {
+        "bruno-document": {
+            "comment": "Covers the whole document, like the root rule of the yaml grammar ('\\A' only matches at the start of the first line).",
+            "name": "meta.bruno.document.yaml",
+            "begin": "\\A(?=(?:info|opencollection)[ \\t]*:(?:[ \\t]|$))",
+            "while": "^",
+            "patterns": [
+                {
+                    "include": "source.yaml.1.2"
+                }
+            ]
+        }
+    }
+}

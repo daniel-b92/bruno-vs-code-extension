@@ -1,4 +1,8 @@
-import { Block, isBodyBlock } from "@global_shared";
+import {
+    Block,
+    canBlockBeDefinedMultipleTimes,
+    isBodyBlock,
+} from "@global_shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -12,12 +16,26 @@ export function checkAtMostOneBodyBlockExists(
     const sortedBodyBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isBodyBlock(name)),
     );
+    const sortedBodyBlocksWithoutRepeats =
+        withoutAdditionalRepeatableBlocks(sortedBodyBlocks);
 
-    if (sortedBodyBlocks.length > 1) {
-        return getDiagnostic(filePath, sortedBodyBlocks);
+    if (sortedBodyBlocksWithoutRepeats.length > 1) {
+        return getDiagnostic(filePath, sortedBodyBlocksWithoutRepeats);
     } else {
         return undefined;
     }
+}
+
+/**
+ * Body blocks that can be defined multiple times (e.g. websocket messages) are only counted as a single body.
+ */
+function withoutAdditionalRepeatableBlocks(sortedBodyBlocks: Block[]) {
+    return sortedBodyBlocks.filter(
+        (block, index) =>
+            !canBlockBeDefinedMultipleTimes(block.name) ||
+            sortedBodyBlocks.findIndex(({ name }) => name == block.name) ==
+                index,
+    );
 }
 
 function getDiagnostic(

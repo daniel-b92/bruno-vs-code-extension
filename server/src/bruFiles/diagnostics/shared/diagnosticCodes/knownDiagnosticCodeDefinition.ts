@@ -6,6 +6,10 @@ import { RelevantWithinBodyBlockDiagnosticCode } from "./relevantWithinBodyBlock
 import { RelevantWithinAuthModeBlockDiagnosticCode } from "./relevantWithinAuthModeBlockDiagnosticCodeEnum";
 import { RelevantWithinSettingsBlockDiagnosticCode } from "./relevantWithinSettingsBlockDiagnosticCodeEnum";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "./relevantWithinEnvironmentFileDiagnosticCodeEnum";
+import { RelevantWithinAppBlockDiagnosticCode } from "./relevantWithinAppBlockDiagnosticCodeEnum";
+import { RelevantWithinCodeBlockDiagnosticCode } from "./relevantWithinCodeBlockDiagnosticCodeEnum";
+import { RelevantWithinGrpcBodyBlockDiagnosticCode } from "./relevantWithinGrpcBodyBlockDiagnosticCodeEnum";
+import { RelevantWithinWsBodyBlockDiagnosticCode } from "./relevantWithinWsBodyBlockDiagnosticCodeEnum";
 
 export type KnownDiagnosticCode =
     | RelevantWithinAuthBlockDiagnosticCode
@@ -15,4 +19,8 @@ export type KnownDiagnosticCode =
     | NonBlockSpecificDiagnosticCode
     | RelevantWithinAuthModeBlockDiagnosticCode
     | RelevantWithinSettingsBlockDiagnosticCode
-    | RelevantWithinEnvironmentFileDiagnosticCode;
+    | RelevantWithinEnvironmentFileDiagnosticCode
+    | RelevantWithinAppBlockDiagnosticCode
+    | RelevantWithinCodeBlockDiagnosticCode
+    | RelevantWithinGrpcBodyBlockDiagnosticCode
+    | RelevantWithinWsBodyBlockDiagnosticCode;

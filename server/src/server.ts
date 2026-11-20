@@ -5,10 +5,14 @@ import {
     TextDocumentSyncKind,
     InitializeResult,
     CancellationToken,
+    CodeActionKind,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForFormatting } from "./bruFiles/formatting/getHandlerForFormatting";
+import { getHandlerForYamlFormatting } from "./yamlFiles/formatting/getHandlerForYamlFormatting";
+import { FormattingRegistration } from "./shared/formattingRegistration";
+import { registerCompletionProviders } from "./shared/completionRegistration";
 import {
     getDefaultLogger,
     HelpersProvider,
@@ -18,30 +22,55 @@ import {
     TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
-import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
+import { runUpdatesOnWillSave as runUpdatesOnWillSaveForBruFile } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
+import { runUpdatesOnWillSave as runUpdatesOnWillSaveForYamlFile } from "./yamlFiles/autoUpdates/runUpdatesOnWillSave";
+import { handleCodeActionRequest as handleCodeActionRequestForYamlFile } from "./yamlFiles/quickFixes/handleCodeActionRequest";
+import { handleCodeActionRequest as handleCodeActionRequestForBruFile } from "./bruFiles/quickFixes/handleCodeActionRequest";
 import {
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
-    getExtensionForBrunoFiles,
     getItemType,
+    NonBrunoSpecificItemType,
+    isInEnvironmentsFolderOfCollection,
+    doesFileNameMatchFolderSettingsFileName,
+    doesFileNameMatchCollectionSettingsFile,
     isBrunoFileType,
+    BrunoFileType,
     Position,
     TextDocumentHelper,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
+import { handleCompletionRequest as handleCompletionRequestForYamlFile } from "./yamlFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
+import { handleHoverRequest as handleHoverRequestForYamlFile } from "./yamlFiles/hover/handleHoverRequest";
 import { extname } from "path";
-import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
-import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
+import { readFile } from "fs/promises";
+import {
+    handleCompletionRequest as handleCompletionRequestForJsFile,
+    handleCompletionRequestForJsFileInContextRoot,
+} from "./jsFiles/completionItems/handleCompletionRequest";
+import {
+    handleHoverRequest as handleHoverRequestForJsFile,
+    handleHoverRequestForJsFileInContextRoot,
+} from "./jsFiles/hover/handleHoverRequest";
+import { getJsFileInContextRootRequest } from "./jsFiles/shared/getJsFileInContextRootRequest";
+import { getYamlFileTypeForEditorContent } from "./yamlFiles/getYamlFileTypeForEditorContent";
+import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
+let yamlDiagnosticsProvider: YamlFormatDiagnosticsProvider;
+let formattingRegistration: FormattingRegistration;
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
     Bru = ".bru",
     Js = ".js",
+    Yml = ".yml",
+    Other = "other",
 }
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -63,16 +92,15 @@ disposables.push(
                     openClose: true,
                     save: true,
                 },
-                documentFormattingProvider: true,
-                completionProvider: {
-                    triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
-                    completionItem: { labelDetailsSupport: true },
-                },
+                // Formatting and completions are registered dynamically (see `FormattingRegistration` and `registerCompletionProviders`).
                 diagnosticProvider: {
                     interFileDependencies: true,
                     workspaceDiagnostics: false,
                 },
                 hoverProvider: true,
+                codeActionProvider: {
+                    codeActionKinds: [CodeActionKind.QuickFix],
+                },
             },
         };
         return result;
@@ -81,17 +109,19 @@ disposables.push(
 
 disposables.push(
     connection.onInitialized(async () => {
+        formattingRegistration = new FormattingRegistration(connection);
+        disposables.push(formattingRegistration);
+        void formattingRegistration.registerForBruFiles();
+        void registerCompletionProviders(connection);
+
         const workspaceFolders = await getWorkspaceFolders();
-        helpersProvider = new HelpersProvider(workspaceFolders);
+        helpersProvider = new HelpersProvider(
+            workspaceFolders,
+            loadCacheWithProgress,
+        );
         disposables.push(helpersProvider);
 
         const itemProvider = helpersProvider.getItemProvider();
-
-        const reporter = await connection.window.createWorkDoneProgress();
-
-        reporter.begin("Refreshing bru-as-code server-side cache...");
-        await itemProvider.refreshCache(workspaceFolders);
-        reporter.done();
 
         brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
             itemProvider,
@@ -99,7 +129,29 @@ disposables.push(
 
         disposables.push(brunoLangDiagnosticsProvider);
 
+        yamlDiagnosticsProvider = new YamlFormatDiagnosticsProvider(
+            itemProvider,
+        );
+
+        const updateFormattingRegistration = () =>
+            formattingRegistration.update(
+                itemProvider
+                    .getRegisteredCollections()
+                    .filter(
+                        (collection) =>
+                            collection.getFormat() == CollectionFormat.Yaml,
+                    )
+                    .map((collection) => collection.getRootDirectory()),
+            );
+
+        itemProvider.subscribeToInitialCacheLoad(() => {
+            updateFormattingRegistration();
+            connection.languages.diagnostics.refresh();
+        });
+
         itemProvider.subscribeToUpdates((changes) => {
+            updateFormattingRegistration();
+
             if (
                 changes.some(
                     (change) =>
@@ -112,16 +164,29 @@ disposables.push(
             }
         });
 
-        connection.languages.diagnostics.refresh();
+        documents
+            .all()
+            .forEach(({ uri }) => void loadCacheInBackground(getFilePath(uri)));
     }),
 );
 
 disposables.push(
-    connection.onDocumentFormatting(({ textDocument: { uri } }) => {
+    documents.onDidOpen(
+        ({ document: { uri } }) => void loadCacheInBackground(getFilePath(uri)),
+    ),
+);
+
+disposables.push(
+    connection.onDocumentFormatting(async ({ textDocument: { uri } }) => {
         const { filePath, type } = getFilePathAndType(uri);
-        if (type != FileTypeByExtension.Bru) {
+        if (
+            type != FileTypeByExtension.Bru &&
+            type != FileTypeByExtension.Yml
+        ) {
             return undefined;
         }
+
+        await ensureCacheIsLoaded(filePath);
 
         const itemProvider = helpersProvider?.getItemProvider();
         const collection = itemProvider?.getAncestorCollectionForPath(filePath);
@@ -134,9 +199,16 @@ disposables.push(
         }
 
         const document = documents.get(uri);
-        return document
+        if (!document) {
+            return undefined;
+        }
+
+        return type == FileTypeByExtension.Bru
             ? getHandlerForFormatting(document, itemType)
-            : undefined;
+            : getHandlerForYamlFormatting(
+                  document,
+                  getYamlFileTypeForEditorContent(itemType, document.getText()),
+              );
     }),
 );
 
@@ -144,6 +216,7 @@ disposables.push(
     connection.onCompletion(
         async ({ textDocument: { uri }, position }, token) => {
             const { filePath, type } = getFilePathAndType(uri);
+            await ensureCacheIsLoaded(filePath);
 
             const baseRequest = mapToBaseLanguageRequest(
                 uri,
@@ -155,8 +228,23 @@ disposables.push(
             const collection =
                 itemProvider?.getAncestorCollectionForPath(filePath);
 
-            if (!baseRequest || !itemProvider || !collection) {
+            if (!baseRequest || !itemProvider) {
                 return undefined;
+            }
+
+            if (!collection) {
+                const requestForContextRoot =
+                    await getRequestForJsFileInContextRoot(
+                        itemProvider,
+                        type,
+                        baseRequest,
+                    );
+
+                return requestForContextRoot
+                    ? handleCompletionRequestForJsFileInContextRoot(
+                          requestForContextRoot,
+                      )
+                    : undefined;
             }
 
             const params: LanguageRequestWithTestEnvironmentInfo = {
@@ -171,6 +259,8 @@ disposables.push(
             switch (type) {
                 case FileTypeByExtension.Bru:
                     return handleCompletionRequestForBruFile(params);
+                case FileTypeByExtension.Yml:
+                    return handleCompletionRequestForYamlFile(params);
                 case FileTypeByExtension.Js:
                     return handleCompletionRequestForJsFile(params);
             }
@@ -182,19 +272,28 @@ disposables.push(
     connection.languages.diagnostics.on(async ({ textDocument: { uri } }) => {
         const { filePath, type } = getFilePathAndType(uri);
 
-        if (type != FileTypeByExtension.Bru) {
-            return { kind: "full", items: [] };
-        }
-
+        const defaultResponse = { kind: "full" as const, items: [] };
         const document = documents.get(uri);
 
-        const items = document
-            ? ((await getDiagnosticsForBruFile(filePath, document.getText())) ??
-              [])
-            : [];
+        if (
+            (type != FileTypeByExtension.Bru &&
+                type != FileTypeByExtension.Yml) ||
+            !document
+        ) {
+            return defaultResponse;
+        }
+
+        await ensureCacheIsLoaded(filePath);
+
+        const content = document.getText();
+
+        const items =
+            (type == FileTypeByExtension.Bru
+                ? await getDiagnosticsForBruFile(filePath, content)
+                : await getDiagnosticsForYamlFile(filePath, content)) ?? [];
 
         return {
-            kind: "full",
+            ...defaultResponse,
             items,
         };
     }),
@@ -202,6 +301,7 @@ disposables.push(
 
 connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     const { filePath, type } = getFilePathAndType(uri);
+    await ensureCacheIsLoaded(filePath);
 
     const baseRequest = mapToBaseLanguageRequest(
         uri,
@@ -211,8 +311,20 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     const itemProvider = helpersProvider?.getItemProvider();
     const collection = itemProvider?.getAncestorCollectionForPath(filePath);
 
-    if (!baseRequest || !itemProvider || !collection) {
+    if (!baseRequest || !itemProvider) {
         return undefined;
+    }
+
+    if (!collection) {
+        const requestForContextRoot = await getRequestForJsFileInContextRoot(
+            itemProvider,
+            type,
+            baseRequest,
+        );
+
+        return requestForContextRoot
+            ? handleHoverRequestForJsFileInContextRoot(requestForContextRoot)
+            : undefined;
     }
 
     const params: LanguageRequestWithTestEnvironmentInfo = {
@@ -227,32 +339,118 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     switch (type) {
         case FileTypeByExtension.Bru:
             return handleHoverRequestForBruFile(params);
+        case FileTypeByExtension.Yml:
+            return handleHoverRequestForYamlFile(params);
         case FileTypeByExtension.Js:
             return handleHoverRequestForJsFile(params);
     }
 });
 
-documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
-    if (getFilePathAndType(uri).type != FileTypeByExtension.Bru) {
+async function getRequestForJsFileInContextRoot(
+    itemProvider: TypedCollectionItemProvider,
+    type: FileTypeByExtension | undefined,
+    baseRequest: LanguageFeatureBaseRequest,
+) {
+    return type == FileTypeByExtension.Js
+        ? getJsFileInContextRootRequest(
+              itemProvider,
+              baseRequest,
+              getConfiguredTestEnvironment,
+          )
+        : undefined;
+}
+
+documents.onWillSaveWaitUntil(async ({ document }) => {
+    const { filePath, type } = getFilePathAndType(document.uri);
+
+    if (type != FileTypeByExtension.Bru && type != FileTypeByExtension.Yml) {
         return [];
     }
 
+    await ensureCacheIsLoaded(filePath);
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (!itemProvider) {
+        return [];
+    }
+
+    // Only request files can have query params and path params.
+    if (
+        (await getFileTypeForEditorContent(
+            itemProvider,
+            filePath,
+            type,
+            document.getText(),
+        )) != BrunoFileType.RequestFile
+    ) {
+        return [];
+    }
+
+    // The file on disk still has the content of the last save.
+    const lastSavedContent = await readFile(filePath, "utf-8").catch(
+        () => undefined,
+    );
+
+    if (lastSavedContent === undefined) {
+        return [];
+    }
+
+    return type == FileTypeByExtension.Bru
+        ? runUpdatesOnWillSaveForBruFile(lastSavedContent, document.getText())
+        : runUpdatesOnWillSaveForYamlFile(lastSavedContent, document.getText());
+});
+
+connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
+    const { filePath, type } = getFilePathAndType(uri);
     const document = documents.get(uri);
-    return document && helpersProvider
-        ? runUpdatesOnWillSave(
-              uri,
-              document.getText(),
-              helpersProvider.getItemProvider(),
-          )
-        : [];
+
+    if (
+        (type != FileTypeByExtension.Bru && type != FileTypeByExtension.Yml) ||
+        !document
+    ) {
+        return [];
+    }
+
+    await ensureCacheIsLoaded(filePath);
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (!itemProvider) {
+        return [];
+    }
+
+    // Only request files can have query params and path params.
+    if (
+        (await getFileTypeForEditorContent(
+            itemProvider,
+            filePath,
+            type,
+            document.getText(),
+        )) != BrunoFileType.RequestFile
+    ) {
+        return [];
+    }
+
+    const params = {
+        uri,
+        fileContent: document.getText(),
+        diagnostics: context.diagnostics,
+    };
+
+    return type == FileTypeByExtension.Bru
+        ? handleCodeActionRequestForBruFile(params)
+        : handleCodeActionRequestForYamlFile(params);
 });
 
 connection.onExit(() => {
-    dispose();
+    // The library terminates the process right after this handler.
+    disposeResources();
+    connection.dispose();
 });
 
 connection.onShutdown(() => {
-    dispose();
+    // The connection must not be disposed here, since the client only sends the exit notification after receiving the
+    // response to the shutdown request. Otherwise, the server process is killed by the client after a timeout.
+    disposeResources();
 });
 
 // Make the text document manager listen on the connection
@@ -262,6 +460,61 @@ disposables.push(documents.listen(connection));
 // Listen on the connection
 connection.listen();
 
+async function getFileTypeForEditorContent(
+    itemProvider: TypedCollectionItemProvider,
+    filePath: string,
+    type: FileTypeByExtension.Bru | FileTypeByExtension.Yml,
+    text: string,
+) {
+    if (type == FileTypeByExtension.Bru) {
+        return getBrunoFileTypeIfExists(itemProvider, filePath);
+    }
+
+    const cachedType = await getYamlFileTypeIfExists(itemProvider, filePath);
+
+    // The cache can't tell app files and request files apart for Yaml files.
+    return cachedType
+        ? getYamlFileTypeForEditorContent(cachedType, text)
+        : undefined;
+}
+
+/**
+ * The server-side cache is only loaded when it is first needed (e.g. when a relevant document gets opened).
+ * Until the language server has been initialized, this resolves immediately without loading anything.
+ */
+async function ensureCacheIsLoaded(filePath: string) {
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (itemProvider?.isFileRelevantForCollections(filePath)) {
+        await itemProvider.ensureCacheIsLoaded();
+    }
+}
+
+async function loadCacheInBackground(filePath: string) {
+    try {
+        await ensureCacheIsLoaded(filePath);
+    } catch (e) {
+        getDefaultLogger().error(
+            `Loading the server-side cache failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
+    }
+}
+
+async function loadCacheWithProgress(load: () => Promise<void>) {
+    const reporter = await connection.window.createWorkDoneProgress();
+
+    reporter.begin("Refreshing bru-as-code server-side cache...");
+    try {
+        await load();
+    } finally {
+        reporter.done();
+    }
+}
+
+function getFilePath(uri: string) {
+    return URI.parse(uri).fsPath;
+}
+
 async function getWorkspaceFolders() {
     return (
         (await connection.workspace.getWorkspaceFolders())?.map(
@@ -270,9 +523,9 @@ async function getWorkspaceFolders() {
     );
 }
 
-function dispose() {
-    disposables.forEach((d) => d.dispose());
-    connection.dispose();
+/** Can be called multiple times, since the exit notification usually follows the shutdown request. */
+function disposeResources() {
+    disposables.splice(0).forEach((d) => d.dispose());
 }
 
 function mapToBaseLanguageRequest(
@@ -319,11 +572,62 @@ async function getDiagnosticsForBruFile(filePath: string, text: string) {
         return undefined;
     }
 
-    return await brunoLangDiagnosticsProvider.getDiagnostics(
+    return brunoLangDiagnosticsProvider.getDiagnosticsForBruFile(
         filePath,
         text,
         brunoFileType,
     );
+}
+
+async function getDiagnosticsForYamlFile(filePath: string, text: string) {
+    const fileType = helpersProvider
+        ? await getYamlFileTypeIfExists(
+              helpersProvider.getItemProvider(),
+              filePath,
+          )
+        : undefined;
+
+    if (!fileType || !yamlDiagnosticsProvider) {
+        // Not a Bruno file within a registered yaml collection (e.g. a CI config).
+        return undefined;
+    }
+
+    return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+        filePath,
+        text,
+        getYamlFileTypeForEditorContent(fileType, text),
+    );
+}
+
+async function getYamlFileTypeIfExists(
+    itemProvider: TypedCollectionItemProvider,
+    filePath: string,
+) {
+    const collection = itemProvider.getAncestorCollectionForPath(filePath);
+
+    if (!collection || collection.getFormat() != CollectionFormat.Yaml) {
+        return undefined;
+    }
+
+    const itemType = await getItemType(collection, filePath);
+
+    if (itemType && isBrunoFileType(itemType)) {
+        return itemType;
+    }
+
+    // Includes files that are still being written (e.g. with a missing or invalid `info.type`), so that the user is informed that they are not recognized.
+    return itemType == NonBrunoSpecificItemType.OtherFileType &&
+        !isInEnvironmentsFolderOfCollection(collection, filePath) &&
+        !doesFileNameMatchFolderSettingsFileName(
+            filePath,
+            CollectionFormat.Yaml,
+        ) &&
+        !doesFileNameMatchCollectionSettingsFile(
+            filePath,
+            CollectionFormat.Yaml,
+        )
+        ? NonBrunoSpecificItemType.OtherFileType
+        : undefined;
 }
 
 async function getBrunoFileTypeIfExists(
@@ -346,8 +650,14 @@ function getFilePathAndType(uri: string) {
     return {
         filePath,
         type:
-            extname(filePath) == getExtensionForBrunoFiles()
+            // The file type is already limited by the document selectors defined in the language client.
+            extname(filePath) == getFileExtensionForFormat(CollectionFormat.Bru)
                 ? FileTypeByExtension.Bru
-                : FileTypeByExtension.Js,
+                : extname(filePath) == ".js"
+                  ? FileTypeByExtension.Js
+                  : extname(filePath) ==
+                      getFileExtensionForFormat(CollectionFormat.Yaml)
+                    ? FileTypeByExtension.Yml
+                    : FileTypeByExtension.Other,
     };
 }

@@ -122,16 +122,10 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
         );
 
         return new Promise<void>((resolve) => {
-            this.itemProvider
-                .refreshCache(
-                    vscode.workspace.workspaceFolders?.map(
-                        (f) => f.uri.fsPath,
-                    ) ?? [],
-                )
-                .then(() => {
-                    this._onDidChangeTreeData.fire(undefined);
-                    resolve();
-                });
+            this.itemProvider.refreshCache().then(() => {
+                this._onDidChangeTreeData.fire(undefined);
+                resolve();
+            });
         });
     }
 
@@ -142,6 +136,8 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
             );
             return [];
         }
+
+        await this.itemProvider.ensureCacheIsLoaded();
 
         if (!element) {
             this.logger?.debug(
@@ -229,29 +225,31 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
             if (a.isFile != b.isFile) {
                 // Display all subfolders before files
                 return a.isFile ? 1 : -1;
-            } else if (
-                !a.getSequence() &&
-                !b.getSequence() &&
-                a.label &&
-                b.label
-            ) {
+            }
+            if (!a.getSequence() && !b.getSequence() && a.label && b.label) {
                 // Order items without a sequence alphabetically by label
-                const labelForA =
-                    typeof a.label == "string" ? a.label : a.label.label;
-                const labelForB =
-                    typeof b.label == "string" ? b.label : b.label.label;
+                const labelForA = (
+                    typeof a.label == "string" ? a.label : a.label.label
+                ).toLowerCase();
+                const labelForB = (
+                    typeof b.label == "string" ? b.label : b.label.label
+                ).toLowerCase();
 
                 return labelForA <= labelForB ? -1 : 1;
-            } else if (!a.getSequence() || !b.getSequence()) {
+            }
+
+            if (!a.getSequence() || !b.getSequence()) {
                 // Diplay items with a sequence before items without one
                 return a.getSequence() ? -1 : 1;
-            } else if (a.getSequence() && b.getSequence()) {
+            }
+
+            if (a.getSequence() && b.getSequence()) {
                 return (
                     (a.getSequence() as number) - (b.getSequence() as number)
                 );
-            } else {
-                return 0;
             }
+
+            return 0;
         });
     }
 }

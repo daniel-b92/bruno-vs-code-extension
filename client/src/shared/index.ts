@@ -10,11 +10,14 @@ export * from "./fileParsing/folderSettings/getMaxSequenceForFolders";
 // test file writing
 export * from "./testFileWriting/getContentForMetaBlock";
 export * from "./testFileWriting/getContentForDefaultMethodBlock";
+export * from "./testFileWriting/getContentForUrlParamsBlocks";
+export * from "./testFileWriting/getYamlParamsForUrl";
 export * from "./testFileWriting/interfaces";
 
 // model
 export * from "./model/interfaces";
 export * from "./model/brunoTreeItem";
+export * from "./model/getIconForItem";
 
 // file system cache
 export * from "./fileSystemCache/external/interfaces";
@@ -23,6 +26,7 @@ export * from "./fileSystemCache/external/fileSystemCacheSyncingHelper";
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
 export * from "./vsCodeSettings/getLineBreakFromSettings";
+export * from "./vsCodeSettings/sequenceSettings";
 export * from "./vsCodeSettings/testEnvironmentsSettingUpdater";
 
 // logging

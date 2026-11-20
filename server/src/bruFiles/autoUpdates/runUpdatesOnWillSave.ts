@@ -1,52 +1,132 @@
-import { URI } from "vscode-uri";
-import { TypedCollectionItemProvider } from "../../shared";
 import {
+    Block,
     BrunoFileType,
-    getItemType,
-    isBrunoFileType,
+    doesRequestTypeSupportUrlParams,
+    DictionaryBlock,
+    getExpectedUrlQueryParamsForQueryParamsBlock,
+    getPathParamsFromPathParamsBlock,
+    getPathParamsFromUrl,
+    getQueryParamsFromUrl,
+    getRequestTypeField,
+    getUrlFieldFromMethodBlock,
+    getValidDictionaryBlocksWithName,
+    isDictionaryBlockSimpleField,
     parseBruFile,
+    RequestFileBlockName,
     TextDocumentHelper,
 } from "@global_shared";
 import { TextEdit } from "vscode-languageserver";
-import { updateUrlToMatchQueryParams } from "./updateUrlToMatchQueryParams";
-import { updatePathParamsKeysToMatchUrl } from "./updatePathParamsKeysToMatchUrl";
+import { updatePathParamsKeysToMatchUrl } from "../paramsBlocks/updatePathParamsKeysToMatchUrl";
+import { updateQueryParamsBlockToMatchUrl } from "../paramsBlocks/updateQueryParamsBlockToMatchUrl";
+import { updateUrlToMatchQueryParams } from "../paramsBlocks/updateUrlToMatchQueryParams";
+import {
+    getModifiedSide,
+    ModifiedSide,
+    ParamsAccessors,
+} from "../../shared/urlParamsSyncing/getModifiedSide";
 
-export async function runUpdatesOnWillSave(
-    fileUri: string,
-    fileContent: string,
-    itemProvider: TypedCollectionItemProvider,
-): Promise<TextEdit[]> {
-    const filePath = URI.parse(fileUri).fsPath;
-
-    const brunoFileType = await getBrunoFileTypeIfExists(
-        itemProvider,
-        filePath,
+/**
+ * Syncs the URL and the params blocks of a request file when saving.
+ * One side is only updated to match the other one, if exactly one of the two was modified since the last save.
+ * If both sides were modified (or none), nothing is changed. The diagnostics and quick fixes can be used instead.
+ *
+ * @param lastSavedContent The content of the file before the current save (i.e. the content on disk).
+ */
+export function runUpdatesOnWillSave(
+    lastSavedContent: string,
+    newContent: string,
+): TextEdit[] {
+    const docHelper = new TextDocumentHelper(newContent);
+    const { blocks } = parseBruFile(docHelper, BrunoFileType.RequestFile);
+    const { blocks: lastSavedBlocks } = parseBruFile(
+        new TextDocumentHelper(lastSavedContent),
+        BrunoFileType.RequestFile,
     );
 
-    // Only request files can have query params blocks and HTTP method blocks.
-    if (brunoFileType == BrunoFileType.RequestFile) {
-        const docHelper = new TextDocumentHelper(fileContent);
-        const { blocks: parsedBlocks } = parseBruFile(docHelper, brunoFileType);
+    if (!doesRequestTypeSupportUrlParams(getRequestTypeField(blocks)?.value)) {
+        return [];
+    }
 
-        return ([] as TextEdit[]).concat(
-            updateUrlToMatchQueryParams(parsedBlocks),
-            updatePathParamsKeysToMatchUrl(docHelper, parsedBlocks),
+    const edits: TextEdit[] = [];
+
+    switch (getModifiedSide(lastSavedBlocks, blocks, queryParamsAccessors)) {
+        case ModifiedSide.Url:
+            edits.push(...updateQueryParamsBlockToMatchUrl(docHelper, blocks));
+            break;
+        case ModifiedSide.Params:
+            edits.push(...[updateUrlToMatchQueryParams(blocks)].flat());
+            break;
+    }
+
+    // The values of path params only exist in the params block, so only the block can be updated to match the URL.
+    if (
+        getModifiedSide(lastSavedBlocks, blocks, pathParamsAccessors) ==
+        ModifiedSide.Url
+    ) {
+        edits.push(
+            ...[updatePathParamsKeysToMatchUrl(docHelper, blocks)].flat(),
         );
     }
 
-    return [];
+    return edits;
 }
 
-async function getBrunoFileTypeIfExists(
-    itemProvider: TypedCollectionItemProvider,
-    filePath: string,
-) {
-    const collection = itemProvider.getAncestorCollectionForPath(filePath);
+const queryParamsAccessors: ParamsAccessors<Block[]> = {
+    getUrl,
+    fromUrl: (url) => getQueryParamsFromUrl(url)?.toString() ?? "",
+    fromParams: (blocks) =>
+        getSingleBlockIfValid(
+            blocks,
+            RequestFileBlockName.QueryParams,
+            ({ content }) => {
+                const simpleFields = content.filter(
+                    isDictionaryBlockSimpleField,
+                );
 
-    if (!collection) {
-        return undefined;
+                return simpleFields.length == content.length
+                    ? getExpectedUrlQueryParamsForQueryParamsBlock(
+                          simpleFields,
+                      ).toString()
+                    : undefined;
+            },
+        ),
+};
+
+const pathParamsAccessors: ParamsAccessors<Block[]> = {
+    getUrl,
+    fromUrl: (url) => getPathParamsFromUrl(url).join("/"),
+    fromParams: (blocks) =>
+        getSingleBlockIfValid(
+            blocks,
+            RequestFileBlockName.PathParams,
+            (block) => getPathParamsFromPathParamsBlock(block).join("/"),
+        ),
+};
+
+function getUrl(blocks: Block[]) {
+    const urlField = getUrlFieldFromMethodBlock(blocks);
+
+    return urlField &&
+        !urlField.disabled &&
+        isDictionaryBlockSimpleField(urlField)
+        ? urlField.value
+        : undefined;
+}
+
+/** A missing block counts as a block without entries. */
+function getSingleBlockIfValid(
+    blocks: Block[],
+    blockName: RequestFileBlockName,
+    getComparableString: (block: DictionaryBlock) => string | undefined,
+) {
+    const allBlocks = blocks.filter(({ name }) => name == blockName);
+    const validBlocks = getValidDictionaryBlocksWithName(blocks, blockName);
+
+    if (allBlocks.length == 0) {
+        return "";
     }
 
-    const itemType = await getItemType(collection, filePath);
-    return itemType && isBrunoFileType(itemType) ? itemType : undefined;
+    return allBlocks.length == 1 && validBlocks.length == 1
+        ? getComparableString(validBlocks[0])
+        : undefined;
 }

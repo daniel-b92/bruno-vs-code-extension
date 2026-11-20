@@ -4,6 +4,7 @@ import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 export async function normalizeSequencesForFolders(
     itemProvider: TypedCollectionItemProvider,
     parentFolder: string,
+    sequenceStep = 1,
 ) {
     const initialSequences = await getSequencesForFolders(
         itemProvider,
@@ -16,7 +17,7 @@ export async function normalizeSequencesForFolders(
 
     for (let i = 0; i < initialSequences.length; i++) {
         const { settingsFile, sequence: initialSeq } = initialSequences[i];
-        const newSeq = i + 1;
+        const newSeq = (i + 1) * sequenceStep;
 
         if (initialSeq != newSeq) {
             await replaceSequenceForFile(settingsFile, newSeq);

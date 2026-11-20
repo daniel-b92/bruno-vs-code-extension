@@ -1,0 +1,175 @@
+import { describe, it, expect } from "@jest/globals";
+import {
+    getExpectedKeyRange,
+    getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
+    parseTextIntoYamlDocument,
+} from "../../../../_testingUtils";
+import {
+    Position,
+    Range,
+    TextDocumentHelper,
+    WithKeyAndValueRange,
+} from "../../../..";
+import {
+    ParsedDocsWithType,
+    ParsedYamlMap,
+    WithKeyAndKeyRange,
+} from "../interfaces";
+import { YAMLMap } from "yaml";
+import { parseDocsFromYamlMap } from "./parseDocsFromYamlMap";
+import {
+    DocsProperty,
+    DocsType,
+} from "../../../external/yamlFormat/constants/sharedConstants";
+
+describe("parseDocsFromYamlMap", () => {
+    it("parses valid docs section", () => {
+        const documentText = `docs:
+    content: |-
+        asdafd
+        sdfsd
+        sdfsdfdsfsdfdsfsdf
+    type: text/markdown`;
+
+        const docHelper = new TextDocumentHelper(documentText);
+        const fullDocumentRange = docHelper.getTextRange();
+        const parsedDocument = parseTextIntoYamlDocument(documentText);
+        const docsMap = (parsedDocument.contents as YAMLMap).items[0]
+            .value as YAMLMap;
+        const source: WithKeyAndKeyRange<YAMLMap> = {
+            key: "docs",
+            keyRange: getExpectedKeyRange(0, "docs", 0),
+            value: docsMap,
+        };
+
+        const { result, errors } = parseDocsFromYamlMap(source, {
+            docHelper,
+            fullDocumentRange,
+        });
+
+        expect(errors).toHaveLength(0);
+        expect(result).toBeDefined();
+
+        const expectedValue: ParsedDocsWithType = {
+            keyRange: source.keyRange,
+            valueRange: new Range(new Position(1, 4), fullDocumentRange.end),
+            value: {
+                properties: {
+                    content: {
+                        keyRange: getExpectedKeyRange(
+                            1,
+                            DocsProperty.Content,
+                            4,
+                        ),
+                        valueRange: new Range(
+                            new Position(1, 4 + "content:".length + 1),
+                            new Position(5, 0),
+                        ),
+                        value: "asdafd\nsdfsd\nsdfsdfdsfsdfdsfsdf",
+                    },
+                    type: {
+                        keyRange: getExpectedKeyRange(5, DocsProperty.Type, 4),
+                        valueRange: getExpectedSameLineValueRange(
+                            5,
+                            DocsProperty.Type,
+                            DocsType.TextMarkdown,
+                            4,
+                        ),
+                        value: DocsType.TextMarkdown,
+                    },
+                },
+            },
+        };
+        expect(result).toEqual(expectedValue);
+    });
+
+    it("partially parses docs section containing invalid properties", () => {
+        const documentText = `docs:
+    content: |-
+        asdafd
+        sdfsd
+        sdfsdfdsfsdfdsfsdf
+    type: foo
+    other: 
+        some: eretrte`;
+
+        const docHelper = new TextDocumentHelper(documentText);
+        const fullDocumentRange = docHelper.getTextRange();
+        const parsedDocument = parseTextIntoYamlDocument(documentText);
+        const docsMap = (parsedDocument.contents as YAMLMap).items[0]
+            .value as YAMLMap;
+        const source: WithKeyAndKeyRange<YAMLMap> = {
+            key: "docs",
+            keyRange: getExpectedKeyRange(0, "docs", 0),
+            value: docsMap,
+        };
+
+        const { result, errors } = parseDocsFromYamlMap(source, {
+            docHelper,
+            fullDocumentRange,
+        });
+
+        expect(errors).toHaveLength(2);
+        // Error for invalid value type for 'type' property.
+        expect(
+            errors.some(({ range }) =>
+                range.equals(
+                    getExpectedSameLineValueRange(
+                        5,
+                        DocsProperty.Type,
+                        "foo",
+                        4,
+                    ),
+                ),
+            ),
+        ).toBeTruthy();
+        // Error for unknown key.
+        expect(
+            errors.some(({ range }) =>
+                range.equals(getExpectedKeyRange(6, "other", 4)),
+            ),
+        ).toBeTruthy();
+
+        expect(result).toBeDefined();
+        expect(result!.keyRange).toEqual(source.keyRange);
+
+        const docs = result?.value as ParsedYamlMap<{
+            type?: WithKeyAndValueRange<DocsType>;
+            content?: WithKeyAndValueRange<string>;
+        }>;
+        expect(docs.properties.content?.value).toBe(
+            "asdafd\nsdfsd\nsdfsdfdsfsdfdsfsdf",
+        );
+        expect(docs.properties.type).toBeUndefined();
+    });
+
+    it("reports missing properties as mandatory and adds an error for each", () => {
+        const documentText = `docs:
+    type: text/markdown`;
+
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const docsMap = (
+            parseTextIntoYamlDocument(documentText).contents as YAMLMap
+        ).items[0].value as YAMLMap;
+
+        const { errors } = parseDocsFromYamlMap(
+            {
+                key: "docs",
+                keyRange: getExpectedKeyRange(0, "docs", 0),
+                value: docsMap,
+            },
+            commonArgs,
+        );
+
+        expect(errors).toHaveLength(1);
+        expect(getMissingKeys(commonArgs.mapDescriptors[0])).toEqual([
+            expect.objectContaining({
+                key: DocsProperty.Content,
+                valueKinds: ["string"],
+                isMandatory: true,
+            }),
+        ]);
+    });
+});

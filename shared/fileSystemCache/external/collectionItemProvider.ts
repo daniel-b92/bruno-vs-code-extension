@@ -1,5 +1,8 @@
 import { CollectionRegistry } from "../internal/collectionRegistry";
-import { addOrReplaceItemInCollection } from "../internal/addOrReplaceItemInCollection";
+import {
+    addOrReplaceItemInCollection,
+    replaceItemInCollection,
+} from "../internal/addOrReplaceItemInCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internal/registerMissingCollectionsAndTheirItems";
 import {
     normalizePath,
@@ -7,29 +10,45 @@ import {
     FileChangeType,
     BrunoFileType,
     Collection,
+    CollectionFormat,
     CollectionData,
     isCollectionItemWithSequence,
     Logger,
     AdditionalCollectionDataProvider,
-    getBrunoJsonFilePath,
+    getCollectionRootFilePath,
     getCollectionRootData,
+    getItemType,
+    NonBrunoSpecificItemType,
     NotificationData,
     ReadyOnlyCollection,
+    ConflictingCollectionRootFiles,
+    isFileRelevantForCollections,
 } from "../..";
 import { basename, dirname } from "path";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
+import { compareNotificationsForBatch } from "../internal/compareNotificationsForBatch";
+import { mergeNotificationsForSameItem } from "../internal/mergeNotificationsForSameItem";
 import { Evt } from "evt";
 
 export class CollectionItemProvider<T> {
     constructor(
         collectionWatcher: CollectionWatcher,
+        private workspaceFolders: string[],
         private additionalDataProvider: AdditionalCollectionDataProvider<T>,
         private filePathsToIgnore: RegExp[],
         private cacheRefreshNotifier?: Evt<void>,
         private logger?: Logger,
+        private onConflictingCollectionRootFiles?: (
+            conflicts: ConflictingCollectionRootFiles[],
+        ) => void,
+        private runInitialCacheLoad?: (
+            load: () => Promise<void>,
+        ) => Promise<void>,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = Evt.create<NotificationData<T>[]>();
+        this.initialCacheLoadEmitter = Evt.create<void>();
+        this.additionalContextRootsEmitter = Evt.create<void>();
 
         collectionWatcher.subscribeToUpdates(
             async ({ path, changeType: fileChangeType }) => {
@@ -42,7 +61,7 @@ export class CollectionItemProvider<T> {
 
                 if (
                     (registeredCollection.isRootDirectory(path) ||
-                        this.doesPathMatchBrunoJsonPath(
+                        this.doesPathMatchCollectionRootFile(
                             registeredCollection,
                             path,
                         )) &&
@@ -52,7 +71,9 @@ export class CollectionItemProvider<T> {
                     this.logger?.info(
                         `${this.commonPreMessageForLogging} Handling deletion of collection '${path}'.`,
                     );
-                    this.handleCollectionDeletion(path);
+                    this.handleCollectionDeletion(
+                        registeredCollection.getRootDirectory(),
+                    );
                     return;
                 }
 
@@ -115,6 +136,10 @@ export class CollectionItemProvider<T> {
     private collectionRegistry: CollectionRegistry<T>;
     private itemUpdateEmitter: Evt<NotificationData<T>[]>;
     private itemUpdateEmitterContext = Evt.newCtx();
+    private initialCacheLoadEmitter: Evt<void>;
+    private additionalContextRootsEmitter: Evt<void>;
+    private initialCacheLoad: Promise<void> | undefined = undefined;
+    private hasInitialCacheLoadFinished = false;
     private notificationBatch: NotificationData<T>[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
@@ -129,6 +154,40 @@ export class CollectionItemProvider<T> {
         const context = Evt.newCtx();
         this.itemUpdateEmitter.attach(context, callback);
         return context;
+    }
+
+    /**
+     * The callback is called once, as soon as the initial cache load has finished (immediately, if that already happened).
+     * Subscribing does not trigger the initial cache load.
+     */
+    public subscribeToInitialCacheLoad(callback: () => void) {
+        if (this.hasInitialCacheLoadFinished) {
+            callback();
+            return;
+        }
+
+        this.initialCacheLoadEmitter.attachOnce(
+            this.itemUpdateEmitterContext,
+            callback,
+        );
+    }
+
+    /**
+     * The callback is called whenever the additional context roots of an already registered collection change (e.g. due to an edit of the collection root file).
+     * Other changes of the registered collections (e.g. a new collection) are only reported via `subscribeToUpdates`.
+     */
+    public subscribeToAdditionalContextRootChanges(callback: () => void) {
+        this.additionalContextRootsEmitter.attach(
+            this.itemUpdateEmitterContext,
+            callback,
+        );
+    }
+
+    /**
+     * Whether opening or editing the given file requires the cache to be loaded.
+     */
+    public isFileRelevantForCollections(filePath: string) {
+        return isFileRelevantForCollections(filePath, this.workspaceFolders);
     }
 
     public getRegisteredCollections() {
@@ -176,25 +235,29 @@ export class CollectionItemProvider<T> {
     }
 
     public getAdditionalContextRootContainingItem(itemPath: string) {
-        let matchingContextRoot: string | undefined = undefined;
+        for (const collection of this.getRegisteredCollections()) {
+            const matchingContextRoot = findContextRootContainingItem(
+                collection,
+                itemPath,
+            );
 
-        const collection = this.getRegisteredCollections().find(
-            (collection) => {
-                matchingContextRoot = collection
-                    .getAdditionalContextRoots()
-                    .find((root) =>
-                        normalizePath(itemPath).startsWith(normalizePath(root)),
-                    );
+            if (matchingContextRoot !== undefined) {
+                return { collection, matchingContextRoot };
+            }
+        }
 
-                if (matchingContextRoot !== undefined) {
-                    return true;
-                }
-            },
+        return undefined;
+    }
+
+    /** Unlike `getAdditionalContextRootContainingItem`, this returns all matching collections, as a context root can be shared by multiple collections. */
+    public getCollectionsWithAdditionalContextRootContainingItem(
+        itemPath: string,
+    ) {
+        return this.getRegisteredCollections().filter(
+            (collection) =>
+                findContextRootContainingItem(collection, itemPath) !==
+                undefined,
         );
-
-        return collection && matchingContextRoot
-            ? { collection, matchingContextRoot: matchingContextRoot as string }
-            : undefined;
     }
 
     public getUniqueAdditionalContextRoots() {
@@ -203,34 +266,36 @@ export class CollectionItemProvider<T> {
             .filter((path, index, array) => array.indexOf(path) === index);
     }
 
-    public async refreshCache(workSpaceFolders: string[]) {
+    /**
+     * Starts the initial cache load, if that did not happen yet. The synchronous getters only return data after this has finished.
+     * Calling it again returns the same promise.
+     */
+    public ensureCacheIsLoaded() {
+        this.initialCacheLoad ??= this.loadInitially().catch((e) => {
+            // Allows retrying on the next call.
+            this.initialCacheLoad = undefined;
+            throw e;
+        });
+
+        return this.initialCacheLoad;
+    }
+
+    /**
+     * Reloads the whole cache. If the cache has not been loaded yet, this counts as the initial cache load.
+     */
+    public async refreshCache() {
+        if (!this.initialCacheLoad) {
+            return this.ensureCacheIsLoaded();
+        }
+
+        // Avoids two interleaving file system scans.
+        await this.initialCacheLoad;
+
         if (this.cacheRefreshNotifier) {
             this.cacheRefreshNotifier.post();
         }
-        const startTime = performance.now();
 
-        this.collectionRegistry
-            .getRegisteredCollections()
-            .forEach((collection) => {
-                this.collectionRegistry.unregisterCollection(
-                    collection.getRootDirectory(),
-                );
-            });
-
-        await registerMissingCollectionsAndTheirItems(
-            this.collectionRegistry,
-            workSpaceFolders,
-            this.filePathsToIgnore,
-            this.additionalDataProvider,
-            this.logger,
-        );
-
-        const endTime = performance.now();
-        this.logger?.info(
-            `${this.commonPreMessageForLogging} Cache refresh duration: ${Math.round(
-                endTime - startTime,
-            )} ms`,
-        );
+        await this.loadCache();
     }
 
     public async reloadCollectionRootFolderItem(collectionRoot: string) {
@@ -288,6 +353,45 @@ export class CollectionItemProvider<T> {
         this.notificationBatch.splice(0);
     }
 
+    private async loadInitially() {
+        if (this.runInitialCacheLoad) {
+            await this.runInitialCacheLoad(() => this.loadCache());
+        } else {
+            await this.loadCache();
+        }
+
+        this.hasInitialCacheLoadFinished = true;
+        this.initialCacheLoadEmitter.post();
+    }
+
+    private async loadCache() {
+        const startTime = performance.now();
+
+        this.collectionRegistry
+            .getRegisteredCollections()
+            .forEach((collection) => {
+                this.collectionRegistry.unregisterCollection(
+                    collection.getRootDirectory(),
+                );
+            });
+
+        await registerMissingCollectionsAndTheirItems(
+            this.collectionRegistry,
+            this.workspaceFolders,
+            this.filePathsToIgnore,
+            this.additionalDataProvider,
+            this.logger,
+            this.onConflictingCollectionRootFiles,
+        );
+
+        const endTime = performance.now();
+        this.logger?.info(
+            `${this.commonPreMessageForLogging} Cache refresh duration: ${Math.round(
+                endTime - startTime,
+            )} ms`,
+        );
+    }
+
     private handleCollectionDeletion(collectionRootDir: string) {
         const registeredCollection =
             this.collectionRegistry.unregisterCollection(collectionRootDir);
@@ -314,6 +418,26 @@ export class CollectionItemProvider<T> {
         });
         if (!collectionData) {
             return;
+        }
+
+        if (
+            collectionData.item.getItemType() ==
+            BrunoFileType.FolderSettingsFile
+        ) {
+            // The folder settings file can be added to an already registered folder without a preceding event for the folder itself.
+            const parentFolderData = registeredCollection.getStoredDataForPath(
+                dirname(itemPath),
+            );
+
+            if (
+                parentFolderData &&
+                isCollectionItemWithSequence(parentFolderData.item)
+            ) {
+                await this.handleFolderSettingsUpdate(
+                    registeredCollection,
+                    parentFolderData,
+                );
+            }
         }
 
         await this.handleOutboundNotification({
@@ -368,19 +492,38 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        if (this.doesPathMatchBrunoJsonPath(collectionForItem, itemPath)) {
+        if (this.doesPathMatchCollectionRootFile(collectionForItem, itemPath)) {
             const collectionRootData = await getCollectionRootData(
                 collectionForItem.getRootDirectory(),
+                collectionForItem.getFormat(),
             );
 
             if (collectionRootData) {
-                collectionForItem.setAdditionalContextRoots(
-                    collectionRootData.additionalContextRoots ?? [],
-                );
+                const oldRoots = collectionForItem.getAdditionalContextRoots();
+                const newRoots =
+                    collectionRootData.additionalContextRoots ?? [];
+
+                collectionForItem.setAdditionalContextRoots(newRoots);
+
+                if (
+                    oldRoots.length != newRoots.length ||
+                    oldRoots.some((root, index) => root != newRoots[index])
+                ) {
+                    this.additionalContextRootsEmitter.post();
+                }
             }
 
-            // Currently, changes to the additionalContextRoots is not relevant for any subscribers. Therefore, no notifications
-            // need to be sent.
+            // Changes to the additionalContextRoots are not relevant for the subscribers of the item updates. Therefore, no notifications
+            // need to be sent for them.
+            // In the yaml format, the collection root file is also the collection settings file, so it still needs to be handled below.
+            if (collectionForItem.getFormat() == CollectionFormat.Bru) {
+                return;
+            }
+        }
+
+        if (
+            await this.handleChangedItemType(collectionForItem, collectionData)
+        ) {
             return;
         }
 
@@ -403,12 +546,11 @@ export class CollectionItemProvider<T> {
             }
         } else if (
             modifiedItem.getItemType() == BrunoFileType.EnvironmentFile ||
+            modifiedItem.getItemType() == BrunoFileType.AppFile ||
             (isCollectionItemWithSequence(modifiedItem) &&
                 modifiedItem.getItemType() == BrunoFileType.RequestFile)
         ) {
-            collectionForItem.removeTestItemAndDescendants(modifiedItem);
-
-            const newData = await addOrReplaceItemInCollection({
+            const newData = await replaceItemInCollection({
                 collection: collectionForItem,
                 fileSystemData: itemPath,
                 additionalDataProvider: this.additionalDataProvider,
@@ -444,6 +586,48 @@ export class CollectionItemProvider<T> {
                         : undefined,
             });
         }
+    }
+
+    /**
+     * The type of some files depends on their content (e.g. a file that was invalid or empty can become a valid request file).
+     * If the type of such a file changed, the old item is replaced by a new one.
+     *
+     * @returns `true` if the type has changed and the item was replaced.
+     */
+    private async handleChangedItemType(
+        collection: Collection<T>,
+        oldData: CollectionData<T>,
+    ) {
+        const { item } = oldData;
+        const oldType = item.getItemType();
+
+        if (
+            oldType != NonBrunoSpecificItemType.OtherFileType &&
+            oldType != BrunoFileType.RequestFile &&
+            oldType != BrunoFileType.AppFile
+        ) {
+            return false;
+        }
+
+        const newType = await getItemType(collection, item.getPath());
+
+        if (newType === undefined || newType == oldType) {
+            return false;
+        }
+
+        this.logger?.info(
+            `${this.commonPreMessageForLogging} Type of item '${item.getPath()}' changed from '${oldType}' to '${newType}'.`,
+        );
+
+        collection.removeTestItemAndDescendants(item);
+        await this.handleOutboundNotification({
+            collection,
+            data: oldData,
+            updateType: FileChangeType.Deleted,
+        });
+        await this.handleItemCreation(collection, item.getPath());
+
+        return true;
     }
 
     private async handleFolderSettingsUpdate(
@@ -492,13 +676,19 @@ export class CollectionItemProvider<T> {
         } = notificationData;
         const path = item.getPath();
 
-        if (
-            this.notificationBatch.some(
-                ({ data: { item: i }, updateType: type }) =>
-                    normalizePath(i.getPath()) == normalizePath(path) &&
-                    type == updateType,
-            )
-        ) {
+        const indexOfPendingNotification = this.notificationBatch.findIndex(
+            ({ data: { item: i }, updateType: type }) =>
+                normalizePath(i.getPath()) == normalizePath(path) &&
+                type == updateType,
+        );
+
+        if (indexOfPendingNotification >= 0) {
+            // Nothing is lost by merging: The newer notification refers to the item that is currently registered in the cache.
+            this.notificationBatch[indexOfPendingNotification] =
+                mergeNotificationsForSameItem(
+                    this.notificationBatch[indexOfPendingNotification],
+                    notificationData,
+                );
             return;
         }
 
@@ -515,12 +705,7 @@ export class CollectionItemProvider<T> {
             this.notificationSendEventTimer = setTimeout(() => {
                 const notificationData = this.notificationBatch
                     .splice(0)
-                    .sort(
-                        (
-                            { data: { item: item1 } },
-                            { data: { item: item2 } },
-                        ) => (item1.getPath() < item2.getPath() ? -1 : 1),
-                    );
+                    .sort(compareNotificationsForBatch);
 
                 this.logger?.debug(
                     `${this.commonPreMessageForLogging} Firing event for a batch of ${notificationData.length} updated items.`,
@@ -547,13 +732,29 @@ export class CollectionItemProvider<T> {
         );
     }
 
-    private doesPathMatchBrunoJsonPath(
+    private doesPathMatchCollectionRootFile(
         collection: Collection<T>,
         path: string,
     ) {
         return (
             normalizePath(path) ==
-            normalizePath(getBrunoJsonFilePath(collection.getRootDirectory()))
+            normalizePath(
+                getCollectionRootFilePath(
+                    collection.getRootDirectory(),
+                    collection.getFormat(),
+                ),
+            )
         );
     }
+}
+
+function findContextRootContainingItem(
+    collection: ReadyOnlyCollection<unknown>,
+    itemPath: string,
+) {
+    return collection
+        .getAdditionalContextRoots()
+        .find((root) =>
+            normalizePath(itemPath).startsWith(normalizePath(root)),
+        );
 }

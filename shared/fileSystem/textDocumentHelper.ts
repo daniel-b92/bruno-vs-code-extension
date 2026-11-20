@@ -139,7 +139,7 @@ export class TextDocumentHelper {
         const adjustedLine = `${originalLine.substring(
             0,
             toReplace.startCharIndex,
-        )}${replacement}${originalLine.substring(toReplace.endCharIndex + 1)}`;
+        )}${replacement}${originalLine.substring(toReplace.endCharIndex)}`;
 
         return this.lines.fullLines
             .map(

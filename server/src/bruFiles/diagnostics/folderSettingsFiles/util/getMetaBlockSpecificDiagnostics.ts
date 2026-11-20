@@ -2,104 +2,74 @@ import {
     TextDocumentHelper,
     Block,
     isBlockDictionaryBlock,
-    MetaBlockKey,
-    getMetaBlockMandatoryKeys,
     BrunoFileType,
 } from "@global_shared";
-import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
-import { checkNoKeysAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
-import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
-import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkMetaBlockStartsInFirstLine } from "../../shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
-import { DiagnosticWithCode } from "../../interfaces";
-import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { getCommonMetaBlockDiagnostics } from "../../shared/checks/singleBlocks/getCommonMetaBlockDiagnostics";
 import { checkSequenceInMetaBlockIsValid } from "../../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
+import { DiagnosticWithCode } from "../../interfaces";
 import { RelatedFilesDiagnosticsHelper } from "../../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkFolderSequenceInMetaBlockIsUnique } from "../checks/checkFolderSequenceInMetaBlockIsUnique";
 import { TypedCollectionItemProvider } from "../../../../shared";
 
-export async function getMetaBlockSpecificDiagnostics(
-    itemProvider: TypedCollectionItemProvider,
-    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    filePath: string,
-    documentHelper: TextDocumentHelper,
-    metaBlock: Block,
-): Promise<(DiagnosticWithCode | undefined)[]> {
-    const metaBlockKeys = getMetaBlockMandatoryKeys(
-        BrunoFileType.FolderSettingsFile,
-    );
-
-    if (!metaBlockKeys) {
-        return [];
-    }
-
-    const diagnostics = [checkSequenceInMetaBlockIsValid(metaBlock)].concat(
-        isBlockDictionaryBlock(metaBlock)
-            ? [
-                  (checkNoKeysAreMissingForDictionaryBlock(
-                      metaBlock,
-                      metaBlockKeys,
-                      RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
-                  ),
-                  checkNoUnknownKeysAreDefinedInDictionaryBlock(
-                      metaBlock,
-                      metaBlockKeys,
-                      RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
-                  ),
-                  checkNoMandatoryValuesAreMissingForDictionaryBlock(
-                      metaBlock,
-                      [MetaBlockKey.Name],
-                      RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
-                  ),
-                  checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                      filePath,
-                      metaBlock,
-                      RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
-                      metaBlockKeys,
-                  ),
-                  checkMetaBlockStartsInFirstLine(documentHelper, metaBlock)),
-              ]
-            : [],
-    );
-
-    for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
+export function getMetaBlockSpecificDiagnostics(data: {
+    itemProvider: TypedCollectionItemProvider;
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper;
+    folderSettingsPath: string;
+    documentHelper: TextDocumentHelper;
+    metaBlock: Block;
+}): (DiagnosticWithCode | undefined)[] {
+    const {
+        documentHelper,
+        folderSettingsPath,
         itemProvider,
         metaBlock,
-        filePath,
         relatedFilesHelper,
-    )) {
+    } = data;
+    const diagnostics: (DiagnosticWithCode | undefined)[] =
+        isBlockDictionaryBlock(metaBlock)
+            ? getCommonMetaBlockDiagnostics({
+                  filePath: folderSettingsPath,
+                  fileType: BrunoFileType.FolderSettingsFile,
+                  documentHelper,
+                  metaBlock,
+              })
+            : [checkSequenceInMetaBlockIsValid(metaBlock)];
+
+    for (const results of provideRelatedFilesDiagnosticsForMetaBlock({
+        metaBlock,
+        folderSettingsPath,
+        itemProvider,
+        docHelper: documentHelper,
+        relatedFilesHelper,
+    })) {
         diagnostics.push(results.result);
     }
 
     return diagnostics;
 }
 
-async function provideRelatedFilesDiagnosticsForMetaBlock(
-    itemProvider: TypedCollectionItemProvider,
-    metaBlock: Block,
-    filePath: string,
-    relatedRequestsHelper: RelatedFilesDiagnosticsHelper,
-): Promise<
-    {
-        filePath: string;
-        result: DiagnosticWithCode;
-    }[]
-> {
-    const { code, toAdd } = await checkFolderSequenceInMetaBlockIsUnique(
-        itemProvider,
-        metaBlock,
-        filePath,
-    );
+function provideRelatedFilesDiagnosticsForMetaBlock(data: {
+    metaBlock: Block;
+    folderSettingsPath: string;
+    itemProvider: TypedCollectionItemProvider;
+    docHelper: TextDocumentHelper;
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper;
+}): {
+    folderSettingsPath: string;
+    result: DiagnosticWithCode;
+}[] {
+    const { relatedFilesHelper, folderSettingsPath } = data;
+    const { code, toAdd } = checkFolderSequenceInMetaBlockIsUnique(data);
 
     if (toAdd) {
-        relatedRequestsHelper.registerDiagnostic({
+        relatedFilesHelper.registerDiagnostic({
             files: toAdd.affectedFiles,
             diagnosticCode: code,
         });
 
-        return [{ filePath, result: toAdd.diagnosticCurrentFile }];
+        return [{ folderSettingsPath, result: toAdd.diagnosticCurrentFile }];
     } else {
-        relatedRequestsHelper.unregisterDiagnostic(filePath, code);
+        relatedFilesHelper.unregisterDiagnostic(folderSettingsPath, code);
         return [];
     }
 }

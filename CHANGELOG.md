@@ -1,3 +1,172 @@
+## [2.2.0] (2026-11-19)
+
+### Features
+
+- Add a configurable, recursive sequence normalization action to the collection explorer. The preselected step can be set via the new setting `bru-as-code.sequenceStep`. The step is also used for items that are added at the end of a folder (e.g. new or duplicated requests and folders) and when sequences are renumbered automatically.
+- Keep the existing sequences (`seq`) of other requests and folders when inserting, moving or deleting items in the collection explorer, instead of renumbering the whole folder to 1, 2, 3, ... This avoids unnecessary file changes.
+    - A new or moved item gets a free sequence between its neighbors (e.g. 15 between 10 and 20). Only if there is none, the directly consecutive following items are shifted by 1, up to the next gap.
+    - Items that are appended to the end of a folder get the highest sequence plus the configured step, and deleting or moving an item out of a folder does not change the sequences of the remaining items.
+    - This changes the default behavior. The previous behavior can be restored by enabling the new setting `bru-as-code.renumberSequencesAutomatically`.
+- Add completions and hovers for Bruno's built-in dynamic variables (e.g. `{{$guid}}`, `{{$timestamp}}`, `{{$randomEmail}}`) in all sections with variable support, in `.bru` and `yaml` collection files. The completions are offered once `{{$` is typed, the hover shows the description and an example value.
+- Update the paths of `bru.runRequest` calls in the same collection (in request files, `folder.bru` / `folder.yml`, `collection.bru` / `opencollection.yml` and `.js` files) when renaming a request or folder, or moving it via drag-and-drop in the collection explorer. Only string literal paths are updated, and the changes can be undone together with the rename.
+
+### Fixes / Maintenance
+
+- Fix an issue that caused the folder settings file (`folder.bru` / `folder.yml`) of a folder to be overwritten with a copy of the target folder's settings, when dragging the folder before or after another folder in the collection explorer. Now only the sequence of the moved folder is changed. If the folder has no sequence yet, it is added to its settings file (or a minimal settings file is created). Before, moving the folder to a different parent folder also re-created the folder at its old location.
+- Fix an issue that caused completions and hovers to treat the variables of `vars:post-response` blocks (and `set-variable` actions in Yaml files) as request or folder variables. They are now treated as runtime variables, like variables set via `bru.setVar`: They are offered for `bru.getVar` and `{{...}}` (also in the post-response script of the same file), and the hover lists the places where they are read. This also applies to `vars:post-response` blocks in folder and collection settings files, where the hover now also lists the reads in the requests within the folder.
+- Fix an issue that caused the variables of `vars:pre-request` blocks (and `variables` in Yaml files) to not be offered for `bru.getRequestVar` / `bru.getFolderVar` in post-response scripts, and to not be listed in the hover for these variables (also for reads in tests and gRPC scripts).
+- Add variable-name completions and hovers for `bru.hasEnvVar`, `bru.hasVar`, `bru.hasGlobalEnvVar` and `bru.deleteGlobalEnvVar` in Bru and Yaml scripts, and for `bru.hasEnvVar` in standalone JS files. Include reads and deletions in the reference hovers for variables set elsewhere, but only reads in write completions.
+
+## [2.1.1] (2026-11-13)
+
+### Fixes / Maintenance
+
+- Insert the grant type-specific mandatory fields of an `auth:oauth2` block when selecting a completion for the `grant_type` field, so that no missing-keys error appears afterwards.
+- Mark the `flow` key of an `oauth2` auth in Yaml files as mandatory in the completions and hovers. A missing `flow` is now reported as an error instead of a warning.
+- Fix an issue that caused deleted, renamed or moved folders and deleted collections to stay in the test explorer, and that left empty parent folders in the test explorer after their last test was removed.
+- Fix an issue that caused a newly added `folder.bru` or `folder.yml` file to be ignored for the sequence and tags of its folder in the test explorer until the file was edited or refreshed.
+- Fix an issue that could cause a folder or collection to lose its children in the test explorer after changes that did not affect its sequence or tags (e.g. selecting an environment).
+- Fix an issue that caused continuous test runs to also be triggered by changes in folders whose names start with the name of a watched folder, and stop watching tests whose folder was deleted.
+- Fix an issue on Windows that could leave items in the test explorer after deleting a folder when the drive letter in its path was lower case.
+- Reduce the size of the extension package by no longer bundling duplicated dependencies, source maps and the Typescript compiler. The Typescript plugin now uses the Typescript version of the Typescript server (also for workspace versions) instead of its own copy.
+
+## [2.1.0] (2026-11-06)
+
+### Features
+
+- Add intellisense for runtime variables used in `bru.deleteVar` inbuilt functions (Hover and Completions), like for `bru.getVar`.
+- Show dedicated icons in the collection explorer for request files, folder settings files (`folder.bru`/`folder.yml`), collection settings files (`collection.bru`/`opencollection.yml` and `bruno.json`), environment files and app files. All other files and folders keep the icons of the active file icon theme.
+
+### Fixes / Maintenance
+
+- Mark completions for `bru.setEnvVar` and `bru.deleteEnvVar` with `⚠ Env` / `⚠ Delete Env` and describe deletions correctly ("Will delete" instead of "Will overwrite") in the warning for persistent environment variables.
+- Fix an issue that caused completions and hovers for `bru.deleteEnvVar` to be searched in the wrong script sections (later instead of earlier ones).
+- Fix an issue that caused standalone JS files to show completions and hovers with environment variables for functions that do not use them (e.g. `bru.getVar` or `bru.setVar`).
+- Fix an issue that caused files in folders named `environments` outside of the collection root (and the root file of a collection located in a folder named `environments`) to be treated as environment files. This also affects the confirmation dialogs when inserting files into such folders and the diagnostics for unrecognized Yaml files in them.
+
+## [2.0.1] (2026-11-02)
+
+### Fixes / Maintenance
+
+- Fix an uncaught `Channel has been closed` error in the extension host when refreshing the collection explorer (which restarts the language server). Also fix the language server not shutting down cleanly on a restart: it crashed or was killed after a timeout.
+- Replace the extension icon with a new square icon that stays recognizable at small sizes.
+- Fix an issue that prevented obsolete `__temp_bru_reference.js` files from being deleted in remote setups (e.g. WSL or SSH), and caused a warning for every collection there. If moving a file to the trash is not supported, it is now deleted permanently.
+
+## [2.0.0] (2026-10-31)
+
+### Breaking changes
+
+- Stop saving HTML test reports to the workspace by default: `bru-as-code.htmlReportPath` is now empty by default (previously `results.html`). Set it explicitly to keep saving reports. An invalid path no longer falls back to a location next to the collection.
+- Replace the setting `bru-as-code.alwaysShowHtmlReport` with `bru-as-code.showHtmlReport` (`always`, `onFailure` or `never`). By default, the HTML report is now only shown when tests failed. `alwaysShowHtmlReport: true` is still treated as `always`.
+- Always enable support for collections in the `yaml` format (`opencollection.yml`). The settings `bru-as-code.yamlCollectionSupport` and `bru-as-code.suggestEnablingYamlCollectionSupport` were removed.
+
+### Features
+
+- Check scripts (code blocks in `.bru` files and scripts in `yaml` collection files) the way Bruno runs them: Each script is checked on its own, so variables of one script are not visible in another, and `await` and `return` can be used at the top level.
+- Report errors for incorrect usage of `bru`, `req`, `res`, `test` and `expect` in scripts, e.g. unknown functions or arguments of the wrong type.
+- Report `req`, `res` and `bru.grpc` as unavailable in scripts where Bruno does not provide them (e.g. `res` in pre-request scripts or `req` and `res` in gRPC requests), and stop suggesting them there.
+- Support JSDoc type annotations and `require` calls in scripts. Required files are resolved relative to the collection root folder, like in Bruno.
+- Show a warning when a script declares a top-level variable named `bru`, `req` or `res` (like the Bruno app).
+- Add the setting `bru-as-code.cliPath` for choosing the Bruno CLI used for test runs. Without it, a CLI installed in the project (`node_modules/.bin/bru`) is now preferred over the global one. The test run output shows which CLI is used.
+- Add the command `Bru-as-Code: Show last HTML test report`. HTML reports now always open in the same panel instead of a new one per test run.
+
+### Fixes / Maintenance
+
+- Add a "Do not ask again" option to the warning about nested collections. The warning can also be disabled via the new setting `bru-as-code.warnAboutConflictingCollectionRoots`.
+- Align completions and hovers for `bru` and `req` with the Bruno documentation, e.g. `bru.cookies` and `bru.runner` are no longer suggested in gRPC scripts, `__dirname` and `__filename` are known, and the response of `bru.sendRequest` provides `data`.
+- Fix an issue that caused test runs to fail if the path of the tested file or folder contained whitespace.
+- Stop creating temporary `__temp_bru_reference.js` files. Existing ones are moved to the trash, and their `.gitignore` entry can be removed.
+- Apply the compiler options (e.g. `strict`) of a `tsconfig.json` or `jsconfig.json` with `allowJs` in the collection root folder to scripts. Without such a file, scripts of different collections are not checked separately. The suggestion to create one is now shown for all collections.
+- Stop offering completions and refactorings in scripts that would add code outside of the script (e.g. automatic imports or "Extract to function in global scope").
+- Prevent renaming `bru`, `req`, `res` and the other objects provided by Bruno, and keep rename, find references, go to definition and highlights within the code of scripts.
+- Limit inlay hints, semantic highlighting, the outline, folding and "Expand Selection" to the code of scripts, excluding the script headers.
+- Leave JavaScript and TypeScript projects in workspaces without collections unaffected.
+- Fix an issue that caused go to definition and find references in JavaScript files outside of collections (but in the same `jsconfig.json` / `tsconfig.json` project) to point to a non-existent file, and that caused internal helpers to be suggested there.
+
+## [1.5.0] (2026-10-24)
+
+### Features
+
+- Add preview support for collections in the `yaml` format (`opencollection.yml`), which is disabled by default. It can be enabled via the new setting `bru-as-code.yamlCollectionSupport` (a window reload is required). If a `yaml` collection is found in the workspace, a dialog suggesting to enable the setting is shown (can be disabled via `bru-as-code.suggestEnablingYamlCollectionSupport`).
+- Provide completions and hovers for persistent environment variables also in JS scripts within `additionalContextRoots` folders. If such a folder is used by multiple collections, the completions are merged per variable name and the hover shows the variable's values for all of them.
+
+### Fixes / Maintenance
+
+- Show only one completion per variable name for persistent environment variables (instead of one per environment), also if the variable is defined in multiple environments. For JS scripts, the details of all definitions are shown in the completion documentation.
+- Add support for tags in folder settings files (`folder.bru`), which was introduced in version 4.3.0 of Bruno.
+- Fix an issue that caused the `meta` block of `folder.bru` files not to be checked for missing, unknown, duplicate keys and missing `name` values.
+- Fix an issue that caused the test explorer not to be updated when the `seq` in a `folder.bru` file was changed.
+- Only load the Bruno collections when they are first needed (e.g. when opening a collection file, expanding the collection explorer or running tests) instead of on every start of the extension.
+
+## [1.4.0] (2026-10-22)
+
+### Features
+
+- Add quick fixes for the diagnostics about a URL that does not match the `params:query` or `params:path` block in `.bru` request files. For query params, the URL or the `params:query` block can be updated to match the other one (if the `params:query` block is missing, the query params can be removed from the URL instead); for path params, the `params:path` block can be updated to match the URL.
+- Use the request URL from the collection-wide `presets` in `bruno.json` as the default URL when creating a request file in the collection explorer (including matching `params:query` and `params:path` blocks for query and path params in the URL), and preselect the preset's `requestType` in the request type selection.
+
+### Fixes / Maintenance
+
+- Only update the URL and the `params:query` / `params:path` blocks of `.bru` request files on saving, if exactly one of the two was modified since the last save (previously, the `params:query` block always overwrote the URL's query params). The other side is then updated to match the modified one. If both were modified, nothing is changed and the new quick fixes can be used instead. Path param values are never overwritten from the URL, and the `params:query` block is removed if no query params are left.
+- Make handling of unreadable or invalid `folder.bru` files consistent with the `yaml` format: The folder is now still registered with its settings file (without a sequence) instead of being skipped or having no settings file.
+- Fix an issue that caused a collection to stay registered in the cache when only its root file (`bruno.json` or `opencollection.yml`) was deleted.
+- Make renaming of a collection root folder in the collection explorer consistent with the `yaml` format: For `bru` collections, the `name` in `bruno.json` (and the `name` in the `meta` block of `collection.bru`, if present) is now adjusted too.
+- Fix handling of nested collection root files: A collection root file (`bruno.json` or `opencollection.yml`) is now ignored if another collection root file exists in the same directory or in one of its subdirectories (a warning is shown in that case).
+- Fix an issue that caused quick fixes and refactorings in code blocks of `.bru` files to insert code outside of the code blocks (e.g. an import at the top of the file or a function at the end of the file), which corrupted the file. These quick fixes and refactorings are not offered anymore.
+- Show a warning in `.bru` request files and app files if their sequence clashes with the sequence of an app file in the same folder.
+- Take app files into account when suggesting a sequence in `meta` blocks. For app files, the suggested sequence was previously based on sibling folders.
+- Take app files into account for sequences in the collection explorer: When creating, moving, pasting or deleting request files or app files, the sequences of both are now adjusted together, so that they do not clash.
+- Fix an issue that could cause the test explorer to miss updates when several files (e.g. an environment file and a request file) changed at the same time.
+- Fix an issue that caused the extension to be offered as a formatter for all JavaScript files in the workspace, although it only formats `.bru` files.
+- Use the term "section" instead of "block" in the variable completions and variable hovers of `.bru` files (e.g. `Section 'vars:pre-request'`), so that the wording is consistent with the `yaml` format.
+- Fix an issue that caused the closing quote of a string to be removed when selecting a variable completion directly behind it (e.g. in a `body:json` block).
+
+## [1.3.3] (2026-10-10)
+
+### Fixes / Maintenance
+
+- Add support for `ws` (websocket) requests in `bru` format (including syntax highlighting, diagnostics, completions and hovers).
+- Fix an issue that caused loading of diagnostics to fail if dictionary blocks contained annotations before disabled fields.
+- Fix an issue that caused completions in code blocks of `.bru` files to include internal helper functions (e.g. `script_grpc_before_call_start`) that do not exist in Bruno.
+
+## [1.3.2] (2026-10-01)
+
+### Fixes / Maintenance
+
+- Add support for features introduced in Bruno 4.2.0:
+    - Inheritance for environment variables (including syntax highlighting, diagnostics, completions and hovers)
+    - `grpc` requests with the newly introduced scripting blocks (including syntax highlighting, diagnostics, completions and hovers)
+- Restrict intellisense for inbuilt Bruno runtime objects `req` and `res` in `.bru` files to correct blocks, where they actually are available.
+
+## [1.3.1] (2026-09-26)
+
+### Fixes / Maintenance
+
+- Fix an issue that caused files without a `.bru` extension to not be displayed in the collection explorer.
+- Make ordering of items in collection explorer not depend on the casing of the item names.
+
+## [1.3.0] (2026-09-06)
+
+### Features
+
+- Provide diagnostics for dictionary block fields where the value does not match the corresponding type annotation.
+- Provide diagnostics for duplicate keys for all dictionary blocks.
+- Provide proper diagnostics and syntax highlighting and some basic completions for app files.
+
+### Fixes / Maintenance
+
+- Adjust diagnostics to allow new key `forwardAuthorizationHeader` in settings blocks and new dictionary block `app` in request files (both introduced in version 4.1.0 of `Bruno`).
+- Add support for multiline descriptions and simple field values in dictionary blocks (diagnostics and syntax highlighting).
+- Update definitions for `Bruno` Javascript API to match current version `4.1.0`.
+- Ask for confirmation before overwriting source file with copy-and-pasted version of same file in collection explorer.
+
+## [1.2.5] (2026-08-05)
+
+### Fixes / Maintenance
+
+- Add basic support for type annotations (`@number`, `@boolean`, `@object`) in dictionary blocks: Syntax highlighting and diagnostics.
+- Fix high severity vulnerabilities for `brace-expansion` package.
+
 ## [1.2.4] (2026-07-30)
 
 ### Fixes / Maintenance

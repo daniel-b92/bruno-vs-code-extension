@@ -10,6 +10,7 @@ export class BrunoEnvironmentFile implements CollectionItem {
             value: string;
             valueRange: Range;
         }[],
+        private readonly extendsEnvironmentName?: string,
     ) {}
 
     public getPath() {
@@ -18,6 +19,10 @@ export class BrunoEnvironmentFile implements CollectionItem {
 
     public getVariables() {
         return this.variables?.slice();
+    }
+
+    public getExtends() {
+        return this.extendsEnvironmentName;
     }
 
     public isFile() {

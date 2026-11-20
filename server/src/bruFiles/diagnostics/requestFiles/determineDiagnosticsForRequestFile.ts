@@ -9,20 +9,18 @@ import {
     Block,
     TextOutsideOfBlocks,
     isBlockDictionaryBlock,
-    DictionaryBlock,
-    shouldBeDictionaryArrayField,
     getGraphQlSpecificBlocks,
     BrunoFileType,
     ItemType,
-    isDictionaryBlockField,
+    DictionaryBlockSimpleField,
+    getRequestTypeField,
+    canBlockBeDefinedMultipleTimes,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
 import { checkBlocksAreSeparatedBySingleEmptyLine } from "../shared/checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
-import { checkDictionaryBlocksAreNotEmpty } from "../shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
-import { checkDictionaryBlocksHaveDictionaryStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
@@ -31,6 +29,13 @@ import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
 import { checkBlockForResponseValidationExists } from "./checks/multipleBlocks/checkBlockForResponseValidationExists";
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkGrpcSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGrpcSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkOnlyValidBlocksAreDefinedForGrpcRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForGrpcRequests";
+import { checkWsSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkWsSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkOnlyValidBlocksAreDefinedForWsRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForWsRequests";
+import { getWsBodyBlockSpecificDiagnostics } from "./getWsBodyBlockSpecificDiagnostics";
+import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
+import { getGrpcBodyBlockSpecificDiagnostics } from "./getGrpcBodyBlockSpecificDiagnostics";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
 import { getMethodBlockSpecificDiagnostics } from "./getMethodBlockSpecificDiagnostics";
@@ -40,22 +45,40 @@ import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnosti
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificDiagnostics";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
+import { getDictionaryBlockFieldsThatShouldBeSimpleFields } from "../shared/checks/multipleBlocks/getDictionaryBlockFieldsThatShouldBeSimpleFields";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
-import { checkDescriptionsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
+import { getAppBlockSpecificDiagnostics } from "./getAppBlockSpecificDiagnostics";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
 
-export async function determineDiagnosticsForRequestFile(
+interface BlocksWithSpecificDiagnostics {
+    meta?: Block;
+    method?: Block;
+    auth?: Block;
+    body?: Block;
+    graphQlSpecific: Block[];
+    wsBodies: Block[];
+    settings?: Block;
+    app?: Block;
+}
+
+export function determineDiagnosticsForRequestFile(
     filePath: string,
     documentText: string,
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-): Promise<DiagnosticWithCode[]> {
+): DiagnosticWithCode[] {
     const documentHelper = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.RequestFile;
     const { blocks, textOutsideOfBlocks } = parseBruFile(
         documentHelper,
         itemType,
     );
+    const requestTypeField = getRequestTypeField(blocks);
+    const { needSpecificDiagnostics, others } =
+        determineBlocksRequiringSpecificDiagnostics(blocks);
 
     const results = collectCommonDiagnostics(
         filePath,
@@ -63,17 +86,98 @@ export async function determineDiagnosticsForRequestFile(
         documentHelper,
         blocks,
         textOutsideOfBlocks,
+        requestTypeField,
     ).concat(
-        await collectBlockSpecificDiagnostics(
+        collectBlockSpecificDiagnostics(
             itemProvider,
             relatedFilesHelper,
             filePath,
             documentHelper,
-            blocks,
+            needSpecificDiagnostics,
+            requestTypeField?.value,
+        ),
+        others.flatMap((block) =>
+            isBlockDictionaryBlock(block)
+                ? checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+                      block,
+                      diagnosticCode:
+                          NonBlockSpecificDiagnosticCode.MultipleDefinitionsForSameKeyInDictionaryBlock,
+                      filePath,
+                  })
+                : [],
         ),
     );
 
     return results.filter((val) => val != undefined) as DiagnosticWithCode[];
+}
+
+function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
+    needSpecificDiagnostics: BlocksWithSpecificDiagnostics;
+    others: Block[];
+} {
+    const metaBlocks: Block[] = [];
+    const methodBlocks: Block[] = [];
+    const authBlocks: Block[] = [];
+    const bodyBlocks: Block[] = [];
+    const graphQlSpecific: Block[] = [];
+    const wsBodyBlocks: Block[] = [];
+    const settingsBlocks: Block[] = [];
+    const appBlocks: Block[] = [];
+
+    const graphQlSpecificBlockNames = getGraphQlSpecificBlocks() as string[];
+
+    const others = allBlocks.reduce((prev, curr) => {
+        if (curr.name == RequestFileBlockName.Meta) {
+            metaBlocks.push(curr);
+            return prev;
+        }
+        if (getAllMethodBlocks([curr]).length > 0) {
+            methodBlocks.push(curr);
+            return prev;
+        }
+        if (isAuthBlock(curr.name)) {
+            authBlocks.push(curr);
+            return prev;
+        }
+        if (canBlockBeDefinedMultipleTimes(curr.name)) {
+            // Websocket requests can have multiple messages, so these body blocks need to be handled separately.
+            wsBodyBlocks.push(curr);
+            return prev;
+        }
+        if (isBodyBlock(curr.name)) {
+            bodyBlocks.push(curr);
+            return prev;
+        }
+        if (graphQlSpecificBlockNames.includes(curr.name)) {
+            graphQlSpecific.push(curr);
+            return prev;
+        }
+        if (curr.name == RequestFileBlockName.Settings) {
+            settingsBlocks.push(curr);
+            return prev;
+        }
+        if (curr.name == RequestFileBlockName.App) {
+            appBlocks.push(curr);
+            return prev;
+        }
+
+        return prev.concat(curr);
+    }, [] as Block[]);
+
+    return {
+        others,
+        needSpecificDiagnostics: {
+            graphQlSpecific,
+            wsBodies: wsBodyBlocks,
+            app: appBlocks.length == 1 ? appBlocks[0] : undefined,
+            auth: authBlocks.length == 1 ? authBlocks[0] : undefined,
+            body: bodyBlocks.length == 1 ? bodyBlocks[0] : undefined,
+            meta: metaBlocks.length == 1 ? metaBlocks[0] : undefined,
+            method: methodBlocks.length == 1 ? methodBlocks[0] : undefined,
+            settings:
+                settingsBlocks.length == 1 ? settingsBlocks[0] : undefined,
+        },
+    };
 }
 
 function collectCommonDiagnostics(
@@ -82,7 +186,9 @@ function collectCommonDiagnostics(
     documentHelper: TextDocumentHelper,
     blocks: Block[],
     textOutsideOfBlocks: TextOutsideOfBlocks[],
+    requestTypeField: DictionaryBlockSimpleField | undefined,
 ): (DiagnosticWithCode | undefined)[] {
+    const requestType = requestTypeField?.value;
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
         shouldBeDictionaryBlock(name),
     );
@@ -104,40 +210,58 @@ function collectCommonDiagnostics(
         checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
             filePath,
             blocks,
+            requestTypeField,
         ),
+        checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
+            filePath,
+            blocks,
+            requestTypeField,
+        ),
+        checkMethodBlockMatchesRequestType(filePath, blocks, requestTypeField),
+        ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks, requestType),
+        checkWsSpecificBlocksAreNotDefinedForOtherRequests(
+            filePath,
+            blocks,
+            requestTypeField,
+        ),
+        ...checkOnlyValidBlocksAreDefinedForWsRequests(blocks, requestType),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,
             Object.values(RequestFileBlockName) as string[],
         ),
-        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
-            ? checkDictionaryBlocksHaveDictionaryStructure(
-                  filePath,
-                  blocksThatShouldBeDictionaryBlocks,
-              )
-            : undefined,
+        ...runDictionaryBlocksBaseChecks(
+            blocksThatShouldBeDictionaryBlocks,
+            validDictionaryBlocks,
+            documentHelper,
+            filePath,
+        ),
         checkDictionaryBlocksSimpleFieldsStructure(
             filePath,
             getDictionaryBlockFieldsThatShouldBeSimpleFields(
                 validDictionaryBlocks,
             ),
         ),
-        checkDictionaryBlocksAreNotEmpty(
+        checkUrlFromMethodBlockMatchesQueryParamsBlock(
             filePath,
-            blocksThatShouldBeDictionaryBlocks,
+            blocks,
+            requestType,
         ),
-        checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
+        checkUrlFromMethodBlockMatchesPathParamsBlock(
             filePath,
-            validDictionaryBlocks,
+            blocks,
+            requestType,
         ),
-        checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
-        checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,
         ),
-        checkBlockForResponseValidationExists(documentHelper, blocks),
+        checkBlockForResponseValidationExists(
+            documentHelper,
+            blocks,
+            requestType,
+        ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             filePath,
             blocks,
@@ -148,85 +272,57 @@ function collectCommonDiagnostics(
     return results;
 }
 
-function getDictionaryBlockFieldsThatShouldBeSimpleFields(
-    dictionaryBlocks: DictionaryBlock[],
-) {
-    return dictionaryBlocks
-        .map((block) => {
-            const keysToCheck = block.content
-                .filter(isDictionaryBlockField)
-                .map(({ key }) => key)
-                .filter(
-                    (key) => !shouldBeDictionaryArrayField(block.name, key),
-                );
-
-            return keysToCheck.length > 0
-                ? {
-                      block,
-                      keys: keysToCheck,
-                  }
-                : undefined;
-        })
-        .filter((val) => val != undefined);
-}
-
-async function collectBlockSpecificDiagnostics(
+function collectBlockSpecificDiagnostics(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     filePath: string,
     documentHelper: TextDocumentHelper,
-    blocks: Block[],
-): Promise<(DiagnosticWithCode | undefined)[]> {
+    {
+        graphQlSpecific: graphQlSpecificBlocks,
+        wsBodies: wsBodyBlocks,
+        app: appBlock,
+        auth: authBlock,
+        body: bodyBlock,
+        meta: metaBlock,
+        method: methodBlock,
+        settings: settingsBlock,
+    }: BlocksWithSpecificDiagnostics,
+    requestType?: string,
+): (DiagnosticWithCode | undefined)[] {
     const results: (DiagnosticWithCode | undefined)[] = [];
 
-    const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta,
+    if (metaBlock && isBlockDictionaryBlock(metaBlock)) {
+        results.push(
+            ...getMetaBlockSpecificDiagnostics({
+                itemProvider,
+                relatedFilesHelper,
+                filePath,
+                documentHelper,
+                metaBlock,
+            }),
+        );
+    }
+    if (methodBlock) {
+        results.push(
+            ...getMethodBlockSpecificDiagnostics(filePath, methodBlock),
+        );
+    }
+    if (authBlock) {
+        results.push(...getAuthBlockSpecificDiagnostics(filePath, authBlock));
+    }
+    if (bodyBlock) {
+        results.push(
+            ...getRequestBodyOrGraphQlBlockSpecificDiagnostics(bodyBlock),
+            ...(bodyBlock.name == RequestFileBlockName.GrpcBody
+                ? getGrpcBodyBlockSpecificDiagnostics(filePath, bodyBlock)
+                : []),
+        );
+    }
+    results.push(
+        ...wsBodyBlocks.flatMap((block) =>
+            getWsBodyBlockSpecificDiagnostics(filePath, block),
+        ),
     );
-
-    if (metaBlocks.length == 1) {
-        const metaBlock = metaBlocks[0];
-
-        if (isBlockDictionaryBlock(metaBlock)) {
-            results.push(
-                ...(await getMetaBlockSpecificDiagnostics(
-                    itemProvider,
-                    relatedFilesHelper,
-                    filePath,
-                    documentHelper,
-                    metaBlock,
-                )),
-            );
-        }
-    }
-
-    const methodBlocks = getAllMethodBlocks(blocks);
-
-    if (methodBlocks.length == 1) {
-        results.push(
-            ...getMethodBlockSpecificDiagnostics(filePath, methodBlocks[0]),
-        );
-    }
-
-    const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
-
-    if (authBlocks.length == 1) {
-        results.push(
-            ...getAuthBlockSpecificDiagnostics(filePath, authBlocks[0]),
-        );
-    }
-
-    const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
-
-    if (bodyBlocks.length == 1) {
-        results.push(
-            ...getRequestBodyOrGraphQlBlockSpecificDiagnostics(bodyBlocks[0]),
-        );
-    }
-
-    const graphQlSpecificBlocks = blocks.filter(({ name }) =>
-        (getGraphQlSpecificBlocks() as string[]).includes(name),
-    );
-
     if (graphQlSpecificBlocks.length > 0) {
         results.push(
             ...graphQlSpecificBlocks.flatMap((block) =>
@@ -234,15 +330,17 @@ async function collectBlockSpecificDiagnostics(
             ),
         );
     }
-
-    const settingsBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Settings,
-    );
-
-    if (settingsBlocks.length == 1) {
+    if (settingsBlock) {
         results.push(
-            ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlocks[0]),
+            ...getSettingsBlockSpecificDiagnostics(
+                filePath,
+                settingsBlock,
+                requestType,
+            ),
         );
+    }
+    if (appBlock) {
+        results.push(...getAppBlockSpecificDiagnostics(filePath, appBlock));
     }
 
     return results;

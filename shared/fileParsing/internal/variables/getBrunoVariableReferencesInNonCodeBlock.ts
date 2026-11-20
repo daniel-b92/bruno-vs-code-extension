@@ -1,5 +1,4 @@
 import {
-    BrunoFileType,
     BrunoVariableReference,
     BrunoVariableType,
     getPatternForVarsReadReferenceInNonCodeBlock,
@@ -9,10 +8,11 @@ import {
     Range,
     RequestFileBlockName,
     TextDocumentHelper,
-    VariableAvailabilityScopes,
+    getVariableTypeAndScopeForScriptVars,
     VariableReferenceType,
+    VariableScopeSectionKind,
 } from "../../..";
-import { ParsedBlockContent } from "../getBlockContent";
+import { ParsedBlockContent } from "../bruFormat/getBlockContent";
 
 export function getBrunoVariableReferencesInNonCodeBlock(
     fullDocumentHelper: TextDocumentHelper,
@@ -33,7 +33,7 @@ export function getBrunoVariableReferencesInNonCodeBlock(
     );
 }
 
-function getReadReferences(
+export function getReadReferences(
     fullDocumentHelper: TextDocumentHelper,
     contentRange: Range,
 ) {
@@ -59,8 +59,11 @@ function getReadReferences(
             );
             const variableStartPositionInFullDocument =
                 fullDocumentHelper.getPositionForOffset(
-                    contentRange.start,
-                    match.index + variableStartOffsetWithinMatch,
+                    // The offset is relative to the start of the line, so ranges that don't start at the beginning of a line need to be considered.
+                    new Position(contentRange.start.line, 0),
+                    contentRange.start.character +
+                        match.index +
+                        variableStartOffsetWithinMatch,
                 );
 
             return variableStartPositionInFullDocument
@@ -110,17 +113,15 @@ function getWriteReferences(
         .filter((field) => isDictionaryBlockSimpleField(field))
         .filter(({ disabled }) => !disabled);
 
+    const kind =
+        blockName == RequestFileBlockName.PreRequestVars
+            ? VariableScopeSectionKind.PreRequestVars
+            : VariableScopeSectionKind.PostResponseVars;
+
     return activeFields.map(({ key, keyRange }) => ({
         referenceType: VariableReferenceType.Write,
         variableName: key,
         variableNameRange: keyRange,
-        variableType:
-            itemType == BrunoFileType.RequestFile
-                ? BrunoVariableType.Request
-                : BrunoVariableType.Folder,
-        scope:
-            blockName == RequestFileBlockName.PreRequestVars
-                ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-                : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
+        ...getVariableTypeAndScopeForScriptVars(kind, itemType),
     }));
 }

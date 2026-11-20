@@ -1,5 +1,6 @@
 import {
     CollectionDirectory,
+    CollectionFormat,
     getFileContent,
     getSequenceAndTagsFromMetaBlock,
     isDictionaryBlockField,
@@ -7,19 +8,49 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../..";
+import { getSequenceAndTagsFromYamlFolderSettingsFile } from "./yamlFormat/createYamlCollectionItems";
 
 export async function createCollectionDirectoryInstance(
     folderPath: string,
+    format: CollectionFormat,
     folderSettingsFilePath?: string,
 ) {
     if (!folderSettingsFilePath) {
         return new CollectionDirectory(folderPath);
     }
 
-    const settingsContent = await getFileContent(folderSettingsFilePath);
+    if (format == CollectionFormat.Yaml) {
+        const { sequence, tags } =
+            await getSequenceAndTagsFromYamlFolderSettingsFile(
+                folderSettingsFilePath,
+            );
+
+        return new CollectionDirectory(
+            folderPath,
+            folderSettingsFilePath,
+            sequence,
+            tags,
+        );
+    }
+
+    const { sequence, tags } =
+        await getSequenceAndTagsFromBruFolderSettingsFile(
+            folderSettingsFilePath,
+        );
+
+    return new CollectionDirectory(
+        folderPath,
+        folderSettingsFilePath,
+        sequence,
+        tags,
+    );
+}
+
+async function getSequenceAndTagsFromBruFolderSettingsFile(path: string) {
+    const settingsContent = await getFileContent(path);
 
     if (settingsContent === undefined) {
-        return undefined;
+        return { sequence: undefined, tags: undefined };
     }
 
     const metaBlockContent = parseBlockFromFile(
@@ -27,18 +58,8 @@ export async function createCollectionDirectoryInstance(
         RequestFileBlockName.Meta,
     )?.content;
 
-    const isDictionaryBlock =
-        Array.isArray(metaBlockContent) &&
-        metaBlockContent.every((field) => isDictionaryBlockField(field));
-
-    if (!isDictionaryBlock) {
-        return new CollectionDirectory(folderPath);
-    }
-
-    const { sequence } = getSequenceAndTagsFromMetaBlock(metaBlockContent);
-    return new CollectionDirectory(
-        folderPath,
-        folderSettingsFilePath,
-        sequence,
-    );
+    return Array.isArray(metaBlockContent) &&
+        metaBlockContent.every((field) => isDictionaryBlockField(field))
+        ? getSequenceAndTagsFromMetaBlock(metaBlockContent)
+        : { sequence: undefined, tags: undefined };
 }

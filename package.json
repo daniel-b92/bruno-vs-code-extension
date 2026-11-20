@@ -1,17 +1,20 @@
 {
     "name": "bru-as-code",
     "displayName": "bru-as-code",
-    "description": "Enables working with '.bru' files in a manner like working with code",
-    "version": "1.2.4",
+    "description": "Work with Bruno collections (Bru and YAML formats) like code: language support, a collection explorer and test runs via the Bruno CLI.",
+    "version": "2.2.0",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
-    "repository": "https://github.com/daniel-b92/bruno-vs-code-extension",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/daniel-b92/bruno-vs-code-extension"
+    },
     "bugs": {
         "url": "https://github.com/daniel-b92/bruno-vs-code-extension/issues"
     },
     "engines": {
-        "vscode": "^1.125.0"
+        "vscode": "^1.140.0"
     },
     "extensionDependencies": [
         "vscode.typescript-language-features"
@@ -30,38 +33,64 @@
     ],
     "icon": "./icon.png",
     "activationEvents": [
-        "workspaceContains:**/*.bru"
+        "workspaceContains:**/*.bru",
+        "workspaceContains:**/opencollection.yml"
     ],
     "main": "./client/dist/extension",
     "scripts": {
         "vscode:prepublish": "npm run package",
         "compile": "cd client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
-        "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp ./out/index.js ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
+        "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp -r ./out/. ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "lint": "eslint \"**/*.ts\"",
+        "check-lockfiles": "node .github/scripts/checkLockfiles.mjs",
+        "check-types": "tsc -b client server && tsc -p tsPlugin/tsconfig.test.json && tsc -p syntaxes/tsconfig.json",
         "watch": "cd client && webpack --mode development --watch",
-        "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd .."
+        "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd ..",
+        "test-server": "jest --selectProjects server",
+        "test-shared": "jest --selectProjects shared",
+        "test-ts-plugin": "jest --selectProjects tsPlugin",
+        "test": "jest",
+        "test-syntaxes": "jest --selectProjects syntaxes",
+        "generate-syntaxes": "jiti syntaxes/generation/generateGrammars.ts"
     },
     "dependencies": {
-        "@zentryc5t/ts-plugin-for-bruno": "^3.0.3",
-        "evt": "^2.5.9",
-        "glob": "^13.0.1",
-        "watcher": "^2.3.1"
+        "@zentryc5t/ts-plugin-for-bruno": "^5.0.0"
     },
     "devDependencies": {
         "@types/chai": "^5.2.2",
+        "@types/jest": "^30.0.0",
         "@types/mocha": "^10.0.10",
-        "@types/node": "^26.1.1",
-        "@types/vscode": "^1.125.0",
-        "@typescript-eslint/eslint-plugin": "^8.65.0",
-        "@typescript-eslint/parser": "^8.65.0",
-        "eslint": "^10.8.0",
+        "@types/node": "^26.6.5",
+        "@types/vscode": "^1.140.0",
+        "@typescript-eslint/eslint-plugin": "^8.72.0",
+        "@typescript-eslint/parser": "^8.70.1",
+        "acorn": "^8.16.0",
+        "eslint": "^10.14.0",
         "eslint-import-resolver-typescript": "^4.3.0",
-        "eslint-plugin-boundaries": "^7.1.0",
+        "eslint-plugin-boundaries": "^7.2.0",
+        "evt": "^2.5.9",
+        "glob": "^13.0.1",
+        "jest": "^30.4.2",
         "jiti": "^2.7.0",
+        "jsonc-parser": "^3.3.1",
+        "lockfile-lint": "^5.1.0",
+        "prettier": "^3.9.10",
+        "process": "^0.11.10",
+        "tree-kill": "^1.2.2",
+        "ts-jest": "^29.4.12",
         "ts-loader": "^9.6.2",
         "typescript": "^6.0.3",
-        "webpack": "^5.109.0",
-        "webpack-cli": "^7.2.1"
+        "uuid": "^14.0.3",
+        "vscode-languageclient": "^11.0.0",
+        "vscode-languageserver": "^10.1.2",
+        "vscode-languageserver-textdocument": "^1.0.16",
+        "vscode-oniguruma": "^2.0.1",
+        "vscode-textmate": "^9.3.2",
+        "vscode-uri": "^3.2.0",
+        "watcher": "^2.3.1",
+        "webpack": "^5.109.2",
+        "webpack-cli": "^7.3.1",
+        "yaml": "^2.9.1"
     },
     "contributes": {
         "configuration": {
@@ -71,15 +100,37 @@
                     "type": "object",
                     "description": "The configured environment per collection to use when executing tests via Bruno CLI. Can be configured when selecting the root folder in the collection explorer."
                 },
+                "bru-as-code.cliPath": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "resource",
+                    "markdownDescription": "Path to the Bruno CLI executable used for running tests (absolute or relative to the workspace folder). If empty, a locally installed CLI (`node_modules/.bin/bru`, searched from the collection root directory up to the workspace folder) is preferred, otherwise `bru` from the `PATH` is used. If set but the file does not exist, test runs fail."
+                },
                 "bru-as-code.htmlReportPath": {
                     "type": "string",
-                    "default": "results.html",
-                    "description": "The path for saving HTML test reports. Can either be defined as an absolute path or relative to the collection root directory."
+                    "default": "",
+                    "description": "The path for saving HTML test reports permanently. Can either be defined as an absolute path or relative to the collection root directory. If empty, no report is saved to the workspace (unless `bru-as-code.showHtmlReport` is set to `never`, the latest report is kept in the extension's own storage, so that it can be shown)."
+                },
+                "bru-as-code.showHtmlReport": {
+                    "type": "string",
+                    "enum": [
+                        "always",
+                        "onFailure",
+                        "never"
+                    ],
+                    "enumDescriptions": [
+                        "Show the HTML test report after every test run.",
+                        "Only show the HTML test report for failed test runs.",
+                        "Never show the HTML test report automatically."
+                    ],
+                    "default": "onFailure",
+                    "markdownDescription": "When to show the HTML test report after running tests. The latest report can also be opened via the command *Show last HTML test report* (not available if set to *never* and no `#bru-as-code.htmlReportPath#` is configured)."
                 },
                 "bru-as-code.alwaysShowHtmlReport": {
                     "type": "boolean",
-                    "default": true,
-                    "markdownDescription": "Whether to always show the HTML test report after running tests. If set to *false*, the HTML report will only be shown for failed runs."
+                    "default": false,
+                    "markdownDeprecationMessage": "**Deprecated**: Use `#bru-as-code.showHtmlReport#` instead. `true` is treated as `always` as long as `showHtmlReport` is not set.",
+                    "deprecationMessage": "Deprecated: Use 'bru-as-code.showHtmlReport' instead."
                 },
                 "bru-as-code.sandboxDeveloperMode": {
                     "type": "boolean",
@@ -90,6 +141,27 @@
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Show a dialog suggesting to create tsconfig files for collections (if not already existing) after every extension start."
+                },
+                "bru-as-code.warnAboutConflictingCollectionRoots": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show a warning when collection root files are ignored, because other collection root files exist in the same directory or its subdirectories (nested collections)."
+                },
+                "bru-as-code.sequenceStep": {
+                    "type": "number",
+                    "enum": [
+                        1,
+                        5,
+                        10,
+                        100
+                    ],
+                    "default": 1,
+                    "markdownDescription": "Step between the sequences (`seq`) of consecutive requests and folders. It is used by the collection explorer's Normalize sequences action (as the preselected step), for items that are added at the end of a folder (e.g. new or duplicated requests and folders) and when sequences are renumbered automatically (see `bru-as-code.renumberSequencesAutomatically`)."
+                },
+                "bru-as-code.renumberSequencesAutomatically": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Renumber the sequences (`seq`) of all affected folders in the collection explorer after every insert (create, duplicate, paste, drag and drop), move and delete, so that they stay consecutive. If disabled, the sequences of all other items are kept whenever possible: A new or moved item gets a free sequence between its neighbors, and only if there is none, the directly consecutive following items are shifted by 1."
                 }
             }
         },
@@ -108,7 +180,8 @@
                 "name": "@zentryc5t/ts-plugin-for-bruno",
                 "languages": [
                     "bru",
-                    "js"
+                    "js",
+                    "yaml"
                 ]
             }
         ],
@@ -142,13 +215,86 @@
             },
             {
                 "path": "./syntaxes/injection.json",
-                "scopeName": "json-block.injection",
+                "scopeName": "source.bruno.json-block.injection",
                 "injectTo": [
-                    "source.bru"
+                    "source.bru",
+                    "source.yaml"
                 ]
+            },
+            {
+                "path": "./syntaxes/yaml-document.injection.json",
+                "scopeName": "source.bruno.yaml-document.injection",
+                "injectTo": [
+                    "source.yaml"
+                ]
+            },
+            {
+                "path": "./syntaxes/yaml-sections.injection.json",
+                "scopeName": "source.bruno.yaml-sections.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.html": "html",
+                    "meta.embedded.block.markdown": "markdown",
+                    "source.js": "javascript",
+                    "source.css": "css"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-scripts.injection.json",
+                "scopeName": "source.bruno.yaml-scripts.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.javascript": "javascript"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-bodies.injection.json",
+                "scopeName": "source.bruno.yaml-bodies.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.json": "json",
+                    "meta.embedded.block.xml": "xml",
+                    "meta.embedded.block.html": "html",
+                    "source.js": "javascript",
+                    "source.css": "css",
+                    "meta.embedded.block.graphql": "bru-graphql-block"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-docs.injection.json",
+                "scopeName": "source.bruno.yaml-docs.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.markdown": "markdown"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-app.injection.json",
+                "scopeName": "source.bruno.yaml-app.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.html": "html",
+                    "source.js": "javascript",
+                    "source.css": "css"
+                }
             }
         ],
         "commands": [
+            {
+                "command": "bruAsCode.showLastHtmlReport",
+                "title": "Show last HTML test report",
+                "category": "Bru-as-Code"
+            },
             {
                 "command": "brunoCollectionsView.refresh",
                 "title": "Refresh collection explorer",
@@ -233,8 +379,29 @@
                 "category": "Bru-as-Code"
             },
             {
+                "command": "brunoCollectionsView.normalizeSequences",
+                "title": "Normalize sequences",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
+            },
+            {
                 "command": "bruAsCode.restartLanguageServer",
                 "title": "Restart language server",
+                "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.toggleLineComment",
+                "title": "Toggle line comment",
+                "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.addLineComment",
+                "title": "Add line comment",
+                "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.removeLineComment",
+                "title": "Remove line comment",
                 "category": "Bru-as-Code"
             }
         ],
@@ -264,59 +431,102 @@
                 {
                     "command": "brunoCollectionsView.createRequestFile",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
-                    "group": "crud@1"
+                    "group": "1_crud@1"
                 },
                 {
                     "command": "brunoCollectionsView.createEmptyFile",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
-                    "group": "crud@5"
+                    "group": "1_crud@5"
                 },
                 {
                     "command": "brunoCollectionsView.createFolder",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
-                    "group": "crud@10"
+                    "group": "1_crud@10"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",
                     "when": "view == brunoCollectionsView",
-                    "group": "crud@20"
+                    "group": "1_crud@20"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFile",
                     "when": "view == brunoCollectionsView && viewItem==file",
-                    "group": "crud@30"
+                    "group": "1_crud@30"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
                     "when": "view == brunoCollectionsView && viewItem == folder",
-                    "group": "crud@35"
+                    "group": "1_crud@35"
                 },
                 {
                     "command": "brunoCollectionsView.copyFile",
                     "when": "view == brunoCollectionsView && viewItem==file",
-                    "group": "crud@37"
+                    "group": "1_crud@37"
                 },
                 {
                     "command": "brunoCollectionsView.pasteFile",
                     "when": "view == brunoCollectionsView",
-                    "group": "crud@38"
+                    "group": "1_crud@38"
                 },
                 {
                     "command": "brunoCollectionsView.deleteItem",
                     "when": "view == brunoCollectionsView",
-                    "group": "crud@40"
+                    "group": "1_crud@40"
+                },
+                {
+                    "command": "brunoCollectionsView.normalizeSequences",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
+                    "group": "2_organize@1"
                 },
                 {
                     "command": "brunoCollectionsView.startTestRun",
                     "when": "view == brunoCollectionsView",
-                    "group": "execution@1"
+                    "group": "3_execution@1"
                 },
                 {
                     "command": "brunoCollectionsView.openDialogForTestRun",
                     "when": "view == brunoCollectionsView",
-                    "group": "execution@5"
+                    "group": "3_execution@5"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "bruAsCode.toggleLineComment",
+                    "when": "false"
+                },
+                {
+                    "command": "bruAsCode.addLineComment",
+                    "when": "false"
+                },
+                {
+                    "command": "bruAsCode.removeLineComment",
+                    "when": "false"
                 }
             ]
-        }
+        },
+        "keybindings": [
+            {
+                "command": "bruAsCode.toggleLineComment",
+                "key": "ctrl+/",
+                "mac": "cmd+/",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
+            },
+            {
+                "command": "bruAsCode.addLineComment",
+                "key": "ctrl+k ctrl+c",
+                "mac": "cmd+k cmd+c",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
+            },
+            {
+                "command": "bruAsCode.removeLineComment",
+                "key": "ctrl+k ctrl+u",
+                "mac": "cmd+k cmd+u",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
+            }
+        ]
+    },
+    "allowScripts": {
+        "unrs-resolver@1.12.2": true,
+        "@parcel/watcher@2.6.0": true
     }
 }

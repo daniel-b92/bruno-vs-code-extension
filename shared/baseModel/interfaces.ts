@@ -1,7 +1,13 @@
-import { Block, BrunoEnvironmentFile, TextOutsideOfBlocks } from "..";
+import { BrunoEnvironmentFile, VariableScopeSection } from "..";
+
+export enum CollectionFormat {
+    Bru = "Bru",
+    Yaml = "Yaml",
+}
 
 export interface ReadyOnlyCollection<T> {
     getRootDirectory: () => string;
+    getFormat: () => CollectionFormat;
     isRootDirectory: (path: string) => boolean;
     getCommonAncestorData: (...paths: string[]) => CollectionData<T>[];
     getStoredDataForPath: (path: string) => CollectionData<T> | undefined;
@@ -10,11 +16,17 @@ export interface ReadyOnlyCollection<T> {
         item: BrunoEnvironmentFile;
         environmentName: string;
     }[];
+    getEnvironmentInheritanceChain: (environmentName: string) => string[];
+    getEnvironmentsExtending: (environmentName: string) => string[];
     getAdditionalContextRoots: () => string[];
 }
 
 export interface CollectionItemWithSequence extends CollectionItem {
     getSequence: () => number | undefined;
+}
+
+export interface CollectionItemWithTags extends CollectionItem {
+    getTags: () => string[] | undefined;
 }
 
 export interface CollectionItem {
@@ -34,7 +46,11 @@ export type AdditionalCollectionDataProvider<T> =
 
 export interface AdditionalCollectionSimpleDataProvider<T> {
     paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem;
-    callback: (item: CollectionItem, isCollectionRoot: boolean) => T;
+    callback: (
+        item: CollectionItem,
+        isCollectionRoot: boolean,
+        isCollectionRootFile: boolean,
+    ) => T;
     isAdditionalDataOutdated: (oldData: T, newData: T) => boolean;
 }
 
@@ -50,8 +66,7 @@ export interface AdditionalCollectionComplexDataProvider<T> {
 }
 
 export interface ParsedFileDataForComplexProvider {
-    blocks: Block[];
-    textOutsideOfBlocks: TextOutsideOfBlocks[];
+    sections: VariableScopeSection[];
 }
 
 export type CollectionData<T> = {

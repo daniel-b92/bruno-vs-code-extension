@@ -5,7 +5,8 @@
         "lib": ["ES2025"],
         "noEmit": true,
         "allowJs": true,
-        "types": ["node"]
+        "types": ["node"],
+        "checkJs": true
     },
     "exclude": ["node_modules"],
     "include": ["**/*", "../sharedScripts"]

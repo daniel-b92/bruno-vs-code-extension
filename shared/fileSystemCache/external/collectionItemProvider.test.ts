@@ -1,0 +1,1099 @@
+import { describe, it, expect, afterEach, jest } from "@jest/globals";
+import { writeFile } from "fs/promises";
+import { Evt } from "evt";
+import { basename, join } from "path";
+import {
+    AdditionalCollectionDataProviderType,
+    BrunoAppFile,
+    BrunoEnvironmentFile,
+    BrunoFileType,
+    BrunoRequestFile,
+    CollectionDirectory,
+    CollectionFormat,
+    CollectionItem,
+    CollectionItemProvider,
+    CollectionWatcher,
+    FileChangedEvent,
+    FileChangeType,
+    Logger,
+    NonBrunoSpecificItemType,
+    normalizePath,
+} from "../..";
+import { useTemporaryDirectories, waitUntil } from "../../_testingUtils";
+
+const disposables: { dispose: () => void }[] = [];
+
+afterEach(() => {
+    disposables.splice(0).forEach((disposable) => disposable.dispose());
+});
+
+describe("CollectionItemProvider.refreshCache", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("registers bru and yaml collections with their items", async () => {
+        const workspace = await createWorkspace();
+        const provider = createProvider(workspace);
+
+        await provider.refreshCache();
+
+        expect(getRegisteredCollectionNames(provider)).toEqual([
+            "bruCollection (Bru)",
+            "yamlCollection (Yaml)",
+        ]);
+
+        const yamlRoot = join(workspace, "yamlCollection");
+        const collection = provider
+            .getRegisteredCollections()
+            .find(
+                (collection) =>
+                    basename(collection.getRootDirectory()) == "yamlCollection",
+            )!;
+        const getItem = (relativePath: string) =>
+            collection.getStoredDataForPath(join(yamlRoot, relativePath))?.item;
+
+        expect(getItem("opencollection.yml")?.getItemType()).toBe(
+            BrunoFileType.CollectionSettingsFile,
+        );
+        expect(getItem("Folder1")).toBeInstanceOf(CollectionDirectory);
+        expect((getItem("Folder1") as CollectionDirectory).getSequence()).toBe(
+            2,
+        );
+        expect(getItem("Folder1/folder.yml")?.getItemType()).toBe(
+            BrunoFileType.FolderSettingsFile,
+        );
+        expect(getItem("Folder1/request.yml")).toBeInstanceOf(BrunoRequestFile);
+        expect(
+            (getItem("Folder1/request.yml") as BrunoRequestFile).getSequence(),
+        ).toBe(1);
+        expect(getItem("Folder1/app.yml")?.getItemType()).toBe(
+            BrunoFileType.AppFile,
+        );
+        expect(getItem("environments/Dev.yml")).toBeInstanceOf(
+            BrunoEnvironmentFile,
+        );
+        expect(getItem("notes.yml")?.getItemType()).toBe(
+            NonBrunoSpecificItemType.OtherFileType,
+        );
+        expect(
+            collection.getEnvironments().map((e) => e.environmentName),
+        ).toEqual(["Dev"]);
+    });
+
+    async function createWorkspace() {
+        return await createTemporaryDirectory({
+            "bruCollection/bruno.json": "{}",
+            "bruCollection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+            "yamlCollection/opencollection.yml": "info:\n  name: yaml\n",
+            "yamlCollection/Folder1/folder.yml":
+                "info:\n  name: Folder1\n  type: folder\n  seq: 2\n",
+            "yamlCollection/Folder1/request.yml":
+                "info:\n  name: request\n  type: http\n  seq: 1\n",
+            "yamlCollection/Folder1/app.yml":
+                "info:\n  name: app\n  type: app\n  seq: 2\ncode: x\n",
+            "yamlCollection/environments/Dev.yml": "name: Dev\nvariables: []\n",
+            "yamlCollection/notes.yml": "foo: bar\n",
+        });
+    }
+
+    function getRegisteredCollectionNames(
+        provider: CollectionItemProvider<undefined>,
+    ) {
+        return provider
+            .getRegisteredCollections()
+            .map(
+                (collection) =>
+                    `${basename(collection.getRootDirectory())} (${collection.getFormat() as CollectionFormat})`,
+            )
+            .sort();
+    }
+});
+
+describe("CollectionItemProvider.ensureCacheIsLoaded", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("does not load anything before it is called", async () => {
+        const workspace = await createWorkspace();
+        const { provider, getNumberOfLoads } =
+            createProviderWithLoadCounter(workspace);
+
+        expect(provider.getRegisteredCollections()).toHaveLength(0);
+        expect(getNumberOfLoads()).toBe(0);
+    });
+
+    it("only loads the cache once for concurrent and later calls", async () => {
+        const workspace = await createWorkspace();
+        const { provider, getNumberOfLoads } =
+            createProviderWithLoadCounter(workspace);
+
+        const firstLoad = provider.ensureCacheIsLoaded();
+        const secondLoad = provider.ensureCacheIsLoaded();
+        expect(secondLoad).toBe(firstLoad);
+
+        await Promise.all([firstLoad, secondLoad]);
+        await provider.ensureCacheIsLoaded();
+
+        expect(getNumberOfLoads()).toBe(1);
+        expect(provider.getRegisteredCollections()).toHaveLength(1);
+    });
+
+    it("runs the initial load via the given wrapper", async () => {
+        const workspace = await createWorkspace();
+        let wrapperCalls = 0;
+        const { provider } = createProviderWithLoadCounter(workspace, {
+            runInitialCacheLoad: async (load) => {
+                wrapperCalls++;
+                await load();
+            },
+        });
+
+        await provider.ensureCacheIsLoaded();
+        await provider.refreshCache();
+
+        expect(wrapperCalls).toBe(1);
+    });
+
+    it("lets the initial load be retried after it failed", async () => {
+        const workspace = await createWorkspace();
+        let shouldFail = true;
+        const { provider } = createProviderWithLoadCounter(workspace, {
+            runInitialCacheLoad: async (load) => {
+                if (shouldFail) {
+                    throw new Error("Loading failed");
+                }
+                await load();
+            },
+        });
+
+        await expect(provider.ensureCacheIsLoaded()).rejects.toThrow(
+            "Loading failed",
+        );
+
+        shouldFail = false;
+        await provider.ensureCacheIsLoaded();
+
+        expect(provider.getRegisteredCollections()).toHaveLength(1);
+    });
+
+    it("treats a refresh before the first lazy load as initial load", async () => {
+        const workspace = await createWorkspace();
+        const notifier = Evt.create<void>();
+        let notifications = 0;
+        notifier.attach(() => notifications++);
+        const { provider, getNumberOfLoads } = createProviderWithLoadCounter(
+            workspace,
+            { cacheRefreshNotifier: notifier },
+        );
+
+        await Promise.all([
+            provider.refreshCache(),
+            provider.ensureCacheIsLoaded(),
+        ]);
+
+        expect(getNumberOfLoads()).toBe(1);
+        expect(notifications).toBe(0);
+    });
+
+    it("waits for a running initial load before an explicit refresh starts", async () => {
+        const workspace = await createWorkspace();
+        const notifier = Evt.create<void>();
+        let initialLoadFinished = false;
+        let wasInitialLoadFinishedOnRefresh: boolean | undefined = undefined;
+        notifier.attach(() => {
+            wasInitialLoadFinishedOnRefresh = initialLoadFinished;
+        });
+        const { provider, getNumberOfLoads } = createProviderWithLoadCounter(
+            workspace,
+            { cacheRefreshNotifier: notifier },
+        );
+
+        const initialLoad = provider.ensureCacheIsLoaded().then(() => {
+            initialLoadFinished = true;
+        });
+        await Promise.all([initialLoad, provider.refreshCache()]);
+
+        expect(wasInitialLoadFinishedOnRefresh).toBe(true);
+        expect(getNumberOfLoads()).toBe(2);
+    });
+
+    it("only notifies about cache refreshes that happen after the initial load", async () => {
+        const workspace = await createWorkspace();
+        const notifier = Evt.create<void>();
+        let notifications = 0;
+        notifier.attach(() => notifications++);
+        const { provider } = createProviderWithLoadCounter(workspace, {
+            cacheRefreshNotifier: notifier,
+        });
+
+        await provider.ensureCacheIsLoaded();
+        expect(notifications).toBe(0);
+
+        await provider.refreshCache();
+        expect(notifications).toBe(1);
+    });
+
+    it("calls subscribers of the initial load once, without triggering the load", async () => {
+        const workspace = await createWorkspace();
+        const { provider, getNumberOfLoads } =
+            createProviderWithLoadCounter(workspace);
+        let calls = 0;
+        let collectionsOnCall = 0;
+        provider.subscribeToInitialCacheLoad(() => {
+            calls++;
+            collectionsOnCall = provider.getRegisteredCollections().length;
+        });
+
+        expect(calls).toBe(0);
+        expect(getNumberOfLoads()).toBe(0);
+
+        await provider.ensureCacheIsLoaded();
+        await provider.refreshCache();
+
+        expect(calls).toBe(1);
+        expect(collectionsOnCall).toBe(1);
+    });
+
+    it("immediately calls subscribers of the initial load if it already finished", async () => {
+        const workspace = await createWorkspace();
+        const { provider } = createProviderWithLoadCounter(workspace);
+        await provider.ensureCacheIsLoaded();
+
+        let calls = 0;
+        provider.subscribeToInitialCacheLoad(() => calls++);
+
+        expect(calls).toBe(1);
+    });
+
+    async function createWorkspace() {
+        return await createTemporaryDirectory({
+            "bruCollection/bruno.json": "{}",
+            "bruCollection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+    }
+});
+
+describe("CollectionItemProvider: modification of a collection root file", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+    it("updates the additional context roots when 'bruno.json' of a bru collection is modified", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+        const rootDir = join(workspace, "collection");
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const collection = provider.getRegisteredCollections()[0];
+
+        expect(collection.getAdditionalContextRoots()).toEqual([]);
+
+        const rootFilePath = join(rootDir, "bruno.json");
+        await writeFile(
+            rootFilePath,
+            JSON.stringify({
+                scripts: { additionalContextRoots: ["./shared"] },
+            }),
+        );
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(
+            () => collection.getAdditionalContextRoots().length > 0,
+        );
+        expect(collection.getAdditionalContextRoots()).toEqual([
+            join(rootDir, "shared"),
+        ]);
+    });
+
+    it("notifies subscribers only when the additional context roots of a collection actually change", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+        const rootFilePath = join(workspace, "collection", "bruno.json");
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const callback = jest.fn();
+        provider.subscribeToAdditionalContextRootChanges(callback);
+
+        // Modification without a change of the context roots.
+        await writeFile(rootFilePath, JSON.stringify({ name: "collection" }));
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        expect(callback).not.toHaveBeenCalled();
+
+        await writeFile(
+            rootFilePath,
+            JSON.stringify({
+                scripts: { additionalContextRoots: ["./shared"] },
+            }),
+        );
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(() => callback.mock.calls.length > 0);
+        expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it("updates the additional context roots when 'opencollection.yml' of a yaml collection is modified", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/opencollection.yml":
+                "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+            "collection/request.yml":
+                "info:\n  name: request\n  type: http\n  seq: 1\n",
+        });
+        const rootDir = join(workspace, "collection");
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const collection = provider.getRegisteredCollections()[0];
+
+        expect(collection.getFormat()).toBe(CollectionFormat.Yaml);
+        expect(collection.getAdditionalContextRoots()).toEqual([]);
+
+        const notifiedPaths: string[] = [];
+        provider.subscribeToUpdates((notifications) =>
+            notifications.forEach(({ data: { item } }) =>
+                notifiedPaths.push(item.getPath()),
+            ),
+        );
+
+        const rootFilePath = join(rootDir, "opencollection.yml");
+        await writeFile(
+            rootFilePath,
+            [
+                "opencollection: 1.0.0",
+                "info:",
+                "  name: yaml",
+                "extensions:",
+                "  bruno:",
+                "    scripts:",
+                "      additionalContextRoots:",
+                '        - "./shared"',
+                "",
+            ].join("\n"),
+        );
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(
+            () => collection.getAdditionalContextRoots().length > 0,
+        );
+        expect(collection.getAdditionalContextRoots()).toEqual([
+            join(rootDir, "shared"),
+        ]);
+
+        // In the yaml format, the root file is also the collection settings file. So the root directory item gets updated, too.
+        await waitUntil(() => notifiedPaths.length > 0);
+        expect(notifiedPaths.map((path) => normalizePath(path))).toEqual([
+            normalizePath(rootDir),
+        ]);
+    });
+
+    it("updates the cached sequence of a bru app file when it is modified", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+            "collection/app.bru":
+                "meta {\n  name: app\n  type: app\n  seq: 2\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const collection = provider.getRegisteredCollections()[0];
+        const filePath = join(workspace, "collection/app.bru");
+        const getSequence = () =>
+            (
+                collection.getStoredDataForPath(filePath)?.item as BrunoAppFile
+            ).getSequence();
+
+        expect(getSequence()).toBe(2);
+
+        await writeFile(
+            filePath,
+            "meta {\n  name: app\n  type: app\n  seq: 5\n}\n",
+        );
+        fileChangedEmitter.post({
+            path: filePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(() => getSequence() == 5);
+        expect(getSequence()).toBe(5);
+    });
+
+    it("recognizes a bru file as request file after it was edited from invalid to valid", async () => {
+        await expectFileTypeChangeToBeHandled({
+            files: {
+                "collection/bruno.json": "{}",
+                // A Bru collection is only recognized if it contains at least one valid request file.
+                "collection/other.bru":
+                    "meta {\n  name: other\n  type: http\n  seq: 2\n}\n",
+                "collection/req.bru": "",
+            },
+            relativePath: "collection/req.bru",
+            validContent: "meta {\n  name: req\n  type: http\n  seq: 1\n}\n",
+        });
+    });
+
+    it("recognizes a yaml file as request file after it was edited from invalid to valid", async () => {
+        await expectFileTypeChangeToBeHandled({
+            files: {
+                "collection/opencollection.yml":
+                    "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+                "collection/req.yml": "foo: bar\n",
+            },
+            relativePath: "collection/req.yml",
+            validContent: "info:\n  name: req\n  type: http\n  seq: 1\n",
+        });
+    });
+
+    async function expectFileTypeChangeToBeHandled(params: {
+        files: Record<string, string>;
+        relativePath: string;
+        validContent: string;
+    }) {
+        const workspace = await createTemporaryDirectory(params.files);
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const collection = provider.getRegisteredCollections()[0];
+        const filePath = join(workspace, params.relativePath);
+        const getRegisteredType = () =>
+            collection.getStoredDataForPath(filePath)?.item.getItemType();
+
+        expect(getRegisteredType()).toBe(
+            NonBrunoSpecificItemType.OtherFileType,
+        );
+
+        const notifications: { path: string; updateType: FileChangeType }[] =
+            [];
+        provider.subscribeToUpdates((batch) =>
+            batch.forEach(({ data: { item }, updateType }) =>
+                notifications.push({ path: item.getPath(), updateType }),
+            ),
+        );
+
+        await writeFile(filePath, params.validContent);
+        fileChangedEmitter.post({
+            path: filePath,
+            changeType: FileChangeType.Modified,
+        });
+        await waitUntil(() => getRegisteredType() == BrunoFileType.RequestFile);
+
+        expect(collection.getStoredDataForPath(filePath)?.item).toBeInstanceOf(
+            BrunoRequestFile,
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(notifications.map(({ updateType }) => updateType)).toContain(
+            FileChangeType.Created,
+        );
+    }
+});
+
+describe("CollectionItemProvider: deletion of a collection root file", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("unregisters a bru collection when 'bruno.json' is deleted", async () => {
+        await expectCollectionToBeUnregisteredOnRootFileDeletion({
+            files: {
+                "collection/bruno.json": "{}",
+                "collection/request.bru":
+                    "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+            },
+            rootFileName: "bruno.json",
+        });
+    });
+
+    it("unregisters a yaml collection when 'opencollection.yml' is deleted", async () => {
+        await expectCollectionToBeUnregisteredOnRootFileDeletion({
+            files: {
+                "collection/opencollection.yml":
+                    "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+                "collection/request.yml":
+                    "info:\n  name: request\n  type: http\n  seq: 1\n",
+            },
+            rootFileName: "opencollection.yml",
+        });
+    });
+
+    async function expectCollectionToBeUnregisteredOnRootFileDeletion(params: {
+        files: Record<string, string>;
+        rootFileName: string;
+    }) {
+        const workspace = await createTemporaryDirectory(params.files);
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+
+        expect(provider.getRegisteredCollections()).toHaveLength(1);
+
+        const notifications: { path: string; updateType: FileChangeType }[] =
+            [];
+        provider.subscribeToUpdates((batch) =>
+            batch.forEach(({ data: { item }, updateType }) =>
+                notifications.push({ path: item.getPath(), updateType }),
+            ),
+        );
+
+        fileChangedEmitter.post({
+            path: join(workspace, "collection", params.rootFileName),
+            changeType: FileChangeType.Deleted,
+        });
+
+        await waitUntil(() => provider.getRegisteredCollections().length == 0);
+        expect(provider.getRegisteredCollections()).toHaveLength(0);
+
+        await waitUntil(() => notifications.length > 0);
+        expect(
+            notifications.map(({ path, updateType }) => ({
+                path: normalizePath(path),
+                updateType,
+            })),
+        ).toEqual([
+            {
+                path: normalizePath(join(workspace, "collection")),
+                updateType: FileChangeType.Deleted,
+            },
+        ]);
+    }
+});
+
+describe("CollectionItemProvider: folder settings files", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("updates the sequence and tags of a folder when its bru folder settings file is added later", async () => {
+        const workspace = await createTemporaryDirectory(
+            getBruCollectionWithSubfolder(),
+        );
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const getFolder = () => getRegisteredFolder(provider, folderPath);
+
+        expect(getFolder().getSequence()).toBeUndefined();
+
+        const notifications = recordNotifications(provider);
+
+        await addFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.bru"),
+            "meta {\n  name: sub\n  seq: 4\n  tags: [\n    a\n  ]\n}\n",
+        );
+
+        await waitUntil(() => getFolder().getSequence() == 4);
+        expect(getFolder().getTags()).toEqual(["a"]);
+
+        await waitUntil(() =>
+            notifications.some(
+                ({ path, updateType }) =>
+                    normalizePath(path) == normalizePath(folderPath) &&
+                    updateType == FileChangeType.Modified,
+            ),
+        );
+        expect(
+            notifications.find(
+                ({ path, updateType }) =>
+                    normalizePath(path) == normalizePath(folderPath) &&
+                    updateType == FileChangeType.Modified,
+            )?.changedData,
+        ).toEqual({
+            sequenceChanged: true,
+            tagsChanged: true,
+            additionalDataChanged: true,
+        });
+    });
+
+    it("updates the sequence of a folder when its yaml folder settings file is added later", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/opencollection.yml":
+                "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+            "collection/sub/request.yml":
+                "info:\n  name: request\n  type: http\n  seq: 1\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const getFolder = () => getRegisteredFolder(provider, folderPath);
+
+        expect(getFolder().getSequence()).toBeUndefined();
+
+        await addFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.yml"),
+            "info:\n  name: sub\n  type: folder\n  seq: 3\n",
+        );
+
+        await waitUntil(() => getFolder().getSequence() == 3);
+    });
+
+    it("updates the settings file path of a folder when its settings file is added without a sequence or tags", async () => {
+        const workspace = await createTemporaryDirectory(
+            getBruCollectionWithSubfolder(),
+        );
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const settingsFilePath = join(folderPath, "folder.bru");
+        const notifications = recordNotifications(provider);
+
+        expect(
+            getRegisteredFolder(provider, folderPath).getSettingsFilePath(),
+        ).toBeUndefined();
+
+        await addFolderSettingsFile(
+            fileChangedEmitter,
+            settingsFilePath,
+            "meta {\n  name: sub\n}\n",
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(
+            getRegisteredFolder(provider, folderPath).getSettingsFilePath(),
+        ).toBe(settingsFilePath);
+        expect(
+            notifications.find(
+                ({ path, updateType }) =>
+                    normalizePath(path) == normalizePath(folderPath) &&
+                    updateType == FileChangeType.Modified,
+            )?.changedData,
+        ).toEqual({
+            sequenceChanged: false,
+            tagsChanged: false,
+            additionalDataChanged: true,
+        });
+    });
+
+    it("keeps the cached folder item if a modification of its folder settings file does not change anything relevant", async () => {
+        const workspace = await createTemporaryDirectory({
+            ...getBruCollectionWithSubfolder(),
+            "collection/sub/folder.bru": "meta {\n  name: sub\n  seq: 4\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const folderBefore = getRegisteredFolder(provider, folderPath);
+        const notifications = recordNotifications(provider);
+
+        await modifyFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.bru"),
+            "meta {\n  name: renamed\n  seq: 4\n}\n",
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(notifications[0].changedData).toEqual({
+            sequenceChanged: false,
+            tagsChanged: false,
+            additionalDataChanged: false,
+        });
+        // The additional data of a directory (e.g. its test item) is replaced together with the item. Unnecessary replacements must be avoided,
+        // because subscribers only rebuild a directory if they are told that something changed.
+        expect(getRegisteredFolder(provider, folderPath)).toBe(folderBefore);
+    });
+
+    it("replaces the cached folder item and reports changed additional data if only the additional data is outdated", async () => {
+        const workspace = await createTemporaryDirectory({
+            ...getBruCollectionWithSubfolder(),
+            "collection/sub/folder.bru": "meta {\n  name: sub\n  seq: 4\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter, {
+            isAdditionalDataOutdated: () => true,
+        });
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const folderBefore = getRegisteredFolder(provider, folderPath);
+        const notifications = recordNotifications(provider);
+
+        await modifyFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.bru"),
+            "meta {\n  name: renamed\n  seq: 4\n}\n",
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(notifications[0].changedData).toEqual({
+            sequenceChanged: false,
+            tagsChanged: false,
+            additionalDataChanged: true,
+        });
+        expect(getRegisteredFolder(provider, folderPath)).not.toBe(
+            folderBefore,
+        );
+    });
+
+    async function addFolderSettingsFile(
+        fileChangedEmitter: Evt<FileChangedEvent>,
+        path: string,
+        content: string,
+    ) {
+        await writeFile(path, content);
+        fileChangedEmitter.post({
+            path,
+            changeType: FileChangeType.Created,
+        });
+    }
+
+    async function modifyFolderSettingsFile(
+        fileChangedEmitter: Evt<FileChangedEvent>,
+        path: string,
+        content: string,
+    ) {
+        await writeFile(path, content);
+        fileChangedEmitter.post({
+            path,
+            changeType: FileChangeType.Modified,
+        });
+    }
+
+    function getBruCollectionWithSubfolder() {
+        return {
+            "collection/bruno.json": "{}",
+            "collection/sub/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        };
+    }
+});
+
+describe("CollectionItemProvider: order of the batched notifications", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("notifies about the deletion of a path before its re-creation", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const notifications = recordNotifications(provider);
+
+        const requestPath = join(workspace, "collection", "request.bru");
+        fileChangedEmitter.post({
+            path: requestPath,
+            changeType: FileChangeType.Deleted,
+        });
+        fileChangedEmitter.post({
+            path: requestPath,
+            changeType: FileChangeType.Created,
+        });
+
+        await waitUntil(() => notifications.length >= 2);
+        expect(notifications.map(({ updateType }) => updateType)).toEqual([
+            FileChangeType.Deleted,
+            FileChangeType.Created,
+        ]);
+    });
+});
+
+describe("CollectionItemProvider: root information passed to the data provider", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("flags the root directory and the root file of a bru collection when loading the cache", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+            "collection/sub/bruno.json": "{}",
+        });
+        const rootInfos = new Map<string, RootInfo>();
+        const provider = createProvider(workspace, undefined, {
+            callback: recordRootInfo(rootInfos),
+        });
+
+        await provider.refreshCache();
+
+        expect(getRootInfo(rootInfos, workspace, "collection")).toEqual({
+            isCollectionRoot: true,
+            isCollectionRootFile: false,
+        });
+        expect(
+            getRootInfo(rootInfos, workspace, "collection/bruno.json"),
+        ).toEqual({ isCollectionRoot: false, isCollectionRootFile: true });
+        expect(
+            getRootInfo(rootInfos, workspace, "collection/request.bru"),
+        ).toEqual({ isCollectionRoot: false, isCollectionRootFile: false });
+        expect(
+            getRootInfo(rootInfos, workspace, "collection/sub/bruno.json"),
+        ).toEqual({ isCollectionRoot: false, isCollectionRootFile: false });
+    });
+
+    it("flags the root directory and the root file of a yaml collection when loading the cache", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/opencollection.yml": "info:\n  name: yaml\n",
+            "collection/request.yml":
+                "info:\n  name: request\n  type: http\n  seq: 1\n",
+        });
+        const rootInfos = new Map<string, RootInfo>();
+        const provider = createProvider(workspace, undefined, {
+            callback: recordRootInfo(rootInfos),
+        });
+
+        await provider.refreshCache();
+
+        expect(getRootInfo(rootInfos, workspace, "collection")).toEqual({
+            isCollectionRoot: true,
+            isCollectionRootFile: false,
+        });
+        expect(
+            getRootInfo(rootInfos, workspace, "collection/opencollection.yml"),
+        ).toEqual({ isCollectionRoot: false, isCollectionRootFile: true });
+        expect(
+            getRootInfo(rootInfos, workspace, "collection/request.yml"),
+        ).toEqual({ isCollectionRoot: false, isCollectionRootFile: false });
+    });
+
+    it("does not flag a file with the name of the root file that is created in a subfolder", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+            "collection/sub/placeholder.txt": "",
+        });
+        const rootInfos = new Map<string, RootInfo>();
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter, {
+            callback: recordRootInfo(rootInfos),
+        });
+        await provider.refreshCache();
+
+        const createdPath = join(workspace, "collection", "sub", "bruno.json");
+        await writeFile(createdPath, "{}");
+        fileChangedEmitter.post({
+            path: createdPath,
+            changeType: FileChangeType.Created,
+        });
+
+        await waitUntil(() => rootInfos.has(normalizePath(createdPath)));
+        expect(
+            getRootInfo(rootInfos, workspace, "collection/sub/bruno.json"),
+        ).toEqual({ isCollectionRoot: false, isCollectionRootFile: false });
+    });
+
+    it("keeps the flags of the root directory when 'opencollection.yml' of a yaml collection is modified", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/opencollection.yml": "info:\n  name: yaml\n",
+        });
+        const rootInfos = new Map<string, RootInfo>();
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter, {
+            callback: recordRootInfo(rootInfos),
+        });
+        await provider.refreshCache();
+        rootInfos.clear();
+
+        const rootFilePath = join(
+            workspace,
+            "collection",
+            "opencollection.yml",
+        );
+        await writeFile(rootFilePath, "info:\n  name: renamed\n");
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(() =>
+            rootInfos.has(normalizePath(join(workspace, "collection"))),
+        );
+        expect(getRootInfo(rootInfos, workspace, "collection")).toEqual({
+            isCollectionRoot: true,
+            isCollectionRootFile: false,
+        });
+    });
+
+    function recordRootInfo(rootInfos: Map<string, RootInfo>) {
+        return (
+            item: CollectionItem,
+            isCollectionRoot: boolean,
+            isCollectionRootFile: boolean,
+        ) => {
+            rootInfos.set(normalizePath(item.getPath()), {
+                isCollectionRoot,
+                isCollectionRootFile,
+            });
+            return undefined;
+        };
+    }
+
+    function getRootInfo(
+        rootInfos: Map<string, RootInfo>,
+        workspace: string,
+        relativePath: string,
+    ) {
+        return rootInfos.get(normalizePath(join(workspace, relativePath)));
+    }
+});
+
+describe("CollectionItemProvider: additional context roots", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("finds all collections sharing a context root, but not collections with a root that only has a common name prefix", async () => {
+        const requestContent =
+            "meta {\n  name: request\n  type: http\n  seq: 1\n}\n";
+        const workspace = await createTemporaryDirectory({
+            "colA/bruno.json": JSON.stringify({
+                scripts: { additionalContextRoots: ["../shared"] },
+            }),
+            "colA/request.bru": requestContent,
+            "colB/bruno.json": JSON.stringify({
+                scripts: { additionalContextRoots: ["../shared"] },
+            }),
+            "colB/request.bru": requestContent,
+            "colC/bruno.json": JSON.stringify({
+                scripts: { additionalContextRoots: ["../shared-old"] },
+            }),
+            "colC/request.bru": requestContent,
+            "shared/script.js": "",
+            "shared-old/script.js": "",
+        });
+        const provider = createProvider(workspace);
+        await provider.refreshCache();
+
+        const getRootNames = (path: string) =>
+            provider
+                .getCollectionsWithAdditionalContextRootContainingItem(path)
+                .map((collection) => basename(collection.getRootDirectory()))
+                .sort();
+
+        expect(getRootNames(join(workspace, "shared", "script.js"))).toEqual([
+            "colA",
+            "colB",
+        ]);
+        expect(
+            getRootNames(join(workspace, "shared-old", "script.js")),
+        ).toEqual(["colC"]);
+        expect(getRootNames(join(workspace, "other", "script.js"))).toEqual([]);
+    });
+});
+
+function createProvider(
+    workspace: string,
+    fileChangedEmitter = Evt.create<FileChangedEvent>(),
+    options?: {
+        cacheRefreshNotifier?: Evt<void>;
+        logger?: Logger;
+        runInitialCacheLoad?: (load: () => Promise<void>) => Promise<void>;
+        callback?: AdditionalDataCallback;
+        isAdditionalDataOutdated?: () => boolean;
+    },
+) {
+    const collectionWatcher = new CollectionWatcher(fileChangedEmitter, [
+        workspace,
+    ]);
+    const provider = new CollectionItemProvider<undefined>(
+        collectionWatcher,
+        [workspace],
+        {
+            paramType:
+                AdditionalCollectionDataProviderType.SimpleCollectionItem,
+            callback: options?.callback ?? (() => undefined),
+            isAdditionalDataOutdated:
+                options?.isAdditionalDataOutdated ?? (() => false),
+        },
+        [],
+        options?.cacheRefreshNotifier,
+        options?.logger,
+        undefined,
+        options?.runInitialCacheLoad,
+    );
+    disposables.push(provider, collectionWatcher);
+
+    return provider;
+}
+
+function recordNotifications(provider: CollectionItemProvider<undefined>) {
+    const notifications: {
+        path: string;
+        updateType: FileChangeType;
+        changedData?: {
+            sequenceChanged: boolean;
+            tagsChanged: boolean;
+            additionalDataChanged: boolean;
+        };
+    }[] = [];
+
+    provider.subscribeToUpdates((batch) =>
+        batch.forEach((notification) =>
+            notifications.push({
+                path: notification.data.item.getPath(),
+                updateType: notification.updateType,
+                changedData:
+                    notification.updateType == FileChangeType.Modified
+                        ? notification.changedData
+                        : undefined,
+            }),
+        ),
+    );
+
+    return notifications;
+}
+
+function getRegisteredFolder(
+    provider: CollectionItemProvider<undefined>,
+    folderPath: string,
+) {
+    return provider
+        .getRegisteredCollections()[0]
+        .getStoredDataForPath(folderPath)?.item as CollectionDirectory;
+}
+
+/** A load is counted by the info log entry that the provider writes after finishing a scan of the file system. */
+function createProviderWithLoadCounter(
+    workspace: string,
+    options?: {
+        cacheRefreshNotifier?: Evt<void>;
+        runInitialCacheLoad?: (load: () => Promise<void>) => Promise<void>;
+    },
+) {
+    let numberOfLoads = 0;
+    const logger: Logger = {
+        trace: () => {},
+        debug: () => {},
+        info: (message) => {
+            if (message.includes("Cache refresh duration")) {
+                numberOfLoads++;
+            }
+        },
+        warn: () => {},
+        error: () => {},
+        dispose: () => {},
+    };
+
+    return {
+        provider: createProvider(workspace, undefined, { ...options, logger }),
+        getNumberOfLoads: () => numberOfLoads,
+    };
+}
+
+interface RootInfo {
+    isCollectionRoot: boolean;
+    isCollectionRootFile: boolean;
+}
+
+type AdditionalDataCallback = (
+    item: CollectionItem,
+    isCollectionRoot: boolean,
+    isCollectionRootFile: boolean,
+) => undefined;

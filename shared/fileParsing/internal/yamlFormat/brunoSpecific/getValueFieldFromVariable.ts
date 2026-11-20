@@ -1,0 +1,122 @@
+import { isMap, isScalar, Scalar, YAMLMap } from "yaml";
+import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
+import {
+    CommonParsingArgs,
+    MaybeResultWithErrors,
+    ParsedYamlMapWithKeyAndValueRange,
+} from "../interfaces";
+import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
+import { getRangeForItem } from "../util/getRangeForItem";
+import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
+import { VariableType } from "../../../external/yamlFormat/constants/sharedConstants";
+import { EnvironmentVariableProperty } from "../../../external/yamlFormat/constants/environmentFileConstants";
+import { stripKeyFromResult } from "../util/stripKeyFromResult";
+
+enum VariableValueWithTypeProperty {
+    Type = "type",
+    Data = "data",
+}
+
+export function getValueFieldFromVariable(
+    variableDefinitionMap: YAMLMap,
+    commonParams: CommonParsingArgs,
+):
+    | MaybeResultWithErrors<WithKeyAndValueRange<string>>
+    | MaybeResultWithErrors<
+          ParsedYamlMapWithKeyAndValueRange<{
+              type?: WithKeyAndValueRange<VariableType>;
+              data?: WithKeyAndValueRange<string>;
+          }>
+      > {
+    const { fullDocumentRange } = commonParams;
+
+    const matchingField = variableDefinitionMap.items.find(
+        ({ key }) =>
+            isScalar(key) && key.value == EnvironmentVariableProperty.Value,
+    );
+
+    if (!matchingField) {
+        // Field is optional. Is not necessarily an error, if it's missing.
+        return { errors: [] };
+    }
+
+    const keyRange = getRangeForItem(
+        matchingField.key as Scalar<string>,
+        commonParams,
+    );
+
+    if (!isMap(matchingField.value)) {
+        const maybeTypedValue:
+            { item: Scalar<string> } | { error: YamlParsingError } =
+            isScalar(matchingField.value) &&
+            typeof matchingField.value.value == "string"
+                ? { item: matchingField.value as Scalar<string> }
+                : {
+                      error: getErrorForValueWithUnexpectedType({
+                          ...commonParams,
+                          key: EnvironmentVariableProperty.Value,
+                          expectedTypes: ["Scalar"],
+                          valueRange: (getRangeForUnknownYamlItem(
+                              matchingField.value,
+                          ) ?? fullDocumentRange) as Range,
+                      }),
+                  };
+
+        return "error" in maybeTypedValue
+            ? { errors: [maybeTypedValue.error] }
+            : {
+                  result: {
+                      keyRange,
+                      valueRange: getRangeForItem(
+                          maybeTypedValue.item,
+                          commonParams,
+                      ),
+                      value: maybeTypedValue.item.value,
+                  },
+                  errors: [],
+              };
+    }
+
+    const collectedErrors: YamlParsingError[] = [];
+    const valueMapItem = matchingField.value;
+    const keysForStringScalars = [
+        VariableValueWithTypeProperty.Data,
+        VariableValueWithTypeProperty.Type,
+    ];
+
+    const { getString, getEnumValue } = getValidatedMapItems(
+        valueMapItem,
+        {
+            scalars: {
+                stringValues: keysForStringScalars,
+                enumValues: {
+                    [VariableValueWithTypeProperty.Type]:
+                        Object.values(VariableType),
+                },
+            },
+            // All properties are mandatory.
+            mandatoryKeys: keysForStringScalars,
+        },
+        commonParams,
+        collectedErrors,
+    );
+
+    const data = getString(VariableValueWithTypeProperty.Data);
+
+    const maybeType = getEnumValue<VariableType>(
+        VariableValueWithTypeProperty.Type,
+    );
+
+    return {
+        result: {
+            keyRange,
+            valueRange: getRangeForItem(valueMapItem, commonParams),
+            properties: {
+                data: stripKeyFromResult(data),
+                type: maybeType,
+            },
+        },
+        errors: collectedErrors,
+    };
+}

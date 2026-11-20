@@ -1,0 +1,65 @@
+import { YAMLMap } from "yaml";
+import { YamlParsingError } from "../../../..";
+import {
+    CommonParsingArgs,
+    MaybeResultWithErrors,
+    ParsedHttpBody,
+    WithKeyAndKeyRange,
+} from "../interfaces";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
+import { getStringWithBlockScalarInfo } from "../util/getStringWithBlockScalarInfo";
+import { getRangeForItem } from "../util/getRangeForItem";
+import {
+    HttpBodyType,
+    RequestFileHttpSectionBodyProperty,
+} from "../../../external/yamlFormat/constants/requestFileConstants";
+
+export function parseBodyFromYamlMap(
+    bodyMap: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+): MaybeResultWithErrors<ParsedHttpBody> {
+    const { keyRange, value: map } = bodyMap;
+    const errors: YamlParsingError[] = [];
+
+    const expectedStringScalars = [
+        RequestFileHttpSectionBodyProperty.Type,
+        RequestFileHttpSectionBodyProperty.Data,
+    ];
+
+    const { getString, getEnumValue } = getValidatedMapItems(
+        map,
+        {
+            scalars: {
+                stringValues: expectedStringScalars,
+                enumValues: {
+                    [RequestFileHttpSectionBodyProperty.Type]:
+                        Object.values(HttpBodyType),
+                },
+            },
+        },
+        commonArgs,
+        errors,
+    );
+
+    const parsedType = getEnumValue<HttpBodyType>(
+        RequestFileHttpSectionBodyProperty.Type,
+    );
+
+    const rawData = getString(RequestFileHttpSectionBodyProperty.Data);
+
+    return {
+        errors,
+        result: {
+            keyRange,
+            valueRange: getRangeForItem(map, commonArgs),
+            properties: {
+                type: parsedType,
+                data: getStringWithBlockScalarInfo(
+                    map,
+                    RequestFileHttpSectionBodyProperty.Data,
+                    rawData,
+                ),
+            },
+        },
+    };
+}
