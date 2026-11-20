@@ -86,7 +86,7 @@
         "vscode-languageserver-textdocument": "^1.0.16",
         "vscode-oniguruma": "^2.0.1",
         "vscode-textmate": "^9.3.2",
-        "vscode-uri": "^3.1.0",
+        "vscode-uri": "^3.2.0",
         "watcher": "^2.3.1",
         "webpack": "^5.109.2",
         "webpack-cli": "^7.3.1",
