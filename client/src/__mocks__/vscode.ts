@@ -93,6 +93,9 @@ class WorkspaceEdit {
 
 const workspace = {
     getConfiguration: () => ({ get: () => undefined }),
+    onDidChangeConfiguration: (_listener: (e: unknown) => void) => ({
+        dispose: () => {},
+    }),
     workspaceFolders: undefined,
     textDocuments: [] as {
         fileName: string;
@@ -132,6 +135,7 @@ const ConfigurationTarget = {
 
 const extensions = {
     getExtension: (_id: string): unknown => undefined,
+    onDidChange: (_listener: () => void) => ({ dispose: () => {} }),
 };
 
 const env = {

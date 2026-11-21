@@ -32,6 +32,16 @@ describe("isTypescript7ServerEnabled", () => {
         expect(isTypescript7ServerEnabled()).toBe(false);
     });
 
+    it("prefers an explicit unified setting over the legacy one", () => {
+        mockVsCodeSettings({
+            "js/ts.experimental.useTsgo": false,
+            "typescript.experimental.useTsgo": true,
+        });
+        mockInstalledExtensions(["typescriptteam.native-preview"]);
+
+        expect(isTypescript7ServerEnabled()).toBe(false);
+    });
+
     it("is disabled if the Typescript 7 extension is not installed", () => {
         mockVsCodeSettings({ "js/ts.experimental.useTsgo": true });
         mockInstalledExtensions([]);

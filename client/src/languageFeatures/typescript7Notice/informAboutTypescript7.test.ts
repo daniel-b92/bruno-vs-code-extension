@@ -1,6 +1,7 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
-import { env, ExtensionContext, window, workspace } from "vscode";
+import { env, ExtensionContext, extensions, window, workspace } from "vscode";
 import { TypedCollectionItemProvider } from "@shared";
+import { mockVsCodeSettings } from "../../_testingUtils";
 import { informAboutTypescript7 } from "./informAboutTypescript7";
 import * as typescript7Check from "./isTypescript7ServerEnabled";
 
@@ -10,10 +11,11 @@ describe("informAboutTypescript7", () => {
     });
 
     it("shows the message and logs it once collections are loaded and the Typescript 7 server is used", () => {
-        const { show } = setUp({ isEnabled: true, hasCollections: true });
+        const { show, log } = setUp({ isEnabled: true, hasCollections: true });
 
         expect(show).toHaveBeenCalledTimes(1);
         expect(show.mock.calls[0][0]).toContain("Typescript 7");
+        expect(log).toHaveBeenCalledTimes(1);
     });
 
     it("shows nothing with the default server", () => {
@@ -53,6 +55,46 @@ describe("informAboutTypescript7", () => {
         expect(show).toHaveBeenCalledTimes(1);
     });
 
+    it("shows the message when the first collection is added during a session", () => {
+        const { show, setHasCollections, fireCollectionUpdate } = setUp({
+            isEnabled: true,
+            hasCollections: false,
+        });
+        expect(show).not.toHaveBeenCalled();
+
+        setHasCollections(true);
+        fireCollectionUpdate();
+
+        expect(show).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows the message when the Typescript 7 extension is installed during a session", () => {
+        const { show, setEnabled, fireExtensionsChange } = setUp({
+            isEnabled: false,
+            hasCollections: true,
+        });
+        expect(show).not.toHaveBeenCalled();
+
+        setEnabled(true);
+        fireExtensionsChange();
+
+        expect(show).toHaveBeenCalledTimes(1);
+    });
+
+    it("logs a warning if handling the picked option fails", async () => {
+        jest.spyOn(env, "openExternal").mockRejectedValue(new Error("failed"));
+
+        const { warn } = setUp({
+            isEnabled: true,
+            hasCollections: true,
+            pick: "Learn more",
+        });
+        await flushPromises();
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn.mock.calls[0][0]).toContain("failed");
+    });
+
     it("does not show the message again while the Typescript 7 server stays enabled", () => {
         const { show, fireConfigurationChange } = setUp({
             isEnabled: true,
@@ -76,14 +118,14 @@ describe("informAboutTypescript7", () => {
         );
     });
 
-    it("disables the message permanently for 'Don't show again'", async () => {
+    it("disables the message permanently for 'Do not ask again'", async () => {
         const update = jest.fn((..._args: unknown[]): Promise<void> =>
             Promise.resolve(),
         );
         setUp({
             isEnabled: true,
             hasCollections: true,
-            pick: "Don't show again",
+            pick: "Do not ask again",
             update,
         });
         await flushPromises();
@@ -110,14 +152,15 @@ function setUp({
     update?: (...args: unknown[]) => Promise<void>;
 }) {
     let enabled = isEnabled;
+    let hasCollectionsNow = hasCollections;
     jest.spyOn(
         typescript7Check,
         "isTypescript7ServerEnabled",
     ).mockImplementation(() => enabled);
-    jest.spyOn(workspace, "getConfiguration").mockReturnValue({
-        get: () => showAgain,
+    mockVsCodeSettings(
+        { "bru-as-code.informAboutTypescript7": showAgain },
         update,
-    } as never);
+    );
 
     const show = jest
         .spyOn(window, "showInformationMessage")
@@ -126,27 +169,41 @@ function setUp({
     let configurationListener: (e: {
         affectsConfiguration: (key: string) => boolean;
     }) => void = () => {};
-    (workspace as unknown as Record<string, unknown>).onDidChangeConfiguration =
-        (listener: typeof configurationListener) => {
-            configurationListener = listener;
-            return { dispose: () => {} };
-        };
+    jest.spyOn(workspace, "onDidChangeConfiguration").mockImplementation(((
+        listener: typeof configurationListener,
+    ) => {
+        configurationListener = listener;
+        return { dispose: () => {} };
+    }) as never);
+
+    let extensionsListener = () => {};
+    jest.spyOn(extensions, "onDidChange").mockImplementation(((
+        listener: () => void,
+    ) => {
+        extensionsListener = listener;
+        return { dispose: () => {} };
+    }) as never);
 
     const log = jest.fn();
+    const warn = jest.fn();
     const logger = Object.assign(
         Object.create(
             jest.requireActual<typeof import("@shared")>("@shared")
                 .OutputChannelLogger.prototype,
         ) as object,
-        { info: log },
+        { info: log, warn },
     );
     const context = { subscriptions: [logger] } as unknown as ExtensionContext;
 
     let initialLoadListener = () => {};
+    let updateListener = () => {};
     const provider = {
-        getRegisteredCollections: () => (hasCollections ? [{}] : []),
+        getRegisteredCollections: () => (hasCollectionsNow ? [{}] : []),
         subscribeToInitialCacheLoad: (listener: () => void) => {
             initialLoadListener = listener;
+        },
+        subscribeToUpdates: (listener: () => void) => {
+            updateListener = listener;
         },
     } as unknown as TypedCollectionItemProvider;
 
@@ -156,9 +213,13 @@ function setUp({
     return {
         show,
         log,
+        warn,
         setEnabled: (value: boolean) => (enabled = value),
+        setHasCollections: (value: boolean) => (hasCollectionsNow = value),
         fireConfigurationChange: () =>
             configurationListener({ affectsConfiguration: () => true }),
+        fireCollectionUpdate: () => updateListener(),
+        fireExtensionsChange: () => extensionsListener(),
     };
 }
 

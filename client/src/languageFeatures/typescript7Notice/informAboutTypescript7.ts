@@ -2,6 +2,7 @@ import {
     ConfigurationTarget,
     env,
     ExtensionContext,
+    extensions,
     MessageItem,
     Uri,
     window,
@@ -10,6 +11,7 @@ import {
 import {
     DialogOptionLabelEnum,
     getLoggerFromSubscriptions,
+    OutputChannelLogger,
     TypedCollectionItemProvider,
 } from "@shared";
 import {
@@ -19,7 +21,7 @@ import {
 
 /**
  * Tells the user that the Javascript intellisense is unavailable, if the Typescript 7 server is used.
- * The message is shown at most once per session (unless dismissed permanently) and only if collections exist, either on activation or when switching to the server during a session.
+ * The message is shown at most once per session (unless dismissed permanently) and only if collections exist. The check is repeated when collections are added or when the settings or installed extensions change.
  * The message is always written to the output channel.
  */
 export function informAboutTypescript7(
@@ -47,11 +49,19 @@ export function informAboutTypescript7(
                 .getConfiguration()
                 .get<boolean>(getSettingsKeyForShowingNotice(), true)
         ) {
-            void showNotice();
+            void showNotice(logger);
         }
     };
 
+    const recheckAfterEnvironmentChange = () => {
+        // A switch back to the default server ends the session of the notice, so that a later switch is reported again.
+        wasHandledInThisSession &&= isTypescript7ServerEnabled();
+        check();
+    };
+
     collectionItemProvider.subscribeToInitialCacheLoad(check);
+    // Collections might be added later during the session.
+    collectionItemProvider.subscribeToUpdates(check);
     context.subscriptions.push(
         workspace.onDidChangeConfiguration((event) => {
             if (
@@ -59,17 +69,27 @@ export function informAboutTypescript7(
                     event.affectsConfiguration(key),
                 )
             ) {
-                // A switch back to the default server ends the session of the notice, so that a later switch is reported again.
-                wasHandledInThisSession &&= isTypescript7ServerEnabled();
-                check();
+                recheckAfterEnvironmentChange();
             }
         }),
+        // The Typescript 7 server is only used if one of the Typescript 7 extensions is installed.
+        extensions.onDidChange(recheckAfterEnvironmentChange),
     );
 }
 
-async function showNotice() {
+async function showNotice(logger: OutputChannelLogger | undefined) {
+    try {
+        await showNoticeAndHandlePickedOption();
+    } catch (err) {
+        logger?.warn(
+            `Could not handle the notice about Typescript 7: ${err instanceof Error ? err.message : String(err)}`,
+        );
+    }
+}
+
+async function showNoticeAndHandlePickedOption() {
     const learnMoreOption = DialogOptionLabelEnum.LearnMore;
-    const doNotShowAgainOption = DialogOptionLabelEnum.DoNotShowAgain;
+    const doNotShowAgainOption = DialogOptionLabelEnum.DoNotAskAgain;
 
     const pickedOption = await window.showInformationMessage<MessageItem>(
         getMessage(),
