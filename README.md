@@ -27,6 +27,10 @@ For running tests via the extension, install the [Bruno CLI](https://www.npmjs.c
 - Add types via [JSDoc](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html) to your code blocks and Javascript files.
 - For syntax highlighting of SPARQL request bodies, install an extension that supports SPARQL, e.g. `stardog-union.stardog-rdf-grammars`.
 
+### Typescript 7 language server
+
+The Javascript intellisense in code blocks (scripts and tests) is provided via a Typescript server plugin. The Typescript 7 (native) language server does not support such plugins yet, so this intellisense is not available while it is used (`js/ts.experimental.useTsgo`). For now, use the default language server to get Javascript intellisense in Bruno files. All other features (e.g. completions, hovers, diagnostics and syntax highlighting for the Bru and Yaml content) keep working.
+
 ### Using alongside other Bruno extensions
 
 Other extensions that also handle Bruno collections (e.g. the official [Bruno](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno) extension) may provide overlapping or conflicting features, like duplicate completions and diagnostics or competing syntax highlighting. If you notice issues like these, we recommend disabling the other extension, at least for the affected workspaces (_Disable (Workspace)_ in the Extensions view).
