@@ -7,15 +7,10 @@ import {
     TextDocumentHelper,
 } from "@global_shared";
 import {
-    applyTextEdits,
+    applyCompletionItem,
     parseBlocksFromRequestFileContent,
 } from "@global_shared/_testingUtils";
-import {
-    CancellationToken,
-    CompletionItem,
-    InsertTextFormat,
-    TextEdit,
-} from "vscode-languageserver";
+import { CancellationToken, CompletionItem } from "vscode-languageserver";
 import { getAuthBlockSpecificDiagnostics } from "../../../diagnostics/getAuthBlockSpecificDiagnostics";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getAuthBlockContentCompletions } from "./getAuthBlockContentCompletions";
@@ -42,11 +37,10 @@ describe("getAuthBlockContentCompletions", () => {
                 "\n  client_id: some-client-id",
             );
 
-            const diagnostics =
-                getDiagnosticsAfterSelectingGrantTypeCompletion(
-                    content,
-                    OAuth2GrantType.ClientCredentials,
-                );
+            const diagnostics = getDiagnosticsAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
 
             expect(diagnostics).toEqual([]);
         });
@@ -107,11 +101,10 @@ describe("getAuthBlockContentCompletions", () => {
             expect(updatedContent).toContain("\n  client_id:\n");
             expect(updatedContent).toContain("\n  ~client_id: some-client-id");
 
-            const diagnostics =
-                getDiagnosticsAfterSelectingGrantTypeCompletion(
-                    content,
-                    OAuth2GrantType.ClientCredentials,
-                );
+            const diagnostics = getDiagnosticsAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
 
             expect(diagnostics).toEqual([]);
         });
@@ -130,11 +123,10 @@ describe("getAuthBlockContentCompletions", () => {
             );
             expect(updatedContent.match(/\n  scope:/g)).toHaveLength(1);
 
-            const diagnostics =
-                getDiagnosticsAfterSelectingGrantTypeCompletion(
-                    content,
-                    OAuth2GrantType.ClientCredentials,
-                );
+            const diagnostics = getDiagnosticsAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
 
             expect(diagnostics).toEqual([]);
         });
@@ -153,11 +145,10 @@ describe("getAuthBlockContentCompletions", () => {
             // No bare LF line breaks should be introduced.
             expect(updatedContent.replace(/\r\n/g, "")).not.toContain("\n");
 
-            const diagnostics =
-                getDiagnosticsAfterSelectingGrantTypeCompletion(
-                    content,
-                    OAuth2GrantType.ClientCredentials,
-                );
+            const diagnostics = getDiagnosticsAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
 
             expect(diagnostics).toEqual([]);
         });
@@ -176,9 +167,9 @@ function getDiagnosticsAfterSelectingGrantTypeCompletion(
         content,
         grantType,
     );
-    const updatedBlock = parseBlocksFromRequestFileContent(
-        updatedContent,
-    ).find(({ name }) => name == AuthBlockName.OAuth2Auth);
+    const updatedBlock = parseBlocksFromRequestFileContent(updatedContent).find(
+        ({ name }) => name == AuthBlockName.OAuth2Auth,
+    );
 
     if (!updatedBlock || !isBlockDictionaryBlock(updatedBlock)) {
         throw new Error(
@@ -215,9 +206,8 @@ function getContentAfterSelectingGrantTypeCompletion(
     }
 
     const completions = getAuthBlockContentCompletions(request, block);
-    const completion = completions?.find(
-        ({ label }) => label == grantType,
-    ) as CompletionItem | undefined;
+    const completion = completions?.find(({ label }) => label == grantType) as
+        CompletionItem | undefined;
 
     if (!completion) {
         throw new Error(
@@ -227,26 +217,5 @@ function getContentAfterSelectingGrantTypeCompletion(
         );
     }
 
-    const edits = [completion.textEdit, ...(completion.additionalTextEdits ?? [])]
-        .filter((edit) => edit != undefined)
-        .map((edit) =>
-            completion.insertTextFormat == InsertTextFormat.Snippet
-                ? {
-                      ...edit,
-                      newText: getDefaultTextForSnippet(edit.newText),
-                  }
-                : edit,
-        ) as TextEdit[];
-
-    return applyTextEdits(content, edits);
-}
-
-// Editors insert the default (first) choice of a snippet placeholder as plain
-// text when the snippet is accepted; mirror that here.
-function getDefaultTextForSnippet(snippetText: string) {
-    return snippetText
-        .replace(/\$\{\d+\|([^}]*)\|}/g, (_match, choices: string) =>
-            choices.split(",")[0],
-        )
-        .replace(/\$\{\d+\}/g, "");
+    return applyCompletionItem(content, completion);
 }

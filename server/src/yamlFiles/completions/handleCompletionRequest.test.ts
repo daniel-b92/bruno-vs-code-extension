@@ -1,20 +1,29 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     BrunoCollectionSettingsFile,
+    BrunoFileType,
     BrunoFolderSettingsFile,
     BrunoRequestFile,
     CollectionFormat,
     CollectionItem,
+    OAuth2Flow,
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import { createCollectionWithItems } from "@global_shared/_testingUtils";
+import {
+    applyCompletionItem,
+    createCollectionWithItems,
+    createItemProviderStub,
+} from "@global_shared/_testingUtils";
 import {
     CancellationToken,
+    CompletionItemKind,
+    InsertTextFormat,
     InsertTextMode,
     TextEdit,
 } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
+import { YamlFormatDiagnosticsProvider } from "../yamlFormatDiagnosticsProvider";
 import { handleCompletionRequest } from "./handleCompletionRequest";
 
 const requestPath = "/collection/request.yml";
@@ -449,6 +458,376 @@ describe("handleCompletionRequest for yaml files", () => {
             );
 
             expect(result?.map(({ label }) => label)).toEqual(["Base"]);
+        });
+    });
+
+    describe("values of the flow of an oauth2 auth", () => {
+        const expectedTextByFlow: Record<OAuth2Flow, string> = {
+            [OAuth2Flow.AuthorizationCode]:
+                "authorization_code\n    authorizationUrl: $1\n    accessTokenUrl: $2\n    callbackUrl: $3\n    credentials:\n      clientId: $4\n      clientSecret: $5\n    scope: $6\n    state: $7",
+            [OAuth2Flow.ClientCredentials]:
+                "client_credentials\n    accessTokenUrl: $1\n    credentials:\n      clientId: $2\n      clientSecret: $3\n    scope: $4",
+            [OAuth2Flow.Implicit]:
+                "implicit\n    authorizationUrl: $1\n    callbackUrl: $2\n    credentials:\n      clientId: $3\n    scope: $4\n    state: $5",
+            [OAuth2Flow.ResourceOwnerPasswordCredentials]:
+                "resource_owner_password_credentials\n    accessTokenUrl: $1\n    resourceOwner:\n      username: $2\n      password: $3\n    credentials:\n      clientId: $4\n      clientSecret: $5\n    scope: $6",
+        };
+
+        it.each(Object.values(OAuth2Flow))(
+            "inserts the keys for the flow '%s' as a snippet",
+            async (flow) => {
+                const { item } = await completeFlow(
+                    authInRequest("    type: oauth2\n    flow: |"),
+                    flow,
+                );
+
+                expect(item.textEdit).toEqual({
+                    newText: expectedTextByFlow[flow],
+                    range: {
+                        start: { line: 9, character: 10 },
+                        end: { line: 9, character: 10 },
+                    },
+                });
+                expect(item.insertTextFormat).toBe(InsertTextFormat.Snippet);
+                expect(item.insertTextMode).toBe(InsertTextMode.asIs);
+                expect(item.additionalTextEdits).toBeUndefined();
+            },
+        );
+
+        it("offers all flows", async () => {
+            const { items } = await completeFlow(
+                authInRequest("    type: oauth2\n    flow: |"),
+                OAuth2Flow.Implicit,
+            );
+
+            expect(items.map(({ label }) => label)).toEqual(
+                Object.values(OAuth2Flow),
+            );
+        });
+
+        it("does not insert keys that are already defined", async () => {
+            const { updated } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: |\n    accessTokenUrl: https://example.com/token\n    scope: read",
+                ),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(updated).toBe(
+                authInRequest(
+                    "    type: oauth2\n    flow: client_credentials\n    credentials:\n      clientId: \n      clientSecret: \n    accessTokenUrl: https://example.com/token\n    scope: read",
+                ),
+            );
+        });
+
+        it("inserts the keys if the flow is not the last key of the auth", async () => {
+            const { updated } = await completeFlow(
+                authInRequest(
+                    "    scope: read\n    type: oauth2\n    flow: |\n    state: abc",
+                ),
+                OAuth2Flow.Implicit,
+            );
+
+            expect(updated).toBe(
+                authInRequest(
+                    "    scope: read\n    type: oauth2\n    flow: implicit\n    authorizationUrl: \n    callbackUrl: \n    credentials:\n      clientId: \n    state: abc",
+                ),
+            );
+        });
+
+        it.each([
+            [
+                "before",
+                "    credentials:\n      clientId: abc\n    type: oauth2\n    flow: |",
+                "    credentials:\n      clientId: abc\n      clientSecret: \n    type: oauth2\n    flow: client_credentials\n    accessTokenUrl: \n    scope: ",
+            ],
+            [
+                "after",
+                "    type: oauth2\n    flow: |\n    credentials:\n      clientId: abc",
+                "    type: oauth2\n    flow: client_credentials\n    accessTokenUrl: \n    scope: \n    credentials:\n      clientId: abc\n      clientSecret: ",
+            ],
+        ])(
+            "adds only the missing keys to an existing credentials map that is %s the flow",
+            async (_description, authContent, expectedAuthContent) => {
+                const { item, updated } = await completeFlow(
+                    authInRequest(authContent),
+                    OAuth2Flow.ClientCredentials,
+                );
+
+                expect(item.additionalTextEdits).toHaveLength(1);
+                expect(updated).toBe(authInRequest(expectedAuthContent));
+            },
+        );
+
+        it("keeps a trailing comment of the last credentials key in place", async () => {
+            const { updated } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: |\n    credentials:\n      clientId: abc # my client",
+                ),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(updated).toContain(
+                "      clientId: abc # my client\n      clientSecret: ",
+            );
+        });
+
+        it("does not change a complete credentials map", async () => {
+            const { item, updated } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: |\n    accessTokenUrl: a\n    scope: b\n    credentials:\n      clientSecret: s\n      clientId: c",
+                ),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(item.additionalTextEdits).toBeUndefined();
+            expect(item.insertTextFormat).toBeUndefined();
+            expect(updated).toContain("flow: client_credentials\n");
+            expect(updated.match(/clientId/g)).toHaveLength(1);
+        });
+
+        it("inserts the child keys below a credentials key without value", async () => {
+            const { updated } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: |\n    credentials:\n    scope: read",
+                ),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(updated).toBe(
+                authInRequest(
+                    "    type: oauth2\n    flow: client_credentials\n    accessTokenUrl: \n    credentials:\n      clientId: \n      clientSecret: \n    scope: read",
+                ),
+            );
+        });
+
+        it("adds missing keys to the resource owner map", async () => {
+            const { updated } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: |\n    resourceOwner:\n      password: pw",
+                ),
+                OAuth2Flow.ResourceOwnerPasswordCredentials,
+            );
+
+            expect(updated).toContain(
+                "    resourceOwner:\n      password: pw\n      username: \n",
+            );
+        });
+
+        it.each(["foo", "{ clientId: abc }"])(
+            "does not touch a credentials key with the value '%s'",
+            async (value) => {
+                const { item, updated } = await completeFlow(
+                    authInRequest(
+                        `    type: oauth2\n    flow: |\n    credentials: ${value}`,
+                    ),
+                    OAuth2Flow.ClientCredentials,
+                );
+
+                expect(item.additionalTextEdits).toBeUndefined();
+                expect(updated).toContain(`    credentials: ${value}\n`);
+                expect(updated.match(/^ +credentials:/gm)).toHaveLength(1);
+            },
+        );
+
+        it("returns a plain item if all keys are defined", async () => {
+            const { item } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: |\n    accessTokenUrl: a\n    credentials:\n      clientId: c\n      clientSecret: s\n    scope: b",
+                ),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(item).toEqual({
+                label: "client_credentials",
+                kind: CompletionItemKind.Value,
+                textEdit: {
+                    newText: "client_credentials",
+                    range: {
+                        start: { line: 9, character: 10 },
+                        end: { line: 9, character: 10 },
+                    },
+                },
+            });
+        });
+
+        it("uses the indentation step of the document", async () => {
+            const { item } = await completeFlow(
+                "info:\n    name: Foo\n    type: http\nhttp:\n    method: GET\n    auth:\n        type: oauth2\n        flow: |\n",
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(item.textEdit?.newText).toBe(
+                "client_credentials\n        accessTokenUrl: $1\n        credentials:\n            clientId: $2\n            clientSecret: $3\n        scope: $4",
+            );
+        });
+
+        it.each([
+            [
+                "request.auth in a folder settings file",
+                folderSettingsPath,
+                "info:\n  name: Foo\nrequest:\n  auth:\n    type: oauth2\n    flow: |\n",
+            ],
+            [
+                "request.auth in a collection settings file",
+                collectionSettingsPath,
+                "opencollection: 1.0.0\ninfo:\n  name: Foo\nrequest:\n  auth:\n    type: oauth2\n    flow: |\n",
+            ],
+            [
+                "graphql.auth in a request file",
+                requestPath,
+                "info:\n  name: Foo\n  type: graphql\ngraphql:\n  auth:\n    type: oauth2\n    flow: |\n",
+            ],
+            [
+                "websocket.auth in a request file",
+                requestPath,
+                "info:\n  name: Foo\n  type: websocket\nwebsocket:\n  auth:\n    type: oauth2\n    flow: |\n",
+            ],
+        ])(
+            "inserts the keys for %s",
+            async (_description, filePath, textWithCursor) => {
+                const { item } = await completeFlow(
+                    textWithCursor,
+                    OAuth2Flow.Implicit,
+                    filePath,
+                );
+
+                expect(item.textEdit?.newText).toBe(
+                    expectedTextByFlow[OAuth2Flow.Implicit],
+                );
+            },
+        );
+
+        it("uses CRLF line breaks if the file uses them", async () => {
+            const { updated } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: |\n    credentials:\n      clientId: abc",
+                ).replace(/\n/g, "\r\n"),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(updated).toContain(
+                "flow: client_credentials\r\n    accessTokenUrl: \r\n    scope: ",
+            );
+            expect(updated).toContain("clientId: abc\r\n      clientSecret: ");
+            expect(updated.replace(/\r\n/g, "")).not.toContain("\n");
+        });
+
+        it("inserts a space if the cursor is directly after the colon", async () => {
+            const { item } = await completeFlow(
+                authInRequest("    type: oauth2\n    flow:|"),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(item.textEdit?.newText).toBe(
+                ` ${expectedTextByFlow[OAuth2Flow.ClientCredentials]}`,
+            );
+        });
+
+        it("replaces a partly typed value and keeps a trailing comment in the line of the flow", async () => {
+            const { updated } = await completeFlow(
+                authInRequest(
+                    "    type: oauth2\n    flow: cli| # the flow\n    scope: read",
+                ),
+                OAuth2Flow.ClientCredentials,
+            );
+
+            expect(updated).toBe(
+                authInRequest(
+                    "    type: oauth2\n    flow: client_credentials # the flow\n    accessTokenUrl: \n    credentials:\n      clientId: \n      clientSecret: \n    scope: read",
+                ),
+            );
+        });
+
+        it("keeps a trailing comment after an empty flow", async () => {
+            const { updated } = await completeFlow(
+                authInRequest("    type: oauth2\n    flow: | # the flow"),
+                OAuth2Flow.Implicit,
+            );
+
+            expect(updated).toContain(
+                "    flow: implicit # the flow\n    authorizationUrl: ",
+            );
+        });
+
+        it("does not suggest flows for a flow key outside an oauth2 auth", async () => {
+            const { text, position } = splitCursor(
+                authInRequest("    type: basic\n    flow: |"),
+            );
+
+            const result = await complete(requestPath, text, position);
+
+            expect(result).toBeUndefined();
+        });
+
+        describe("diagnostics after applying the completion", () => {
+            const provider = new YamlFormatDiagnosticsProvider(
+                createItemProviderStub<TypedCollectionItemProvider>(
+                    "/collection",
+                    CollectionFormat.Yaml,
+                ),
+            );
+
+            // The ranges are ignored, since the inserted keys move the other diagnostics.
+            const getMessages = (
+                filePath: string,
+                content: string,
+                fileType: BrunoFileType,
+            ) =>
+                provider
+                    .getDiagnosticsForYamlFile(filePath, content, fileType)
+                    .map(({ message, severity }) => ({ message, severity }));
+
+            it.each(Object.values(OAuth2Flow))(
+                "reports no new diagnostics in a request file for the flow '%s'",
+                async (flow) => {
+                    const { updated } = await completeFlow(
+                        authInRequest("    type: oauth2\n    flow: |"),
+                        flow,
+                    );
+
+                    expect(
+                        getMessages(
+                            requestPath,
+                            updated,
+                            BrunoFileType.RequestFile,
+                        ),
+                    ).toEqual(
+                        getMessages(
+                            requestPath,
+                            requestWithoutAuth,
+                            BrunoFileType.RequestFile,
+                        ),
+                    );
+                },
+            );
+
+            it.each(Object.values(OAuth2Flow))(
+                "reports no new diagnostics in a collection settings file for the flow '%s'",
+                async (flow) => {
+                    const withoutAuth =
+                        "opencollection: 1.0.0\ninfo:\n  name: Foo\n";
+                    const { updated } = await completeFlow(
+                        `${withoutAuth}request:\n  auth:\n    type: oauth2\n    flow: |\n`,
+                        flow,
+                        collectionSettingsPath,
+                    );
+
+                    expect(
+                        getMessages(
+                            collectionSettingsPath,
+                            updated,
+                            BrunoFileType.CollectionSettingsFile,
+                        ),
+                    ).toEqual(
+                        getMessages(
+                            collectionSettingsPath,
+                            withoutAuth,
+                            BrunoFileType.CollectionSettingsFile,
+                        ),
+                    );
+                },
+            );
         });
     });
 
@@ -957,4 +1336,56 @@ async function complete(
         collection,
         itemProvider,
     });
+}
+
+const requestWithoutAuth =
+    "info:\n  name: Foo\n  type: http\n  seq: 1\nhttp:\n  method: GET\n  url: /api\n";
+
+/** The content of the auth is indented by 4 spaces. The `flow` is expected to be on line 9 (if it is the first key after `type`). */
+function authInRequest(authContent: string) {
+    return `${requestWithoutAuth}  auth:\n${authContent}\n`;
+}
+
+/** Removes the cursor marker `|` from the text and returns its position. */
+function splitCursor(textWithCursor: string) {
+    const offset = textWithCursor.indexOf("|");
+    const textBefore = textWithCursor.substring(0, offset);
+    const lines = textBefore.split("\n");
+
+    return {
+        text: textBefore + textWithCursor.substring(offset + 1),
+        position: new Position(
+            lines.length - 1,
+            lines[lines.length - 1].length,
+        ),
+    };
+}
+
+/** Requests the completions at the cursor marker `|` and applies the one for the given flow. */
+async function completeFlow(
+    textWithCursor: string,
+    flow: OAuth2Flow,
+    filePath = requestPath,
+) {
+    const { text, position } = splitCursor(textWithCursor);
+    const items =
+        (await complete(
+            filePath,
+            text,
+            position,
+            filePath == folderSettingsPath
+                ? [new BrunoFolderSettingsFile(folderSettingsPath)]
+                : filePath == collectionSettingsPath
+                  ? [new BrunoCollectionSettingsFile(collectionSettingsPath)]
+                  : [],
+        )) ?? [];
+    const item = items.find(({ label }) => label == flow);
+
+    if (!item) {
+        throw new Error(
+            `Expected a completion for the flow '${flow}'. Got: ${JSON.stringify(items.map(({ label }) => label))}`,
+        );
+    }
+
+    return { items, item, updated: applyCompletionItem(text, item) };
 }
