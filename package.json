@@ -147,6 +147,11 @@
                     "default": true,
                     "markdownDescription": "Show a warning when collection root files are ignored, because other collection root files exist in the same directory or its subdirectories (nested collections)."
                 },
+                "bru-as-code.informAboutTypescript7": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show a message when the Typescript 7 language server is used, since Javascript intellisense in Bruno files is not available with it yet."
+                },
                 "bru-as-code.sequenceStep": {
                     "type": "number",
                     "enum": [

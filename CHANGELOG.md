@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Show an info message (once per session) when the Typescript 7 language server is used, since Javascript intellisense in Bruno files is not available with it yet. The message can be disabled permanently via the new setting `bru-as-code.informAboutTypescript7`, and is always written to the output channel. The limitation is now documented in the README.
+
 ## [2.2.0] (2026-11-19)
 
 ### Features

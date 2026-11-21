@@ -53,6 +53,7 @@ class MarkdownString {
 
 const Uri = {
     file: (path: string) => ({ fsPath: path, scheme: "file", path }),
+    parse: (value: string) => ({ toString: () => value }),
 };
 
 class Position {
@@ -110,7 +111,7 @@ const EndOfLine = {
 };
 
 const window = {
-    showInformationMessage: () => Promise.resolve(undefined),
+    showInformationMessage: (..._args: unknown[]) => Promise.resolve(undefined),
     showErrorMessage: () => Promise.resolve(undefined),
     showWarningMessage: (..._args: unknown[]) => Promise.resolve(undefined),
     showInputBox: (_options?: unknown): Promise<string | undefined> =>
@@ -123,7 +124,24 @@ const commands = {
         Promise.resolve(undefined),
 };
 
+const ConfigurationTarget = {
+    Global: 1,
+    Workspace: 2,
+    WorkspaceFolder: 3,
+};
+
+const extensions = {
+    getExtension: (_id: string): unknown => undefined,
+};
+
+const env = {
+    openExternal: (_target: unknown) => Promise.resolve(true),
+};
+
 export {
+    ConfigurationTarget,
+    extensions,
+    env,
     TreeItemCollapsibleState,
     TreeItem,
     ThemeColor,
