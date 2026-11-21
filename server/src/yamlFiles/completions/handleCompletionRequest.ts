@@ -8,6 +8,7 @@ import {
     isScriptVarsSection,
     isStartOfYamlPlainScalar,
     Logger,
+    TextDocumentHelper,
     TopLevelEnvironmentFileProperty,
     TopLevelRequestFileProperty,
     VariableReferenceType,
@@ -28,7 +29,9 @@ import { getCompletionsForWriteOnlyVariablesInNonCodeSection } from "../../share
 import { VariableSectionRequest } from "../../shared/variables/interfaces";
 import { getVariableSectionRequest } from "../getVariableSectionRequest";
 import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
-import { getKeyCompletions, isOnlyKind } from "./getKeyCompletions";
+import { getKeyCompletions } from "./getKeyCompletions";
+import { getOAuth2FlowValueCompletions } from "./getOAuth2FlowValueCompletions";
+import { isOnlyKind } from "./renderYamlKeys";
 
 export async function handleCompletionRequest({
     baseRequest,
@@ -141,6 +144,7 @@ export async function handleCompletionRequest({
             }
 
             return getValueCompletions(context, {
+                docHelper: documentHelper,
                 fileType: itemType,
                 filePath,
                 collection,
@@ -231,22 +235,20 @@ function getKindOfScriptVariableNamePath(path: string[]) {
 }
 
 async function getValueCompletions(
+    context: Extract<YamlCursorContext, { kind: "value" }>,
     {
-        path,
-        keyInfo,
-        replaceRange,
-        isMissingSpaceAfterColon,
-    }: Extract<YamlCursorContext, { kind: "value" }>,
-    {
+        docHelper,
         fileType,
         filePath,
         collection,
     }: {
+        docHelper: TextDocumentHelper;
         fileType: BrunoFileType;
         filePath: string;
         collection: TypedCollection;
     },
 ): Promise<CompletionItem[] | undefined> {
+    const { path, keyInfo, replaceRange, isMissingSpaceAfterColon } = context;
     const toItem = (value: string): CompletionItem => ({
         label: value,
         kind: CompletionItemKind.Value,
@@ -278,6 +280,15 @@ async function getValueCompletions(
 
     if (!keyInfo) {
         return undefined;
+    }
+
+    const flowCompletions = getOAuth2FlowValueCompletions(context, {
+        docHelper,
+        fileType,
+        toItem,
+    });
+    if (flowCompletions) {
+        return flowCompletions;
     }
 
     if (keyInfo.allowedValues) {
