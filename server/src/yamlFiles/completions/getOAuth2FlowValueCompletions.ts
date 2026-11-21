@@ -9,6 +9,10 @@ import {
     OAuth2Flow,
     Position,
     Range,
+    RequestFileGraphqlSectionProperty,
+    RequestFileHttpSectionProperty,
+    RequestFileWebsocketSectionProperty,
+    SettingsFileRequestSectionProperty,
     TextDocumentHelper,
     YamlCursorContext,
     YamlMapDescriptor,
@@ -28,6 +32,14 @@ import {
 
 type ValueContext = Extract<YamlCursorContext, { kind: "value" }>;
 type DefinedKey = YamlMapDescriptor["definedKeys"][number];
+
+/** The keys that contain an auth in request files and in folder or collection settings files. */
+const authKeys: string[] = [
+    RequestFileHttpSectionProperty.auth,
+    RequestFileGraphqlSectionProperty.auth,
+    RequestFileWebsocketSectionProperty.auth,
+    SettingsFileRequestSectionProperty.Auth,
+];
 
 /**
  * Completes the values for the `flow` of an `oauth2` auth.
@@ -57,7 +69,7 @@ export function getOAuth2FlowValueCompletions(
 
     // The `flow` key is only expected for an `oauth2` auth.
     if (
-        authKey != "auth" ||
+        !authKeys.includes(authKey) ||
         flowKey != OAuth2AuthProperty.Flow ||
         !keyInfo?.allowedValues ||
         !flowDefinition
@@ -95,7 +107,7 @@ export function getOAuth2FlowValueCompletions(
                 valueRange.start.character
             ] == "{";
         if (isFlowStyleOrScalar) {
-            // Not worth extending, since a scalar is reported as invalid anyways.
+            // Not worth extending: A scalar is reported as invalid anyway, and a flow style map is hard to extend reliably.
             return undefined;
         }
 
@@ -149,7 +161,9 @@ export function getOAuth2FlowValueCompletions(
             );
 
             if (!definedKey) {
-                missingNodes.push(getNodeForKey(path, key, childKeys));
+                missingNodes.push(
+                    getNodeForKey(path, key, childKeys, descriptor),
+                );
                 continue;
             }
 
@@ -189,15 +203,20 @@ function isOAuth2Flow(value: string): value is OAuth2Flow {
     return (Object.values(OAuth2Flow) as string[]).includes(value);
 }
 
+/**
+ * Uses the key infos expected for the auth (e.g. their allowed values).
+ * The expected keys of the nested maps are not known, so the child keys are always treated as strings.
+ */
 function getNodeForKey(
     flowPath: string[],
     key: OAuth2AuthProperty,
-    childKeys?: string[],
+    childKeys: string[] | undefined,
+    { expectedKeys }: YamlMapDescriptor,
 ): KeyNode {
     const path = [...flowPath.slice(0, -1), key];
 
     return {
-        keyInfo: {
+        keyInfo: expectedKeys.find((expected) => expected.key == key) ?? {
             key,
             isMandatory: false,
             valueKinds: [childKeys ? "map" : "string"],
