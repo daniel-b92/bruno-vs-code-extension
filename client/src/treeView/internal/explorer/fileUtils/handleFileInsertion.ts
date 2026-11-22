@@ -22,6 +22,7 @@ import { window } from "vscode";
 import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { FileInsertionPosition } from "./interfaces";
 import { writeFile } from "fs/promises";
+import { getStoredNameForItemName } from "../sequencePrefixUtils/getStoredNameForItemName";
 
 export async function handleFileInsertion(
     sourceItem: CollectionItem,
@@ -86,7 +87,12 @@ export async function handleFileInsertion(
     if (wasSuccessful && itemType == BrunoFileType.RequestFile) {
         await replaceItemName(
             newPath,
-            basename(newPath).replace(getFileExtensionForFormat(format), ""),
+            getStoredNameForItemName(
+                basename(newPath).replace(
+                    getFileExtensionForFormat(format),
+                    "",
+                ),
+            ),
             itemType,
             format,
         );

@@ -11,6 +11,7 @@ import {
 } from "@shared";
 import { replaceItemName } from "../fileUtils/replaceItemName";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
+import { getStoredNameForItemName } from "../sequencePrefixUtils/getStoredNameForItemName";
 
 /**
  * Has to be called after the original folder has already been copied to the new location.
@@ -40,7 +41,7 @@ export async function updateSettingsFileOfDuplicatedFolder(
 
     await replaceItemName(
         newFolderSettingsFile,
-        basename(newFolderPath),
+        getStoredNameForItemName(basename(newFolderPath)),
         BrunoFileType.FolderSettingsFile,
         format,
     );

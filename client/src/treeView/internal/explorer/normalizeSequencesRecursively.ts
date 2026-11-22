@@ -6,8 +6,9 @@ import {
     isPathEqualOrDescendant,
     NonBrunoSpecificItemType,
 } from "@global_shared";
-import { TypedCollection } from "../../../shared";
+import { TypedCollection, TypedCollectionItemProvider } from "../../../shared";
 import { replaceSequenceForFile } from "./fileUtils/replaceSequenceForFile";
+import { syncSequencePrefixes } from "./sequencePrefixUtils/syncSequencePrefixes";
 
 type SequenceEntry = {
     filePath: string;
@@ -16,6 +17,7 @@ type SequenceEntry = {
 };
 
 export async function normalizeSequencesRecursively(
+    itemProvider: TypedCollectionItemProvider,
     collection: TypedCollection,
     folderPath: string,
     sequenceStep: number,
@@ -64,6 +66,14 @@ export async function normalizeSequencesRecursively(
 
     await normalizeGroups(requestGroups, sequenceStep);
     await normalizeGroups(folderGroups, sequenceStep);
+
+    // Also covers folders where only the names are outdated (e.g. because the sequences already were normalized).
+    await syncSequencePrefixes(
+        itemProvider,
+        Array.from(
+            new Set([...requestGroups.keys(), ...folderGroups.keys()]),
+        ),
+    );
 }
 
 function addToGroup(

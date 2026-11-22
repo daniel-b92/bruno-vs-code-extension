@@ -6,6 +6,7 @@ import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFail
 import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { dirname } from "path";
 import { RequestFileInsertionPositionType } from "./interfaces";
+import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
 
 export async function moveFileIntoFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -46,4 +47,10 @@ export async function moveFileIntoFolder(
             },
         );
     }
+
+    await syncSequencePrefixes(
+        itemProvider,
+        [dirname(newPath), dirname(sourcePath)],
+        logger,
+    );
 }

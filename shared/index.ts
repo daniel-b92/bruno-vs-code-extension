@@ -52,6 +52,7 @@ export * from "./fileParsing/external/shared/getSequenceForFolder";
 export * from "./fileParsing/external/shared/getFolderSettingsFilePath";
 export * from "./fileParsing/external/shared/getSequencesForRequestsAndAppFiles";
 export * from "./fileParsing/external/shared/getMaxSequenceForRequestsAndAppFiles";
+export * from "./fileParsing/external/shared/sequencePrefix";
 export * from "./fileParsing/external/shared/getCollectionPresets";
 export * from "./fileParsing/external/shared/getCollectionRootFileSections";
 

@@ -5,6 +5,7 @@ import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
+import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
 
 export async function moveFolderIntoTargetFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -37,6 +38,18 @@ export async function moveFolderIntoTargetFolder(
             insertionOption,
         );
     }
+
+    await syncSequencePrefixes(
+        itemProvider,
+        [
+            insertionOption ==
+            FolderDropInsertionOption.MoveIntoTargetAsSubfolder
+                ? targetItem.getPath()
+                : dirname(targetItem.getPath()),
+            dirname(sourcePath),
+        ],
+        logger,
+    );
 }
 
 async function moveFolderIfNecessary(

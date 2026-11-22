@@ -1,5 +1,7 @@
 import { basename, resolve } from "path";
 import {
+    addSequencePrefix,
+    checkIfPathExistsAsync,
     CollectionFormat,
     getFileExtensionForFormat,
     RequestType,
@@ -23,12 +25,14 @@ import {
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
     getSequenceStepFromSettings,
+    shouldPrefixNamesWithSequence,
 } from "@shared";
 import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
 import { stringify } from "yaml";
+import { getStoredNameForItemName } from "../sequencePrefixUtils/getStoredNameForItemName";
 
 export async function createRequestFile(
     itemProvider: TypedCollectionItemProvider,
@@ -117,11 +121,6 @@ export async function createRequestFile(
             );
         }
 
-        const filePath = resolve(
-            parentFolderPath,
-            `${requestName}${fileExtension}`,
-        );
-
         if (pickedLabels.length != 2) {
             throw new Error(
                 `Did not find as many picked items as expected. Expected to get 2. Instead got '${JSON.stringify(
@@ -132,20 +131,36 @@ export async function createRequestFile(
             );
         }
 
+        const sequenceStep = getSequenceStepFromSettings();
         const requestSequence =
             ((await getMaxSequenceForRequestsAndAppFiles(
                 itemProvider,
                 parentFolderPath,
-            )) ?? 0) + getSequenceStepFromSettings();
+            )) ?? 0) + sequenceStep;
+        const fileName = shouldPrefixNamesWithSequence()
+            ? addSequencePrefix(requestName, requestSequence, sequenceStep)
+            : requestName;
+        const filePath = resolve(
+            parentFolderPath,
+            `${fileName}${fileExtension}`,
+        );
 
         const requestType = pickedLabels[0] as RequestType;
         const url = sanitizeUrlForNewRequest(presets?.requestUrl ?? "");
+
+        if (await checkIfPathExistsAsync(filePath)) {
+            // Can only happen if the name was changed by the prefix of the sequence.
+            window.showErrorMessage(
+                `A file with the name '${basename(filePath)}' already exists.`,
+            );
+            return;
+        }
 
         const failed = await promisify(writeFile)(
             filePath,
             getFileContent(format, requestSequence, {
                 filePath,
-                requestName,
+                requestName: getStoredNameForItemName(requestName),
                 requestType,
                 methodBlockName: pickedLabels[1],
                 url,

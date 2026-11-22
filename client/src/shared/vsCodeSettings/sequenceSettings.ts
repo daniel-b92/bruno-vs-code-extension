@@ -3,6 +3,7 @@ import { workspace } from "vscode";
 const sequenceStepSettingKey = "bru-as-code.sequenceStep";
 const renumberSequencesSettingKey =
     "bru-as-code.renumberSequencesAutomatically";
+const prefixNamesWithSequenceSettingKey = "bru-as-code.prefixNamesWithSequence";
 const defaultSequenceStep = 1;
 
 /** The step between the sequences of consecutive items, that is used when new items are appended or sequences are renumbered. */
@@ -27,5 +28,14 @@ export function shouldRenumberSequencesAutomatically() {
         workspace
             .getConfiguration()
             .get<unknown>(renumberSequencesSettingKey) === true
+    );
+}
+
+/** If enabled, the names of items with a sequence start with that sequence (e.g. `010_get-token.bru`). */
+export function shouldPrefixNamesWithSequence() {
+    return (
+        workspace
+            .getConfiguration()
+            .get<unknown>(prefixNamesWithSequenceSettingKey) === true
     );
 }

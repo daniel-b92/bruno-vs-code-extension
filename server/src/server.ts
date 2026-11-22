@@ -60,6 +60,8 @@ import {
 import { getJsFileInContextRootRequest } from "./jsFiles/shared/getJsFileInContextRootRequest";
 import { getYamlFileTypeForEditorContent } from "./yamlFiles/getYamlFileTypeForEditorContent";
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
+import { getSequencePrefixDiagnostic } from "./shared/diagnostics/sequencePrefix/getSequencePrefixDiagnostic";
+import { getSequencePrefixQuickFixes } from "./shared/diagnostics/sequencePrefix/getSequencePrefixQuickFixes";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
@@ -167,6 +169,13 @@ disposables.push(
         documents
             .all()
             .forEach(({ uri }) => void loadCacheInBackground(getFilePath(uri)));
+    }),
+);
+
+disposables.push(
+    connection.onDidChangeConfiguration(() => {
+        // Needed for showing or hiding the diagnostics for names that do not match the sequence.
+        connection.languages.diagnostics.refresh();
     }),
 );
 
@@ -437,13 +446,23 @@ connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
         diagnostics: context.diagnostics,
     };
 
+    const sequencePrefixFixes = getSequencePrefixQuickFixes(
+        context.diagnostics,
+    );
+
     // The quick fixes for Bru files only exist for query params and path params, which can only be defined in request files.
     if (type == FileTypeByExtension.Bru) {
-        return fileType == BrunoFileType.RequestFile
-            ? handleCodeActionRequestForBruFile(params)
-            : [];
+        return [
+            ...sequencePrefixFixes,
+            ...(fileType == BrunoFileType.RequestFile
+                ? handleCodeActionRequestForBruFile(params)
+                : []),
+        ];
     }
-    return handleCodeActionRequestForYamlFile({ ...params, fileType });
+    return [
+        ...sequencePrefixFixes,
+        ...handleCodeActionRequestForYamlFile({ ...params, fileType }),
+    ];
 });
 
 connection.onExit(() => {
@@ -577,11 +596,14 @@ async function getDiagnosticsForBruFile(filePath: string, text: string) {
         return undefined;
     }
 
-    return brunoLangDiagnosticsProvider.getDiagnosticsForBruFile(
-        filePath,
-        text,
-        brunoFileType,
-    );
+    return [
+        ...brunoLangDiagnosticsProvider.getDiagnosticsForBruFile(
+            filePath,
+            text,
+            brunoFileType,
+        ),
+        ...(await getSequencePrefixDiagnostics(filePath, text, brunoFileType)),
+    ];
 }
 
 async function getDiagnosticsForYamlFile(filePath: string, text: string) {
@@ -597,11 +619,59 @@ async function getDiagnosticsForYamlFile(filePath: string, text: string) {
         return undefined;
     }
 
-    return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
-        filePath,
-        text,
-        getYamlFileTypeForEditorContent(fileType, text),
+    const typeForContent = getYamlFileTypeForEditorContent(fileType, text);
+
+    return [
+        ...yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+            filePath,
+            text,
+            typeForContent,
+        ),
+        ...(typeForContent == NonBrunoSpecificItemType.OtherFileType
+            ? []
+            : (
+                  await getSequencePrefixDiagnostics(
+                      filePath,
+                      text,
+                      typeForContent,
+                  )
+              ).map((diagnostic) => ({
+                  ...diagnostic,
+                  source: "Bruno",
+              }))),
+    ];
+}
+
+/** Only reports names that do not match the sequence if the user has enabled prefixing names with their sequence. */
+async function getSequencePrefixDiagnostics(
+    filePath: string,
+    text: string,
+    fileType: BrunoFileType,
+) {
+    const enabled = await connection.workspace.getConfiguration(
+        "bru-as-code.prefixNamesWithSequence",
     );
+
+    if (enabled !== true) {
+        return [];
+    }
+
+    const configuredStep = await connection.workspace.getConfiguration(
+        "bru-as-code.sequenceStep",
+    );
+    const diagnostic = getSequencePrefixDiagnostic({
+        filePath,
+        content: text,
+        fileType,
+        sequenceStep:
+            typeof configuredStep == "number" &&
+            Number.isInteger(configuredStep) &&
+            configuredStep > 0
+                ? configuredStep
+                : 1,
+    });
+
+    return diagnostic ? [diagnostic] : [];
 }
 
 async function getYamlFileTypeIfExists(

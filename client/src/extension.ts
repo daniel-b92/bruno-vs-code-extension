@@ -147,6 +147,8 @@ function createLanguagClient(context: ExtensionContext) {
         ],
         outputChannel,
         synchronize: {
+            // Notify the server about changes of the extension's settings (e.g. for the diagnostics that depend on them).
+            configurationSection: "bru-as-code",
             // Notify the server about file changes to '.clientrc files contained in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
         },

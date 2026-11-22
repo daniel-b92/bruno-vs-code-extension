@@ -9,8 +9,10 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithEnvironments,
+    createItemProviderStub,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
+import { TypedCollectionItemProvider } from "../../../shared";
 import { normalizeSequencesRecursively } from "./normalizeSequencesRecursively";
 
 describe("normalizeSequencesRecursively", () => {
@@ -103,6 +105,11 @@ describe("normalizeSequencesRecursively", () => {
                 additionalData: undefined,
             });
             await normalizeSequencesRecursively(
+                createItemProviderStub<TypedCollectionItemProvider>(
+                    directory,
+                    format,
+                    collection,
+                ),
                 collection,
                 join(directory, selectedFolder),
                 5,
