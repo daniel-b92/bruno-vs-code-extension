@@ -18,7 +18,6 @@ import {
     TypedCollectionItemProvider,
     OutputChannelLogger,
     DialogOptionLabelEnum,
-    MultiFileOperationWithStatus,
     TypedCollectionData,
     TypedCollection,
     FileSystemCacheSyncingHelper,
@@ -72,7 +71,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             uri: vscode.Uri;
             withDialog: boolean;
         }>,
-        private multiFileOperationNotifier: vscode.EventEmitter<MultiFileOperationWithStatus>,
         private logger?: OutputChannelLogger,
     ) {
         if (
@@ -232,11 +230,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             const itemType = originalItem.getItemType();
 
             if (originalItem.isFile()) {
-                this.multiFileOperationNotifier.fire({
-                    parentFolder: dirname(newPath),
-                    running: true,
-                });
-
                 await this.withProgressInExplorer(
                     `Moving '${basename(sourcePath)}'`,
                     () =>
@@ -250,11 +243,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             this.logger,
                         ),
                 );
-
-                this.multiFileOperationNotifier.fire({
-                    parentFolder: dirname(newPath),
-                    running: false,
-                });
 
                 return;
             }
@@ -410,18 +398,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         }
 
         const overwrite = await checkIfPathExistsAsync(newPath);
-        // Only folders within collections are relevant for the other parts of the extension.
-        const foldersInCollections = [
-            sourceCollection ? dirname(sourcePath) : undefined,
-            targetCollection ? dirname(newPath) : undefined,
-        ].filter((folder): folder is string => folder !== undefined);
-
-        foldersInCollections.forEach((parentFolder) =>
-            this.multiFileOperationNotifier.fire({
-                parentFolder,
-                running: true,
-            }),
-        );
 
         await this.withProgressInExplorer(
             `Moving '${basename(sourcePath)}'`,
@@ -439,13 +415,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     showErrorMessageForFailedDragAndDrop(sourcePath);
                 }
             },
-        );
-
-        foldersInCollections.forEach((parentFolder) =>
-            this.multiFileOperationNotifier.fire({
-                parentFolder,
-                running: false,
-            }),
         );
     }
 
@@ -1332,20 +1301,12 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             return wasSuccessful;
         }
 
-        this.multiFileOperationNotifier.fire({
-            parentFolder: dirname(targetPath),
-            running: true,
-        });
         const wasSuccessful = await handleFileInsertion(
             sourceItem,
             { newPath: targetPath, insertionPosition },
             this.itemProvider,
             newContent,
         );
-        this.multiFileOperationNotifier.fire({
-            parentFolder: dirname(targetPath),
-            running: false,
-        });
 
         if (wasSuccessful) {
             // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.

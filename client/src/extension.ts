@@ -12,7 +12,6 @@ import { activateRunner, TestRunnerDataHelper } from "./testRunner";
 import { activateTreeView } from "./treeView";
 import {
     OutputChannelLogger,
-    MultiFileOperationWithStatus,
     AdditionalCollectionData,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
@@ -56,7 +55,6 @@ export async function activate(context: ExtensionContext) {
         collectionItemProvider,
         testController: ctrl,
         startTestRunEmitter,
-        multiFileOperationNotifier,
         cacheSyncingHelper,
     } = createNeededHandlers(context);
 
@@ -84,7 +82,6 @@ export async function activate(context: ExtensionContext) {
         collectionItemProvider,
         cacheSyncingHelper,
         startTestRunEmitter,
-        multiFileOperationNotifier,
     );
 
     toAwait.push(activateLanguageFeatures(context, collectionItemProvider));
@@ -174,9 +171,6 @@ function createNeededHandlers(context: ExtensionContext) {
         logger,
     );
 
-    const multiFileOperationNotifier =
-        new EventEmitter<MultiFileOperationWithStatus>();
-
     const testRunnerDataHelper = new TestRunnerDataHelper(testController);
 
     const cacheRefreshNotifier = Evt.create<void>();
@@ -213,7 +207,6 @@ function createNeededHandlers(context: ExtensionContext) {
 
     const cacheSyncingHelper = new FileSystemCacheSyncingHelper(
         collectionItemProvider,
-        multiFileOperationNotifier.event,
         logger,
     );
 
@@ -225,13 +218,11 @@ function createNeededHandlers(context: ExtensionContext) {
     context.subscriptions.push(
         client,
         startTestRunEmitter,
-        multiFileOperationNotifier,
         collectionItemProvider,
         collectionWatcher,
         testRunnerDataHelper,
         logger,
         testController,
-        cacheSyncingHelper,
         { dispose: () => cacheRefreshNotifierContext.done() },
     );
 
@@ -240,7 +231,6 @@ function createNeededHandlers(context: ExtensionContext) {
         logger,
         fileChangedEmitter,
         collectionWatcher,
-        multiFileOperationNotifier,
         testRunnerDataHelper,
         collectionItemProvider,
         startTestRunEmitter,

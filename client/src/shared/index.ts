@@ -1,5 +1,4 @@
 // file system
-export * from "./fileSystem/interfaces";
 export * from "./fileSystem/util/getLineBreak";
 export * from "./fileSystem/util/positionAndRangeMapper";
 
