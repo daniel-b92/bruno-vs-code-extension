@@ -75,8 +75,8 @@ describe("getIconForItem", () => {
 
         expect(icon?.id).toBe("library");
         expect(icon?.color?.id).toBe("charts.blue");
-        expect(contextRootIcon.id).toBe("folder-library");
-        expect(contextRootIcon.color?.id).toBe("charts.red");
+        expect(contextRootIcon.id).toBe("file-symlink-directory");
+        expect(contextRootIcon.color?.id).toBe("charts.green");
     });
 
     it.each([

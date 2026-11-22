@@ -13,7 +13,7 @@ const appIcon = createIcon("browser", "charts.yellow");
 const collectionRootIcon = createIcon("library", "charts.blue");
 
 /** The icon for the top-level nodes of the collection explorer that show an additional context root (a folder with shared scripts outside of the collection). */
-export const contextRootIcon = createIcon("folder-library", "charts.red");
+export const contextRootIcon = createIcon("file-symlink-directory", "charts.green");
 
 /**
  * Determines the icon for collection roots and Bruno specific files in the collection explorer.
