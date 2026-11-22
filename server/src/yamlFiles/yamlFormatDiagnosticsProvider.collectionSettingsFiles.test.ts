@@ -183,6 +183,24 @@ extensions:
         expect(diagnostics).toEqual([]);
     });
 
+    it("should warn about oauth2 keys that are ignored for the flow", () => {
+        const diagnostics = getDiagnostics(`${header}
+request:
+  auth:
+    type: oauth2
+    flow: client_credentials
+    state: abc
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]).toMatchObject({
+            message:
+                "Key 'state' is ignored by Bruno for flow 'client_credentials'.",
+            severity: DiagnosticSeverity.Warning,
+            range: { start: { line: 7 } },
+        });
+    });
+
     function providerWithEnvironments(names: string[]) {
         return new YamlFormatDiagnosticsProvider(
             createItemProviderStub<TypedCollectionItemProvider>(

@@ -418,14 +418,15 @@ connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
         return [];
     }
 
-    // Only request files can have query params and path params.
+    const fileType = await getFileTypeForEditorContent(
+        itemProvider,
+        filePath,
+        type,
+        document.getText(),
+    );
     if (
-        (await getFileTypeForEditorContent(
-            itemProvider,
-            filePath,
-            type,
-            document.getText(),
-        )) != BrunoFileType.RequestFile
+        fileType == undefined ||
+        fileType == NonBrunoSpecificItemType.OtherFileType
     ) {
         return [];
     }
@@ -436,9 +437,13 @@ connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
         diagnostics: context.diagnostics,
     };
 
-    return type == FileTypeByExtension.Bru
-        ? handleCodeActionRequestForBruFile(params)
-        : handleCodeActionRequestForYamlFile(params);
+    // The quick fixes for Bru files only exist for query params and path params, which can only be defined in request files.
+    if (type == FileTypeByExtension.Bru) {
+        return fileType == BrunoFileType.RequestFile
+            ? handleCodeActionRequestForBruFile(params)
+            : [];
+    }
+    return handleCodeActionRequestForYamlFile({ ...params, fileType });
 });
 
 connection.onExit(() => {

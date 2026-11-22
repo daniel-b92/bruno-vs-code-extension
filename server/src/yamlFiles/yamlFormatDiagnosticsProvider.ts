@@ -37,6 +37,7 @@ import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJson
 import { checkWebsocketMessages } from "./diagnostics/checks/requestFiles/checkWebsocketMessages";
 import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
 import { checkAuthHasValidValues } from "./diagnostics/shared/checkAuthHasValidValues";
+import { checkOAuth2KeysMatchFlow } from "./diagnostics/shared/checkOAuth2KeysMatchFlow";
 import { checkTagsAreUnique } from "./diagnostics/shared/checkTagsAreUnique";
 import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
 import { checkFileStartsWithExpectedSection } from "./diagnostics/shared/checkFileStartsWithExpectedSection";
@@ -204,6 +205,7 @@ export class YamlFormatDiagnosticsProvider {
             ...requestTypeSections.flatMap(({ properties: { auth } }) => [
                 checkAuthHasRequiredFields(auth, mapDescriptors),
                 checkAuthHasValidValues(auth),
+                ...checkOAuth2KeysMatchFlow(auth, mapDescriptors),
             ]),
             checkResponseValidationExists(properties.runtime, commonParams),
             ...getDiagnosticsForDisabledItems([

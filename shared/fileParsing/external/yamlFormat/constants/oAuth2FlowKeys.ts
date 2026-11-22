@@ -1,4 +1,5 @@
 import {
+    OAuth2AdditionalParametersProperty,
     OAuth2AuthProperty,
     OAuth2CredentialsProperty,
     OAuth2Flow,
@@ -13,7 +14,8 @@ export interface OAuth2FlowKey {
 
 /**
  * Returns the keys of an `oauth2` auth that Bruno uses for the given flow (in the order of Bruno's UI).
- * Optional keys that are relevant for all flows (e.g. `pkce` or `settings`) are not included.
+ * Optional keys that are relevant for all flows (e.g. `tokenConfig` or `settings`) are not included.
+ * `pkce` is also not included, because it is only relevant for the `authorization_code` flow.
  */
 export function getKeysForOAuth2Flow(flow: OAuth2Flow): OAuth2FlowKey[] {
     const credentialsWithSecret: OAuth2FlowKey = {
@@ -63,6 +65,69 @@ export function getKeysForOAuth2Flow(flow: OAuth2Flow): OAuth2FlowKey[] {
                 },
                 credentialsWithSecret,
                 { key: OAuth2AuthProperty.Scope },
+            ];
+    }
+}
+
+export interface OAuth2IgnoredKey {
+    key: OAuth2AuthProperty;
+    /** For keys within a map value: the key within the map, e.g. `clientSecret` for `credentials`. */
+    childKey?: OAuth2CredentialsProperty | OAuth2AdditionalParametersProperty;
+}
+
+/**
+ * Returns the keys of an `oauth2` auth that Bruno ignores for the given flow.
+ * Bruno only reads the keys belonging to the selected flow and drops all others the next time it saves the file.
+ * Keys that are read for all flows (e.g. `tokenConfig` or `settings`) are never included.
+ */
+export function getIgnoredKeysForOAuth2Flow(
+    flow: OAuth2Flow,
+): OAuth2IgnoredKey[] {
+    const authorizationFlowKeys: OAuth2IgnoredKey[] = [
+        { key: OAuth2AuthProperty.AuthorizationUrl },
+        { key: OAuth2AuthProperty.CallbackUrl },
+        { key: OAuth2AuthProperty.State },
+        { key: OAuth2AuthProperty.Pkce },
+        {
+            key: OAuth2AuthProperty.AdditionalParameters,
+            childKey: OAuth2AdditionalParametersProperty.AuthorizationRequest,
+        },
+    ];
+    const resourceOwner: OAuth2IgnoredKey = {
+        key: OAuth2AuthProperty.ResourceOwner,
+    };
+
+    switch (flow) {
+        case OAuth2Flow.AuthorizationCode:
+            return [resourceOwner];
+        case OAuth2Flow.ClientCredentials:
+            return [...authorizationFlowKeys, resourceOwner];
+        case OAuth2Flow.ResourceOwnerPasswordCredentials:
+            return authorizationFlowKeys;
+        case OAuth2Flow.Implicit:
+            return [
+                { key: OAuth2AuthProperty.AccessTokenUrl },
+                { key: OAuth2AuthProperty.RefreshTokenUrl },
+                {
+                    key: OAuth2AuthProperty.Credentials,
+                    childKey: OAuth2CredentialsProperty.ClientSecret,
+                },
+                {
+                    key: OAuth2AuthProperty.Credentials,
+                    childKey: OAuth2CredentialsProperty.Placement,
+                },
+                resourceOwner,
+                { key: OAuth2AuthProperty.Pkce },
+                {
+                    key: OAuth2AuthProperty.AdditionalParameters,
+                    childKey:
+                        OAuth2AdditionalParametersProperty.AccessTokenRequest,
+                },
+                {
+                    key: OAuth2AuthProperty.AdditionalParameters,
+                    childKey:
+                        OAuth2AdditionalParametersProperty.RefreshTokenRequest,
+                },
             ];
     }
 }

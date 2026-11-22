@@ -108,6 +108,24 @@ request:
         );
     });
 
+    it("should warn about oauth2 keys that are ignored for the flow", () => {
+        const diagnostics = getDiagnostics(`${folderHeader}
+request:
+  auth:
+    type: oauth2
+    flow: implicit
+    accessTokenUrl: https://example.com/token
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]).toMatchObject({
+            message:
+                "Key 'accessTokenUrl' is ignored by Bruno for flow 'implicit'.",
+            severity: DiagnosticSeverity.Warning,
+            range: { start: { line: 7 } },
+        });
+    });
+
     it("should only hint at disabled items and not check them", () => {
         const diagnostics = getDiagnostics(`${folderHeader}
 request:

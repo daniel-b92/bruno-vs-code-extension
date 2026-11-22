@@ -451,6 +451,139 @@ runtime:
         expect(oauth2).toEqual([]);
     });
 
+    it.each([
+        {
+            flow: "authorization_code",
+            ignored: ["resourceOwner"],
+        },
+        {
+            flow: "client_credentials",
+            ignored: [
+                "authorizationUrl",
+                "callbackUrl",
+                "state",
+                "pkce",
+                "additionalParameters.authorizationRequest",
+                "resourceOwner",
+            ],
+        },
+        {
+            flow: "resource_owner_password_credentials",
+            ignored: [
+                "authorizationUrl",
+                "callbackUrl",
+                "state",
+                "pkce",
+                "additionalParameters.authorizationRequest",
+            ],
+        },
+        {
+            flow: "implicit",
+            ignored: [
+                "accessTokenUrl",
+                "refreshTokenUrl",
+                "credentials.clientSecret",
+                "credentials.placement",
+                "resourceOwner",
+                "pkce",
+                "additionalParameters.accessTokenRequest",
+                "additionalParameters.refreshTokenRequest",
+            ],
+        },
+    ])(
+        "should warn about the keys that are ignored for the oauth2 flow '$flow'",
+        ({ flow, ignored }) => {
+            const content = validRequest({
+                http: getOAuth2Auth(`flow: ${flow}`),
+            });
+            const lines = content.split("\n");
+            const diagnostics = getDiagnostics(content);
+
+            expect(
+                diagnostics.map(({ message, severity, range }) => ({
+                    message,
+                    severity,
+                    line: range.start.line,
+                })),
+            ).toEqual(
+                ignored.map((key) => ({
+                    message: `Key '${key}' is ignored by Bruno for flow '${flow}'.`,
+                    severity: DiagnosticSeverity.Warning,
+                    // Within the used auth, every key is defined exactly once.
+                    line: lines.findIndex((line) =>
+                        line.trim().startsWith(`${key.split(".").pop()}:`),
+                    ),
+                })),
+            );
+        },
+    );
+
+    it("should report the ignored oauth2 key on the key itself", () => {
+        const diagnostics = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: oauth2
+    flow: client_credentials
+    authorizationUrl: https://example.com/auth`,
+            }),
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]).toMatchObject({
+            code: YamlDiagnosticCode.IgnoredOAuth2Key,
+            range: {
+                start: { line: 10, character: 4 },
+                end: { line: 10, character: 20 },
+            },
+        });
+    });
+
+    it("should not warn about oauth2 keys if the flow is missing or invalid", () => {
+        const withoutFlow = getDiagnostics(
+            validRequest({ http: getOAuth2Auth("") }),
+        );
+        const withInvalidFlow = getDiagnostics(
+            validRequest({ http: getOAuth2Auth("flow: unknown") }),
+        );
+
+        expect(
+            [...withoutFlow, ...withInvalidFlow].filter(
+                ({ code }) => code == YamlDiagnosticCode.IgnoredOAuth2Key,
+            ),
+        ).toEqual([]);
+    });
+
+    it("should not warn about oauth2 keys that are used for the flow", () => {
+        const diagnostics = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: https://example.com/auth
+    accessTokenUrl: https://example.com/token
+    refreshTokenUrl: https://example.com/refresh
+    callbackUrl: https://example.com/callback
+    state: abc
+    credentials:
+      clientId: id
+      clientSecret: secret
+      placement: body
+    scope: read
+    pkce: {}
+    additionalParameters:
+      authorizationRequest:
+        - name: a
+          value: b
+    tokenConfig:
+      id: access_token
+    settings:
+      autoFetchToken: true`,
+            }),
+        );
+
+        expect(diagnostics).toEqual([]);
+    });
+
     it("should not report a missing request type section, if the section exists with an invalid value", () => {
         const diagnostics = getDiagnostics(`${infoSection}
 http:
@@ -827,6 +960,39 @@ runtime:
         );
     }
 });
+
+/** Defines every key that Bruno could ignore for a flow, so the line numbers are the same for all flows. */
+function getOAuth2Auth(flowLine: string) {
+    return `  auth:
+    type: oauth2
+    ${flowLine}
+    authorizationUrl: https://example.com/auth
+    resourceOwner:
+      username: u
+    callbackUrl: https://example.com/callback
+    state: abc
+    pkce: {}
+    additionalParameters:
+      authorizationRequest:
+        - name: a
+          value: b
+      accessTokenRequest:
+        - name: c
+          value: d
+      refreshTokenRequest:
+        - name: e
+          value: f
+    accessTokenUrl: https://example.com/token
+    refreshTokenUrl: https://example.com/refresh
+    credentials:
+      clientId: id
+      clientSecret: secret
+      placement: body
+    tokenConfig:
+      id: access_token
+    settings:
+      autoFetchToken: true`;
+}
 
 function validRequest(sections: { info?: string; http?: string }) {
     return `${sections.info ?? infoSection}
