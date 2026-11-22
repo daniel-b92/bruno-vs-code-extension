@@ -1,5 +1,6 @@
 import { AuthType, ParsedAuth, YamlMapDescriptor } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
+import { findAuthMapDescriptor } from "../../shared/findAuthMapDescriptor";
 
 // For these types, which keys are relevant depends on the used signature method (OAuth1) or flow (OAuth2).
 // For OAuth2, the flow is the only mandatory key, so a missing flow is already reported by the parser.
@@ -20,13 +21,7 @@ export function checkAuthHasRequiredFields(
     if (authTypesWithoutRequiredFieldsCheck.includes(properties.type.value)) {
         return undefined;
     }
-    // The auth map is the one that defines the `type` key at the position of the parsed type.
-    const authMapDescriptor = mapDescriptors.find(({ definedKeys }) =>
-        definedKeys.some(
-            ({ key, keyRange }) =>
-                key == "type" && keyRange.equals(properties.type.keyRange),
-        ),
-    );
+    const authMapDescriptor = findAuthMapDescriptor(properties, mapDescriptors);
     if (!authMapDescriptor) {
         return undefined;
     }

@@ -5,6 +5,7 @@ import { checkHeaderNamesAreUnique } from "./checkHeaderNamesAreUnique";
 import { checkNamePropertyIsUniqueAcrossMaps } from "./checkNamePropertyIsUniqueAcrossMaps";
 import { checkVariableTypesMatchValueData } from "./checkVariableValuesMatchTypes";
 import { checkTypePropertyIsUniqueAcrossMaps } from "./checkTypePropertyIsUniqueAcrossMaps";
+import { checkOAuth2KeysMatchFlow } from "./checkOAuth2KeysMatchFlow";
 import { checkAuthHasRequiredFields } from "../checks/requestFiles/checkAuthHasRequiredFields";
 
 /**
@@ -22,6 +23,11 @@ export function checkSettingsFileRequestSection(
 
     return [
         checkAuthHasRequiredFields(auth, mapDescriptors),
+        ...checkOAuth2KeysMatchFlow(
+            auth,
+            mapDescriptors,
+            commonParams.docHelper,
+        ),
         ...(variables
             ? checkNamePropertyIsUniqueAcrossMaps(
                   variables.enabled,

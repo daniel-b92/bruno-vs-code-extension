@@ -2,8 +2,12 @@ import {
     getYamlUrlParamsInfo,
     YamlUrlParamsInfo,
 } from "../paramsSyncing/getYamlUrlParamsInfo";
-import { parseRequestFile, TextDocumentHelper } from "@global_shared";
-import { CodeAction, Diagnostic } from "vscode-languageserver";
+import {
+    BrunoFileType,
+    parseRequestFile,
+    TextDocumentHelper,
+} from "@global_shared";
+import { CodeAction, Diagnostic, TextEdit } from "vscode-languageserver";
 import {
     FixDefinition,
     toQuickFixes,
@@ -12,30 +16,59 @@ import { YamlDiagnosticCode } from "../diagnostics/yamlDiagnosticCodeEnum";
 import { updatePathParamsToMatchUrl } from "../paramsSyncing/updatePathParamsToMatchUrl";
 import { updateQueryParamsToMatchUrl } from "../paramsSyncing/updateQueryParamsToMatchUrl";
 import { updateUrlToMatchQueryParams } from "../paramsSyncing/updateUrlToMatchQueryParams";
+import { IgnoredOAuth2KeyDiagnosticData } from "../diagnostics/shared/checkOAuth2KeysMatchFlow";
 
 export function handleCodeActionRequest({
     uri,
     fileContent,
     diagnostics,
+    fileType,
 }: {
     uri: string;
     fileContent: string;
     diagnostics: Diagnostic[];
+    fileType: BrunoFileType;
 }): CodeAction[] {
     const docHelper = new TextDocumentHelper(fileContent);
+    // Query params and path params only exist in request files.
+    const info =
+        fileType == BrunoFileType.RequestFile
+            ? getUrlParamsInfo(docHelper)
+            : undefined;
+
+    return toQuickFixes(uri, diagnostics, (diagnostic) => [
+        ...getIgnoredKeyFixes(diagnostic),
+        ...(info ? getUrlParamsFixes(diagnostic.code, docHelper, info) : []),
+    ]);
+}
+
+function getUrlParamsInfo(docHelper: TextDocumentHelper) {
     const { result } = parseRequestFile(docHelper, {
         continueOnSyntaxErrors: false,
     });
-    const info = result && getYamlUrlParamsInfo(result);
 
-    return info
-        ? toQuickFixes(uri, diagnostics, ({ code }) =>
-              getFixesForDiagnostic(code, docHelper, info),
-          )
-        : [];
+    return result && getYamlUrlParamsInfo(result);
 }
 
-function getFixesForDiagnostic(
+function getIgnoredKeyFixes({
+    code,
+    data,
+}: Pick<Diagnostic, "code" | "data">): FixDefinition[] {
+    if (code != YamlDiagnosticCode.IgnoredOAuth2Key) {
+        return [];
+    }
+    const { key, removalRange } = data as IgnoredOAuth2KeyDiagnosticData;
+
+    return [
+        {
+            // Fixes with the same title are only offered once, so the title needs to differ per key.
+            title: `Remove key '${key}'`,
+            getEdits: () => TextEdit.del(removalRange),
+        },
+    ];
+}
+
+function getUrlParamsFixes(
     code: Diagnostic["code"],
     docHelper: TextDocumentHelper,
     info: YamlUrlParamsInfo,
