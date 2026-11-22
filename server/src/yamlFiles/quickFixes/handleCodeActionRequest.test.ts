@@ -139,19 +139,6 @@ describe("handleCodeActionRequest", () => {
     });
 
     describe("ignored oauth2 keys", () => {
-        const folderSettingsFile = (auth: string) => `info:
-  name: folder
-  type: folder
-request:
-  auth:
-    type: oauth2
-    flow: client_credentials
-${auth}
-  headers:
-    - name: h
-      value: v
-`;
-
         it("removes the key with its nested content for every file type with an auth", () => {
             const authLines = `    authorizationUrl: https://example.com/auth
     pkce: {}
@@ -183,7 +170,7 @@ ${folderSettingsFile(authLines)}`,
                 expect(actions.map(({ title }) => title)).toEqual([
                     "Remove key 'authorizationUrl'",
                     "Remove key 'pkce'",
-                    "Remove key 'additionalParameters.authorizationRequest'",
+                    "Remove key 'additionalParameters.authorizationRequest' and the resulting empty 'additionalParameters'",
                 ]);
                 expect(applyAction(content, actions[0])).toEqual(
                     content.replace(
@@ -194,10 +181,10 @@ ${folderSettingsFile(authLines)}`,
                 expect(applyAction(content, actions[1])).toEqual(
                     content.replace("    pkce: {}\n", ""),
                 );
-                // The empty parent key stays in place.
+                // The parent key is removed as well, because it would be left without a value.
                 expect(applyAction(content, actions[2])).toEqual(
                     content.replace(
-                        "      authorizationRequest:\n        - name: a\n          value: b\n",
+                        "    additionalParameters:\n      authorizationRequest:\n        - name: a\n          value: b\n",
                         "",
                     ),
                 );
@@ -230,6 +217,160 @@ ${folderSettingsFile(authLines)}`,
             expect(
                 getOAuth2Diagnostics(fixed, BrunoFileType.FolderSettingsFile),
             ).toEqual([]);
+        });
+
+        it("keeps the parent key if it has other keys", () => {
+            const content = folderSettingsFile(`    additionalParameters:
+      authorizationRequest:
+        - name: a
+          value: b
+      tokenRequest:
+        - name: c
+          value: d`);
+
+            const [action] = getOAuth2Actions(content);
+
+            expect(action.title).toEqual(
+                "Remove key 'additionalParameters.authorizationRequest'",
+            );
+            expect(applyAction(content, action)).toEqual(
+                folderSettingsFile(`    additionalParameters:
+      tokenRequest:
+        - name: c
+          value: d`),
+            );
+        });
+
+        it("removes the key from a map in flow style without touching the other keys", () => {
+            const content = `info:
+  name: folder
+  type: folder
+request:
+  auth: { type: oauth2, flow: client_credentials, state: x, scope: read }
+`;
+
+            const [action] = getOAuth2Actions(content);
+
+            expect(applyAction(content, action)).toEqual(
+                content.replace("state: x, ", ""),
+            );
+        });
+
+        it("removes the last key of a map in flow style together with the preceding separator", () => {
+            const content = `info:
+  name: folder
+  type: folder
+request:
+  auth: { type: oauth2, flow: client_credentials, scope: read, state: x }
+`;
+
+            const [action] = getOAuth2Actions(content);
+
+            expect(applyAction(content, action)).toEqual(
+                content.replace(", state: x", ""),
+            );
+        });
+
+        it("removes the parent key of a nested key in flow style if it would be empty", () => {
+            const content = `info:
+  name: folder
+  type: folder
+request:
+  auth:
+    type: oauth2
+    flow: implicit
+    credentials: { clientSecret: s }
+`;
+
+            const [action] = getOAuth2Actions(content);
+
+            expect(action.title).toEqual(
+                "Remove key 'credentials.clientSecret' and the resulting empty 'credentials'",
+            );
+            expect(applyAction(content, action)).toEqual(
+                content.replace("    credentials: { clientSecret: s }\n", ""),
+            );
+        });
+
+        it("only removes the nested key from a map in flow style that has other keys", () => {
+            const content = `info:
+  name: folder
+  type: folder
+request:
+  auth:
+    type: oauth2
+    flow: implicit
+    credentials: { clientId: abc, clientSecret: s }
+`;
+
+            const [action] = getOAuth2Actions(content);
+
+            expect(applyAction(content, action)).toEqual(
+                content.replace(", clientSecret: s", ""),
+            );
+        });
+
+        it("is not affected by the file being changed after the diagnostics were created", () => {
+            const content = folderSettingsFile("    state: abc");
+            const diagnostics = getOAuth2Diagnostics(
+                content,
+                BrunoFileType.FolderSettingsFile,
+            );
+            // The editor moves the ranges of diagnostics, but not their data.
+            const changedContent = content.replace(
+                "info:\n",
+                "# comment\ninfo:\n",
+            );
+            const movedDiagnostics = diagnostics.map((diagnostic) => ({
+                ...diagnostic,
+                range: {
+                    start: {
+                        ...diagnostic.range.start,
+                        line: diagnostic.range.start.line + 1,
+                    },
+                    end: {
+                        ...diagnostic.range.end,
+                        line: diagnostic.range.end.line + 1,
+                    },
+                },
+            }));
+
+            const [action] = handleCodeActionRequest({
+                uri,
+                fileContent: changedContent,
+                diagnostics: movedDiagnostics,
+                fileType: BrunoFileType.FolderSettingsFile,
+            });
+
+            expect(applyAction(changedContent, action)).toEqual(
+                changedContent.replace("    state: abc\n", ""),
+            );
+        });
+
+        it("offers no fix if the key is not found anymore or the diagnostic has no data", () => {
+            const content = folderSettingsFile("    state: abc");
+            const [diagnostic] = getOAuth2Diagnostics(
+                content,
+                BrunoFileType.FolderSettingsFile,
+            );
+            const outdatedRange = {
+                start: { line: 100, character: 0 },
+                end: { line: 100, character: 5 },
+            };
+
+            [
+                { ...diagnostic, data: undefined },
+                { ...diagnostic, range: { ...outdatedRange } },
+            ].forEach((changed) =>
+                expect(
+                    handleCodeActionRequest({
+                        uri,
+                        fileContent: content,
+                        diagnostics: [changed],
+                        fileType: BrunoFileType.FolderSettingsFile,
+                    }),
+                ).toEqual([]),
+            );
         });
 
         it("removes the last line of a file without a trailing line break", () => {
@@ -301,6 +442,32 @@ function getActions(fileContent: string, code: Diagnostic["code"]) {
 
 function applyAction(content: string, action: CodeAction) {
     return applyTextEdits(content, action.edit!.changes![uri]);
+}
+
+function folderSettingsFile(auth: string) {
+    return `info:
+  name: folder
+  type: folder
+request:
+  auth:
+    type: oauth2
+    flow: client_credentials
+${auth}
+  headers:
+    - name: h
+      value: v
+`;
+}
+
+function getOAuth2Actions(content: string) {
+    const fileType = BrunoFileType.FolderSettingsFile;
+
+    return handleCodeActionRequest({
+        uri,
+        fileContent: content,
+        diagnostics: getOAuth2Diagnostics(content, fileType),
+        fileType,
+    });
 }
 
 function getOAuth2Diagnostics(content: string, fileType: BrunoFileType) {

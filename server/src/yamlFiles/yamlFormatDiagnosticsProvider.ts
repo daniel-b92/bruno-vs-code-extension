@@ -205,11 +205,7 @@ export class YamlFormatDiagnosticsProvider {
             ...requestTypeSections.flatMap(({ properties: { auth } }) => [
                 checkAuthHasRequiredFields(auth, mapDescriptors),
                 checkAuthHasValidValues(auth),
-                ...checkOAuth2KeysMatchFlow(
-                    auth,
-                    mapDescriptors,
-                    commonParams.docHelper,
-                ),
+                ...checkOAuth2KeysMatchFlow(auth, mapDescriptors),
             ]),
             checkResponseValidationExists(properties.runtime, commonParams),
             ...getDiagnosticsForDisabledItems([

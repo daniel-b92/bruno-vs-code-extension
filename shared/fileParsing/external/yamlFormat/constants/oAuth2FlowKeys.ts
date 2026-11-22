@@ -14,7 +14,8 @@ export interface OAuth2FlowKey {
 
 /**
  * Returns the keys of an `oauth2` auth that Bruno uses for the given flow (in the order of Bruno's UI).
- * Optional keys that are relevant for all flows (e.g. `pkce` or `settings`) are not included.
+ * Optional keys that are relevant for all flows (e.g. `tokenConfig` or `settings`) are not included.
+ * `pkce` is also not included, because it is only relevant for the `authorization_code` flow.
  */
 export function getKeysForOAuth2Flow(flow: OAuth2Flow): OAuth2FlowKey[] {
     const credentialsWithSecret: OAuth2FlowKey = {

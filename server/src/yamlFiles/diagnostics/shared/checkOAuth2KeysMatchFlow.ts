@@ -2,9 +2,7 @@ import {
     getIgnoredKeysForOAuth2Flow,
     AuthType,
     ParsedAuth,
-    Position,
     Range,
-    TextDocumentHelper,
     YamlMapDescriptor,
 } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
@@ -15,8 +13,6 @@ import { findAuthMapDescriptor } from "./findAuthMapDescriptor";
 export interface IgnoredOAuth2KeyDiagnosticData {
     /** The reported key, with the parent key for nested keys (e.g. `credentials.clientSecret`). */
     key: string;
-    /** The lines that define the key (including its nested content). Removing it removes the key. */
-    removalRange: Range;
 }
 
 /**
@@ -26,7 +22,6 @@ export interface IgnoredOAuth2KeyDiagnosticData {
 export function checkOAuth2KeysMatchFlow(
     auth: ParsedAuth | undefined,
     mapDescriptors: YamlMapDescriptor[],
-    docHelper: TextDocumentHelper,
 ): Diagnostic[] {
     // Auth that is inherited has no properties.
     if (!auth || !("properties" in auth.value)) {
@@ -68,11 +63,6 @@ export function checkOAuth2KeysMatchFlow(
                       code: YamlDiagnosticCode.IgnoredOAuth2Key,
                       data: {
                           key: keyPath,
-                          removalRange: getLinesToRemove(
-                              reported.keyRange,
-                              reported.valueRange,
-                              docHelper,
-                          ),
                       } satisfies IgnoredOAuth2KeyDiagnosticData,
                   },
               ]
@@ -93,26 +83,4 @@ function findKeyWithinRange(
                 range.contains(defined.keyRange.start) &&
                 range.contains(defined.keyRange.end),
         );
-}
-
-/** Whole lines are removed, so that no empty line is left behind. */
-function getLinesToRemove(
-    keyRange: Range,
-    valueRange: Range | undefined,
-    docHelper: TextDocumentHelper,
-): Range {
-    const end = valueRange?.end ?? keyRange.end;
-    // An end at the start of a line means that the line itself does not belong to the key.
-    const lastLine =
-        end.character == 0 && end.line > keyRange.start.line
-            ? end.line - 1
-            : end.line;
-    const start = new Position(keyRange.start.line, 0);
-
-    return lastLine + 1 < docHelper.getLineCount()
-        ? new Range(start, new Position(lastLine + 1, 0))
-        : new Range(
-              start,
-              new Position(lastLine, docHelper.getLineByIndex(lastLine).length),
-          );
 }

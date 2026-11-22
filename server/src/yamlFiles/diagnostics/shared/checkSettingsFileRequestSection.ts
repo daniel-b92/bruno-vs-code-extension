@@ -23,11 +23,7 @@ export function checkSettingsFileRequestSection(
 
     return [
         checkAuthHasRequiredFields(auth, mapDescriptors),
-        ...checkOAuth2KeysMatchFlow(
-            auth,
-            mapDescriptors,
-            commonParams.docHelper,
-        ),
+        ...checkOAuth2KeysMatchFlow(auth, mapDescriptors),
         ...(variables
             ? checkNamePropertyIsUniqueAcrossMaps(
                   variables.enabled,
