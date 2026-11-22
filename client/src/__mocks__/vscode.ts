@@ -39,12 +39,31 @@ class EventEmitter<T> {
 
     event = (listener: (e: T) => void) => {
         this.listeners.push(listener);
-        return { dispose: () => {} };
+        return {
+            dispose: () => {
+                this.listeners = this.listeners.filter((l) => l !== listener);
+            },
+        };
     };
 
-    fire(_event: T) {}
+    fire(event: T) {
+        this.listeners.slice().forEach((listener) => listener(event));
+    }
 
-    dispose() {}
+    dispose() {
+        this.listeners = [];
+    }
+}
+
+class TabInputText {
+    constructor(public readonly uri: { fsPath: string }) {}
+}
+
+class RelativePattern {
+    constructor(
+        public readonly base: { fsPath: string },
+        public readonly pattern: string,
+    ) {}
 }
 
 class MarkdownString {
@@ -72,8 +91,11 @@ class Range {
 
 /** `applyEdit` does not apply any edits. Tests that need the edits to take effect have to write the files themselves. The recorded entries can be used to check what would be applied. */
 class WorkspaceEdit {
-    readonly renames: { from: { fsPath: string }; to: { fsPath: string } }[] =
-        [];
+    readonly renames: {
+        from: { fsPath: string };
+        to: { fsPath: string };
+        options?: { overwrite?: boolean };
+    }[] = [];
     readonly replacements: {
         uri: { fsPath: string };
         range: Range;
@@ -82,8 +104,12 @@ class WorkspaceEdit {
 
     createFile(_uri: unknown, _options?: unknown) {}
 
-    renameFile(from: { fsPath: string }, to: { fsPath: string }) {
-        this.renames.push({ from, to });
+    renameFile(
+        from: { fsPath: string },
+        to: { fsPath: string },
+        options?: { overwrite?: boolean },
+    ) {
+        this.renames.push({ from, to, options });
     }
 
     replace(uri: { fsPath: string }, range: Range, newText: string) {
@@ -106,6 +132,19 @@ const workspace = {
     }[],
     applyEdit: (_edit: unknown, _metadata?: unknown) => Promise.resolve(true),
     save: (_uri: unknown): Promise<unknown> => Promise.resolve(undefined),
+    /** Tests that need to trigger events can replace it, e.g. with `jest.spyOn`. */
+    createFileSystemWatcher: (_pattern: unknown) => ({
+        onDidCreate: (_listener: (uri: { fsPath: string }) => void) => ({
+            dispose: () => {},
+        }),
+        onDidDelete: (_listener: (uri: { fsPath: string }) => void) => ({
+            dispose: () => {},
+        }),
+        onDidChange: (_listener: (uri: { fsPath: string }) => void) => ({
+            dispose: () => {},
+        }),
+        dispose: () => {},
+    }),
 };
 
 const EndOfLine = {
@@ -120,6 +159,10 @@ const window = {
     showInputBox: (_options?: unknown): Promise<string | undefined> =>
         Promise.resolve(undefined),
     createQuickPick: (): unknown => ({}),
+    tabGroups: {
+        all: [] as { tabs: { input: unknown }[] }[],
+        close: (_tabs: unknown): Promise<boolean> => Promise.resolve(true),
+    },
 };
 
 const commands = {
@@ -152,6 +195,8 @@ export {
     ThemeIcon,
     EventEmitter,
     MarkdownString,
+    RelativePattern,
+    TabInputText,
     Uri,
     Position,
     Range,

@@ -5,9 +5,10 @@ export function getDeleteConfirmationMessage(
     itemLabel: string,
     itemPath: string,
     itemType: ItemType,
-    collection: ReadyOnlyCollection<unknown>,
+    /** Not defined for items that are not part of a collection (e.g. in additional context roots). */
+    collection?: ReadyOnlyCollection<unknown>,
 ) {
-    if (itemType != BrunoFileType.EnvironmentFile) {
+    if (itemType != BrunoFileType.EnvironmentFile || !collection) {
         return `Delete '${itemLabel}'?`;
     }
 

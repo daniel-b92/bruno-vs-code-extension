@@ -7,6 +7,7 @@ import {
     getFolderSettingsFileName,
     getCollectionSettingsFileName,
     isCollectionItemWithSequence,
+    isBrunoFileType,
     isInEnvironmentsFolderOfCollection,
     ItemType,
     normalizePath,
@@ -46,7 +47,8 @@ export async function handleFileInsertion(
         sourceItem.getPath(),
     );
 
-    if (!sourceCollection) {
+    // Files that are not Bruno specific (e.g. from an additional context root) can also be inserted from outside of any collection.
+    if (!sourceCollection && isBrunoFileType(itemType)) {
         window.showErrorMessage(
             `Could not determine the collection for path '${sourceItem.getPath()}'.`,
         );
@@ -57,7 +59,7 @@ export async function handleFileInsertion(
 
     // TODO: Support copying/moving items between collections with different formats (Bru <-> Yaml).
     // This would require converting the file content and adjusting the file extension.
-    if (sourceCollection.getFormat() != format) {
+    if (sourceCollection && sourceCollection.getFormat() != format) {
         window.showErrorMessage(
             `Inserting files between collections with different formats (Bru and Yaml) is not supported.`,
         );

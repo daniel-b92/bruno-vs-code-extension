@@ -8,13 +8,25 @@ import {
     TypedCollectionData,
     BrunoTreeItem,
 } from "@shared";
+import { ContextRootItemProvider } from "./contextRoots/contextRootItemProvider";
+import { ContextRootTreeItem } from "./contextRoots/contextRootTreeItem";
+import { sortTreeItems } from "./sortTreeItems";
 
 export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeItem> {
     constructor(
         private workspaceRoot: string,
         private itemProvider: TypedCollectionItemProvider,
+        private contextRootProvider: ContextRootItemProvider,
         private logger?: OutputChannelLogger,
     ) {
+        contextRootProvider.onDidChange((item) =>
+            this._onDidChangeTreeData.fire(item),
+        );
+        // Added or deleted collections already cause a refresh of the root level via the subscription below.
+        itemProvider.subscribeToAdditionalContextRootChanges(() =>
+            this._onDidChangeTreeData.fire(undefined),
+        );
+
         itemProvider.subscribeToUpdates((updates) => {
             const relevantUpdates = updates.filter(
                 (update) =>
@@ -104,7 +116,17 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
     }
 
     getParent(element: BrunoTreeItem) {
-        const { collection } = this.mapTreeItemToCollectionItem(element);
+        if (element instanceof ContextRootTreeItem) {
+            return this.contextRootProvider.getParent(element);
+        }
+
+        const collection = this.itemProvider.getAncestorCollectionForPath(
+            element.getPath(),
+        );
+
+        if (!collection) {
+            return undefined;
+        }
 
         const registeredParent = this.itemProvider.getRegisteredItem(
             collection,
@@ -144,7 +166,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                 `${this.commonIdentifierForLogging} Fetching root items for collection explorer tree.`,
             );
 
-            return this.itemProvider
+            const collectionRoots = this.itemProvider
                 .getRegisteredCollections()
                 .map(
                     (collection) =>
@@ -157,6 +179,16 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                 .sort((a, b) =>
                     (a.label as string) > (b.label as string) ? 1 : -1,
                 );
+
+            // The context roots are shown after the collections.
+            return [
+                ...collectionRoots,
+                ...(await this.contextRootProvider.getRootItems()),
+            ];
+        } else if (element instanceof ContextRootTreeItem) {
+            return element.isFile
+                ? []
+                : await this.contextRootProvider.getChildren(element);
         } else {
             const collection = this.itemProvider.getAncestorCollectionForPath(
                 element.getPath(),
@@ -175,7 +207,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                 )}' collection.`,
             );
 
-            return this.getSortedTreeItems(
+            return sortTreeItems(
                 await Promise.all(
                     collection
                         .getAllStoredDataForCollection()
@@ -199,57 +231,4 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
     > = new vscode.EventEmitter<BrunoTreeItem>();
     readonly onDidChangeTreeData: vscode.Event<BrunoTreeItem | undefined> =
         this._onDidChangeTreeData.event;
-
-    private mapTreeItemToCollectionItem(item: BrunoTreeItem) {
-        const collection = this.itemProvider.getAncestorCollectionForPath(
-            item.getPath(),
-        );
-
-        if (!collection) {
-            throw new Error(
-                `No registered collection found for tree item with path '${item.getPath()}'.`,
-            );
-        }
-
-        return {
-            collection,
-            item: this.itemProvider.getRegisteredItem(
-                collection,
-                item.getPath(),
-            ),
-        };
-    }
-
-    private getSortedTreeItems(items: BrunoTreeItem[]) {
-        return items.slice().sort((a, b) => {
-            if (a.isFile != b.isFile) {
-                // Display all subfolders before files
-                return a.isFile ? 1 : -1;
-            }
-            if (!a.getSequence() && !b.getSequence() && a.label && b.label) {
-                // Order items without a sequence alphabetically by label
-                const labelForA = (
-                    typeof a.label == "string" ? a.label : a.label.label
-                ).toLowerCase();
-                const labelForB = (
-                    typeof b.label == "string" ? b.label : b.label.label
-                ).toLowerCase();
-
-                return labelForA <= labelForB ? -1 : 1;
-            }
-
-            if (!a.getSequence() || !b.getSequence()) {
-                // Diplay items with a sequence before items without one
-                return a.getSequence() ? -1 : 1;
-            }
-
-            if (a.getSequence() && b.getSequence()) {
-                return (
-                    (a.getSequence() as number) - (b.getSequence() as number)
-                );
-            }
-
-            return 0;
-        });
-    }
 }
