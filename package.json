@@ -430,7 +430,7 @@
             "view/item/context": [
                 {
                     "command": "brunoCollectionsView.openInNewTabgroup",
-                    "when": "view == brunoCollectionsView && viewItem == file",
+                    "when": "view == brunoCollectionsView && (viewItem == file || viewItem == contextRootFile)",
                     "group": "navigation@1"
                 },
                 {
@@ -440,32 +440,32 @@
                 },
                 {
                     "command": "brunoCollectionsView.createEmptyFile",
-                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot || viewItem == contextRoot || viewItem == contextRootFolder)",
                     "group": "1_crud@5"
                 },
                 {
                     "command": "brunoCollectionsView.createFolder",
-                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot || viewItem == contextRoot || viewItem == contextRootFolder)",
                     "group": "1_crud@10"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",
-                    "when": "view == brunoCollectionsView",
+                    "when": "view == brunoCollectionsView && viewItem != contextRoot",
                     "group": "1_crud@20"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFile",
-                    "when": "view == brunoCollectionsView && viewItem==file",
+                    "when": "view == brunoCollectionsView && (viewItem == file || viewItem == contextRootFile)",
                     "group": "1_crud@30"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
-                    "when": "view == brunoCollectionsView && viewItem == folder",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == contextRootFolder)",
                     "group": "1_crud@35"
                 },
                 {
                     "command": "brunoCollectionsView.copyFile",
-                    "when": "view == brunoCollectionsView && viewItem==file",
+                    "when": "view == brunoCollectionsView && (viewItem == file || viewItem == contextRootFile)",
                     "group": "1_crud@37"
                 },
                 {
@@ -475,7 +475,7 @@
                 },
                 {
                     "command": "brunoCollectionsView.deleteItem",
-                    "when": "view == brunoCollectionsView",
+                    "when": "view == brunoCollectionsView && viewItem != contextRoot",
                     "group": "1_crud@40"
                 },
                 {
@@ -485,12 +485,12 @@
                 },
                 {
                     "command": "brunoCollectionsView.startTestRun",
-                    "when": "view == brunoCollectionsView",
+                    "when": "view == brunoCollectionsView && viewItem != contextRoot && viewItem != contextRootFolder && viewItem != contextRootFile",
                     "group": "3_execution@1"
                 },
                 {
                     "command": "brunoCollectionsView.openDialogForTestRun",
-                    "when": "view == brunoCollectionsView",
+                    "when": "view == brunoCollectionsView && viewItem != contextRoot && viewItem != contextRootFolder && viewItem != contextRootFile",
                     "group": "3_execution@5"
                 }
             ],

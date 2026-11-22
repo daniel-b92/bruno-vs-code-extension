@@ -6,7 +6,7 @@ This extension lets you work with [Bruno](https://docs.usebruno.com/) collection
 
 ## Main Features
 
-- **Collection explorer** for creating, renaming, duplicating, moving (via drag and drop) and deleting requests and folders within your collections.
+- **Collection explorer** for creating, renaming, duplicating, moving (via drag and drop) and deleting requests and folders within your collections. Folders with shared scripts (`additionalContextRoots`) are shown next to the collections.
 - **Test explorer integration** for running requests, folders or whole collections via the [Bruno CLI](https://www.npmjs.com/package/@usebruno/cli), including HTML test reports.
 - **Language features** for `.bru` files and `yaml` collection files, e.g. completions, hovers, diagnostics and syntax highlighting, as well as Javascript intellisense within code blocks (scripts and tests). A formatter for code blocks is included as well.
 

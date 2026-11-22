@@ -9,7 +9,7 @@ import {
     CollectionItem,
     NonBrunoFile,
 } from "@global_shared";
-import { getIconForItem } from "./getIconForItem";
+import { contextRootIcon, getIconForItem } from "./getIconForItem";
 
 describe("getIconForItem", () => {
     it.each([
@@ -44,7 +44,7 @@ describe("getIconForItem", () => {
             "charts.yellow",
         ],
     ])("returns a colored icon for a %s", (_, item, iconId, colorId) => {
-        const icon = getIconForItem(item, false);
+        const icon = getIconForItem(item, false, false);
 
         expect(icon?.id).toBe(iconId);
         expect(icon?.color?.id).toBe(colorId);
@@ -54,14 +54,29 @@ describe("getIconForItem", () => {
         const icon = getIconForItem(
             new NonBrunoFile("/collection/bruno.json"),
             true,
+            false,
         );
 
         expect(icon).toBe(
             getIconForItem(
                 new BrunoCollectionSettingsFile("/collection/collection.bru"),
                 false,
+                false,
             ),
         );
+    });
+
+    it("returns a colored icon for the collection root directory, that differs from the one for context roots", () => {
+        const icon = getIconForItem(
+            new CollectionDirectory("/collection"),
+            false,
+            true,
+        );
+
+        expect(icon?.id).toBe("library");
+        expect(icon?.color?.id).toBe("charts.blue");
+        expect(contextRootIcon.id).toBe("folder-library");
+        expect(contextRootIcon.color?.id).toBe("charts.red");
     });
 
     it.each([
@@ -77,7 +92,7 @@ describe("getIconForItem", () => {
     ] as [string, CollectionItem][])(
         "returns no icon for %s, so that the icon theme is used",
         (_, item) => {
-            expect(getIconForItem(item, false)).toBeUndefined();
+            expect(getIconForItem(item, false, false)).toBeUndefined();
         },
     );
 });

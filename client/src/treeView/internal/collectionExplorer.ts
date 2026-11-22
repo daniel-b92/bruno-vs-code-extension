@@ -12,6 +12,7 @@ import {
     isCollectionItemWithSequence,
     CollectionFormat,
     getBrunoJsonFilePath,
+    NonBrunoFile,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -43,6 +44,7 @@ import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionE
 import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 import { promisify } from "util";
 import { cp, mkdir, readFile, rm, writeFile } from "fs";
+import { stat } from "fs/promises";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 import { showDialogForSettingEnvironment } from "./explorer/showDialogForSettingEnvironment";
 import { getDeleteConfirmationMessage } from "./explorer/getDeleteConfirmationMessage";
@@ -51,6 +53,12 @@ import {
     FileInsertionPosition,
     RequestFileInsertionPositionType,
 } from "./explorer/fileUtils/interfaces";
+import { ContextRootItemProvider } from "./contextRoots/contextRootItemProvider";
+import { getTargetPathForMovingItem } from "./explorer/contextRootUtils/getTargetPathForMovingItem";
+import { duplicateItemOutsideCollections } from "./explorer/contextRootUtils/duplicateItemOutsideCollections";
+import { pasteFileOutsideCollections } from "./explorer/contextRootUtils/pasteFileOutsideCollections";
+import { deleteItemOutsideCollections } from "./explorer/contextRootUtils/deleteItemOutsideCollections";
+import { showErrorMessageForFailedDragAndDrop } from "./explorer/showErrorMessageForFailedDragAndDrop";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
     private treeViewId = "brunoCollectionsView";
@@ -75,9 +83,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 "Activation of collection explorer failed because no workspace folders were found!",
             );
         }
-        const treeDataProvider = new BrunoTreeItemProvider(
-            vscode.workspace.workspaceFolders[0].uri.fsPath,
+        const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+        this.contextRootProvider = new ContextRootItemProvider(
             itemProvider,
+            workspaceRoot,
+            logger,
+        );
+        this.disposables.push(this.contextRootProvider);
+
+        const treeDataProvider = new BrunoTreeItemProvider(
+            workspaceRoot,
+            itemProvider,
+            this.contextRootProvider,
             logger,
         );
 
@@ -127,6 +144,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     }
 
     private disposables: vscode.Disposable[] = [];
+    private contextRootProvider: ContextRootItemProvider;
     private fileToCopy:
         | { item: CollectionItem | CollectionItemWithSequence; content: string }
         | undefined = undefined;
@@ -159,6 +177,23 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         dataTransfer: vscode.DataTransfer,
         _token: vscode.CancellationToken,
     ) {
+        const transferItem = dataTransfer.get("text/uri-list");
+
+        if (transferItem && maybeTarget) {
+            const sourcePath = await transferItem.asString();
+
+            if (
+                this.isOutsideCollections(sourcePath) ||
+                this.isOutsideCollections(maybeTarget.getPath())
+            ) {
+                await this.moveItemWithoutCollectionLogic(
+                    sourcePath,
+                    maybeTarget,
+                );
+                return;
+            }
+        }
+
         const gatheredData = await this.gatherDataForDroppingItem(
             maybeTarget,
             dataTransfer,
@@ -298,6 +333,119 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     originalTreeItem.getSequence(),
                     this.logger,
                 ),
+        );
+    }
+
+    /**
+     * Whether the item is located in an additional context root (and not in a collection).
+     * Only the path is checked, since e.g. drag and drop and pasting only provide paths.
+     */
+    private isOutsideCollections(path: string) {
+        return (
+            !this.itemProvider.getAncestorCollectionForPath(path) &&
+            this.contextRootProvider.findContextRootForPath(path) !== undefined
+        );
+    }
+
+    private rejectActionForContextRootFolder(path: string, action: string) {
+        if (!this.contextRootProvider.isTopLevelContextRoot(path)) {
+            return false;
+        }
+
+        vscode.window.showInformationMessage(
+            `The folder of an additional context root cannot be ${action} in the collection explorer.`,
+        );
+        return true;
+    }
+
+    /**
+     * Moves an item via drag and drop if the source or the target is located outside of collections.
+     * Neither sequences nor `bru.runRequest` paths are adjusted for these moves, and folders are always moved into the target folder.
+     */
+    private async moveItemWithoutCollectionLogic(
+        sourcePath: string,
+        target: BrunoTreeItem,
+    ) {
+        if (
+            this.rejectActionForContextRootFolder(sourcePath, "moved") ||
+            !(await checkIfPathExistsAsync(target.getPath()))
+        ) {
+            return;
+        }
+
+        const targetPathData = await getTargetPathForMovingItem(sourcePath, {
+            path: target.getPath(),
+            isFile: target.isFile,
+        });
+
+        if (targetPathData.kind == "rejected") {
+            vscode.window.showInformationMessage(targetPathData.message);
+            return;
+        }
+        if (targetPathData.kind == "unchanged") {
+            return;
+        }
+
+        const { newPath, isFile } = targetPathData;
+        const sourceCollection =
+            this.itemProvider.getAncestorCollectionForPath(sourcePath);
+
+        if (sourceCollection?.isRootDirectory(sourcePath)) {
+            vscode.window.showInformationMessage(
+                "Cannot move the root folder of a collection via the collection explorer.",
+            );
+            return;
+        }
+        const targetCollection =
+            this.itemProvider.getAncestorCollectionForPath(newPath);
+
+        if (
+            !(await this.requestConfirmationForOverwritingItemIfNeeded(
+                sourcePath,
+                newPath,
+                targetCollection,
+            ))
+        ) {
+            return;
+        }
+
+        const overwrite = await checkIfPathExistsAsync(newPath);
+        // Only folders within collections are relevant for the other parts of the extension.
+        const foldersInCollections = [
+            sourceCollection ? dirname(sourcePath) : undefined,
+            targetCollection ? dirname(newPath) : undefined,
+        ].filter((folder): folder is string => folder !== undefined);
+
+        foldersInCollections.forEach((parentFolder) =>
+            this.multiFileOperationNotifier.fire({
+                parentFolder,
+                running: true,
+            }),
+        );
+
+        await this.withProgressInExplorer(
+            `Moving '${basename(sourcePath)}'`,
+            async () => {
+                const wasSuccessful = await renameFileOrFolder(
+                    this.itemProvider,
+                    sourcePath,
+                    newPath,
+                    isFile,
+                    this.logger,
+                    overwrite,
+                );
+
+                if (!wasSuccessful) {
+                    showErrorMessageForFailedDragAndDrop(sourcePath);
+                }
+            },
+        );
+
+        foldersInCollections.forEach((parentFolder) =>
+            this.multiFileOperationNotifier.fire({
+                parentFolder,
+                running: false,
+            }),
         );
     }
 
@@ -488,6 +636,15 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 const originalPath = treeItem.getPath();
                 const isFile = treeItem.isFile;
 
+                if (
+                    this.rejectActionForContextRootFolder(
+                        originalPath,
+                        "renamed",
+                    )
+                ) {
+                    return;
+                }
+
                 const originalName =
                     isFile && extname(originalPath) != ""
                         ? basename(originalPath).substring(
@@ -524,6 +681,21 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     );
 
                 if (!itemDataWithcollection) {
+                    if (this.isOutsideCollections(originalPath)) {
+                        await this.withProgressInExplorer(
+                            `Renaming '${basename(originalPath)}'`,
+                            () =>
+                                renameFileOrFolder(
+                                    this.itemProvider,
+                                    originalPath,
+                                    newPath,
+                                    isFile,
+                                    this.logger,
+                                ),
+                        );
+                        return;
+                    }
+
                     vscode.window.showWarningMessage(
                         "Could not find collection for selected item. Aborting renaming operation.",
                     );
@@ -622,9 +794,20 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 const newFolderPath =
                     await getPathForDuplicatedItem(originalPath);
 
-                if (!collection || newFolderPath === undefined) {
+                if (
+                    newFolderPath === undefined ||
+                    (!collection && !this.isOutsideCollections(originalPath))
+                ) {
                     vscode.window.showErrorMessage(
                         `An unexpected error occured.`,
+                    );
+                    return;
+                }
+
+                if (!collection) {
+                    await duplicateItemOutsideCollections(
+                        originalPath,
+                        newFolderPath,
                     );
                     return;
                 }
@@ -661,6 +844,21 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     );
 
                 if (!sourceDataAndCollection) {
+                    if (
+                        targetPath &&
+                        this.isOutsideCollections(treeItem.getPath())
+                    ) {
+                        if (
+                            await duplicateItemOutsideCollections(
+                                treeItem.getPath(),
+                                targetPath,
+                            )
+                        ) {
+                            await this.openFile(targetPath);
+                        }
+                        return;
+                    }
+
                     vscode.window.showWarningMessage(
                         "Could not find collection for selected item. Aborting duplicate operation.",
                     );
@@ -692,6 +890,15 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     this.itemProvider.getRegisteredItemAndCollection(path);
 
                 if (!itemDataWithCollection) {
+                    if (
+                        this.isOutsideCollections(path) &&
+                        !this.rejectActionForContextRootFolder(path, "deleted")
+                    ) {
+                        await deleteItemOutsideCollections(
+                            treeItem,
+                            this.confirmationOptionForModals,
+                        );
+                    }
                     return;
                 }
 
@@ -785,14 +992,21 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         );
                         return;
                     }
-                    if (!dataWithCollection) {
+
+                    // Files outside of collections are handled like files that are not Bruno specific.
+                    const sourceItem = dataWithCollection
+                        ? dataWithCollection.data.item
+                        : this.isOutsideCollections(treeItem.getPath())
+                          ? new NonBrunoFile(treeItem.getPath())
+                          : undefined;
+
+                    if (!sourceItem) {
                         vscode.window.showWarningMessage(
                             "Could not find collection for selected item. Aborting copy operation.",
                         );
                         return;
                     }
 
-                    const sourceItem = dataWithCollection.data.item;
                     const baseItemForCopying:
                         CollectionItem | CollectionItemWithSequence = {
                         getItemType: () => sourceItem.getItemType(),
@@ -831,7 +1045,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         this.itemProvider.getAncestorCollectionForPath(
                             targetItem.getPath(),
                         );
-                    if (!collection) {
+                    if (
+                        !collection &&
+                        !this.isOutsideCollections(targetItem.getPath())
+                    ) {
                         vscode.window.showWarningMessage(
                             "Could not find collection for selected item. Aborting paste operation.",
                         );
@@ -1019,6 +1236,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             this.itemProvider.getAncestorCollectionForPath(path);
 
         if (
+            !maybeCollection &&
+            this.contextRootProvider.findContextRootForPath(path)
+        ) {
+            await this.tryToRevealItemInContextRoot(path, treeView, logger);
+            return;
+        }
+
+        if (
             maybeCollection &&
             // Sometimes when e.g. renaming a folder, the descendant file paths may not have been updated in the collection yet.
             maybeCollection.getStoredDataForPath(path)
@@ -1053,6 +1278,33 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         }
     }
 
+    private async tryToRevealItemInContextRoot(
+        path: string,
+        treeView: vscode.TreeView<BrunoTreeItem>,
+        logger?: OutputChannelLogger,
+    ) {
+        const stats = await stat(path).catch(() => undefined);
+
+        if (!stats) {
+            return;
+        }
+
+        const treeItem = this.contextRootProvider.getOrCreateItem(
+            path,
+            !stats.isDirectory(),
+        );
+
+        try {
+            await treeView.reveal(treeItem);
+        } catch (e) {
+            logger?.warn(
+                `Caught error while trying to reveal item '${path}' of an additional context root: ${
+                    e instanceof Error ? e.message : e
+                }`,
+            );
+        }
+    }
+
     private async pasteFile(
         sourceItem: CollectionItem,
         targetPath: string,
@@ -1063,7 +1315,21 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             this.itemProvider.getAncestorCollectionForPath(targetPath);
 
         if (!targetCollection) {
-            return false;
+            if (!this.isOutsideCollections(targetPath)) {
+                return false;
+            }
+
+            const wasSuccessful = await pasteFileOutsideCollections(
+                sourceItem.getPath(),
+                targetPath,
+                newContent,
+            );
+
+            if (wasSuccessful) {
+                await this.openFile(targetPath);
+            }
+
+            return wasSuccessful;
         }
 
         this.multiFileOperationNotifier.fire({
@@ -1100,9 +1366,13 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         // confirmation should not be required in most cases, e.g. when moving a request within the same folder (e.g. to update the sequence).
         confirmOnOverwritingSourceItem = false,
     ) {
+        // Outside of collections, there are no registered items.
+        const targetExists = targetCollection
+            ? this.itemProvider.getRegisteredItem(targetCollection, newPath) !=
+              undefined
+            : await checkIfPathExistsAsync(newPath);
         const needsConfirmation =
-            targetCollection &&
-            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
+            targetExists &&
             (confirmOnOverwritingSourceItem
                 ? true
                 : normalizePath(newPath) != normalizePath(sourcePath));

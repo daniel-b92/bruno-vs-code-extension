@@ -1,5 +1,9 @@
 import { describe, it, expect } from "@jest/globals";
-import { BrunoFileType, CollectionFormat } from "@global_shared";
+import {
+    BrunoFileType,
+    CollectionFormat,
+    NonBrunoSpecificItemType,
+} from "@global_shared";
 import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
 import { getDeleteConfirmationMessage } from "./getDeleteConfirmationMessage";
 
@@ -18,6 +22,16 @@ describe("getDeleteConfirmationMessage", () => {
         );
 
         expect(message).toBe("Delete 'request.bru'?");
+    });
+
+    it("returns a plain confirmation message for an item that is not part of a collection", () => {
+        const message = getDeleteConfirmationMessage(
+            "helper.js",
+            "/shared/helper.js",
+            NonBrunoSpecificItemType.OtherFileType,
+        );
+
+        expect(message).toBe("Delete 'helper.js'?");
     });
 
     it("returns a plain confirmation message for an environment with no dependents", () => {

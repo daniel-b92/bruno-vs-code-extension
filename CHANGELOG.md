@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Features
+
+- Show the folders configured in `additionalContextRoots` (in `bruno.json` or `opencollection.yml`) as top-level nodes in the collection explorer, after the collections. Collection roots and context roots have distinct icons, and the tooltip of a context root lists the collections that use it. Their files and folders can be created, renamed, duplicated, copied, pasted, moved via drag and drop (also from and to collections) and deleted, and opened in a new tab group. Bruno specific actions (e.g. creating requests, starting test runs or normalizing sequences) are not offered for them. Roots that do not exist yet are shown as soon as their folder is created. Roots inside a collection or nested in another root are not shown separately, and neither are `node_modules` folders and collections within a context root.
+
 ### Fixes / Maintenance
 
 - Show an info message (once per session) when the Typescript 7 language server is used, since Javascript intellisense in Bruno files is not available with it yet. The message can be disabled permanently via the new setting `bru-as-code.informAboutTypescript7`, and is always written to the output channel. The limitation is now documented in the README.

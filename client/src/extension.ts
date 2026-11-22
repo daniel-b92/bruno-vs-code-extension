@@ -267,7 +267,7 @@ function getAdditionalCollectionDataProvider(
                     ? item.getSequence()
                     : undefined,
                 isCollectionItemWithTags(item) ? item.getTags() : undefined,
-                getIconForItem(item, isCollectionRootFile),
+                getIconForItem(item, isCollectionRootFile, isCollectionRoot),
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),

@@ -16,6 +16,8 @@ export async function renameFileOrFolder(
     targetPath: string,
     isFile: boolean,
     logger?: Logger,
+    /** Whether an existing item at the target path should be replaced. Without it, the rename fails if the target exists. */
+    overwrite = false,
 ) {
     const pathEdits = await getRunRequestPathEditsSafely(
         itemProvider,
@@ -34,7 +36,7 @@ export async function renameFileOrFolder(
         );
 
     let renamedSuccessfully = await workspace.applyEdit(
-        createWorkspaceEdit(sourcePath, targetPath, pathEdits),
+        createWorkspaceEdit(sourcePath, targetPath, pathEdits, overwrite),
         { isRefactoring: true },
     );
 
@@ -43,7 +45,7 @@ export async function renameFileOrFolder(
             `Renaming '${sourcePath}' together with the updates of 'bru.runRequest' paths failed. Renaming without these updates.`,
         );
         renamedSuccessfully = await workspace.applyEdit(
-            createWorkspaceEdit(sourcePath, targetPath, []),
+            createWorkspaceEdit(sourcePath, targetPath, [], overwrite),
         );
     } else if (renamedSuccessfully) {
         await saveEditedFiles(pathEdits, dirtyFilePathsAfterRename, logger);
@@ -94,10 +96,15 @@ function createWorkspaceEdit(
     sourcePath: string,
     targetPath: string,
     pathEdits: RunRequestPathEdit[],
+    overwrite: boolean,
 ) {
     const workspaceEdit = new WorkspaceEdit();
 
-    workspaceEdit.renameFile(Uri.file(sourcePath), Uri.file(targetPath));
+    workspaceEdit.renameFile(
+        Uri.file(sourcePath),
+        Uri.file(targetPath),
+        overwrite ? { overwrite: true } : undefined,
+    );
     pathEdits.forEach(({ filePath, range, newText }) =>
         workspaceEdit.replace(
             Uri.file(filePath),

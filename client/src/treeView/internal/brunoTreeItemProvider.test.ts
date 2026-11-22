@@ -1,160 +1,168 @@
-import { describe, it, expect, beforeEach } from "@jest/globals";
-import { BrunoTreeItem } from "@shared";
+import { describe, it, expect, jest } from "@jest/globals";
+import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
+import { ContextRootItemProvider } from "./contextRoots/contextRootItemProvider";
+import { ContextRootTreeItem } from "./contextRoots/contextRootTreeItem";
 
-const mockItemProvider = { subscribeToUpdates: () => {} } as any;
+describe("BrunoTreeItemProvider", () => {
+    describe("getChildren", () => {
+        it("shows the context roots after the collections", async () => {
+            const { provider } = createProvider({
+                collectionRoots: ["/ws/b-collection", "/ws/a-collection"],
+                contextRoots: ["/ws/a-shared", "/other/z-shared"],
+            });
 
-describe("BrunoTreeItemProvider - getSortedTreeItems1", () => {
-    let provider: BrunoTreeItemProvider;
+            const items = await provider.getChildren();
 
-    beforeEach(() => {
-        provider = new BrunoTreeItemProvider("/workspace", mockItemProvider);
-    });
-
-    describe("folders vs files ordering", () => {
-        it("places folders before files", () => {
-            const items = [
-                makeItem(true, "b-file.bru"),
-                makeItem(false, "a-folder"),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result[0].isFile).toBe(false);
-            expect(result[1].isFile).toBe(true);
-        });
-
-        it("keeps relative order among multiple folders and files", () => {
-            const items = [
-                makeItem(true, "file1.bru"),
-                makeItem(false, "folder2"),
-                makeItem(true, "file2.bru"),
-                makeItem(false, "folder1"),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result[0].isFile).toBe(false);
-            expect(result[1].isFile).toBe(false);
-            expect(result[2].isFile).toBe(true);
-            expect(result[3].isFile).toBe(true);
-        });
-
-        it("places folder before file even when the file has a lower sequence", () => {
-            const items = [
-                makeItem(true, "file.bru", 1),
-                makeItem(false, "folder", 2),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result[0].isFile).toBe(false);
-            expect(result[1].isFile).toBe(true);
-        });
-
-        it("places folder before file even when the file has no sequence and the folder does", () => {
-            const items = [
-                makeItem(true, "a-file.bru"),
-                makeItem(false, "z-folder", 1),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result[0].isFile).toBe(false);
-            expect(result[1].isFile).toBe(true);
-        });
-
-        it("places folder before file even when the folder has no sequence and the file does", () => {
-            const items = [
-                makeItem(true, "a-file.bru", 1),
-                makeItem(false, "z-folder"),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result[0].isFile).toBe(false);
-            expect(result[1].isFile).toBe(true);
-        });
-
-        it("places folder before file even when alphabetical order would put the file first", () => {
-            const items = [
-                makeItem(true, "alpha.bru"),
-                makeItem(false, "zeta"),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result[0].isFile).toBe(false);
-            expect(result[1].isFile).toBe(true);
-        });
-    });
-
-    describe("alphabetical ordering (no sequences)", () => {
-        it("sorts items without a sequence alphabetically by label", () => {
-            const items = [
-                makeItem(false, "zeta"),
-                makeItem(false, "alpha"),
-                makeItem(false, "mu"),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result.map((i) => i.label)).toEqual(["alpha", "mu", "zeta"]);
-        });
-
-        it("sorts alphabetically case-insensitively", () => {
-            const items = [
-                makeItem(false, "Beta"),
-                makeItem(false, "alpha"),
-                makeItem(false, "GAMMA"),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result.map((i) => i.label)).toEqual([
-                "alpha",
-                "Beta",
-                "GAMMA",
+            expect(items.map((item) => item.getPath())).toEqual([
+                "/ws/a-collection",
+                "/ws/b-collection",
+                "/ws/a-shared",
+                "/other/z-shared",
             ]);
         });
-    });
 
-    describe("sequence ordering", () => {
-        it("sorts items with a sequence numerically", () => {
-            const items = [
-                makeItem(false, "third", 3),
-                makeItem(false, "first", 1),
-                makeItem(false, "second", 2),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result.map((i) => i.getSequence())).toEqual([1, 2, 3]);
+        it("delegates to the context root provider for the items of a context root", async () => {
+            const { provider, contextRootProvider } = createProvider({
+                collectionRoots: [],
+                contextRoots: ["/ws/shared"],
+            });
+            const folder = new ContextRootTreeItem("/ws/shared/sub", false);
+            const child = new ContextRootTreeItem("/ws/shared/sub/a.js", true);
+            contextRootProvider.getChildren.mockResolvedValue([child]);
+
+            expect(await provider.getChildren(folder)).toEqual([child]);
+            expect(contextRootProvider.getChildren).toHaveBeenCalledWith(
+                folder,
+            );
         });
 
-        it("places items with a sequence before items without one", () => {
-            const items = [
-                makeItem(false, "no-seq-folder"),
-                makeItem(false, "sequenced-folder", 1),
-            ];
-            const result = getSortedItems(provider, items);
-            expect(result[0].getSequence()).toBe(1);
-            expect(result[1].getSequence()).toBeUndefined();
+        it("returns no children for a file of a context root", async () => {
+            const { provider, contextRootProvider } = createProvider({
+                collectionRoots: [],
+                contextRoots: [],
+            });
+
+            const children = await provider.getChildren(
+                new ContextRootTreeItem("/ws/shared/a.js", true),
+            );
+
+            expect(children).toEqual([]);
+            expect(contextRootProvider.getChildren).not.toHaveBeenCalled();
         });
     });
 
-    describe("does not mutate the input array", () => {
-        it("returns a new array without modifying the original", () => {
-            const items = [makeItem(true, "z.bru"), makeItem(true, "a.bru")];
-            const original = [...items];
-            getSortedItems(provider, items);
-            expect(items[0].label).toBe(original[0].label);
-            expect(items[1].label).toBe(original[1].label);
+    describe("getParent", () => {
+        it("delegates to the context root provider for the items of a context root", () => {
+            const { provider, contextRootProvider } = createProvider({
+                collectionRoots: [],
+                contextRoots: [],
+            });
+            const parent = new ContextRootTreeItem("/ws/shared", false);
+            contextRootProvider.getParent.mockReturnValue(parent);
+
+            expect(
+                provider.getParent(
+                    new ContextRootTreeItem("/ws/shared/a.js", true),
+                ),
+            ).toBe(parent);
+        });
+
+        it("does not throw for items that are not located in a collection", () => {
+            const { provider } = createProvider({
+                collectionRoots: [],
+                contextRoots: [],
+            });
+
+            expect(
+                provider.getParent({
+                    getPath: () => "/not/in/a/collection/a.js",
+                } as BrunoTreeItem),
+            ).toBeUndefined();
+        });
+    });
+
+    describe("change events", () => {
+        it("refreshes the root level when the context roots of a collection changed", () => {
+            const { provider, additionalContextRootListeners } = createProvider(
+                { collectionRoots: [], contextRoots: [] },
+            );
+            const changes: (BrunoTreeItem | undefined)[] = [];
+            provider.onDidChangeTreeData((item) => changes.push(item));
+
+            additionalContextRootListeners.forEach((listener) => listener());
+
+            expect(changes).toEqual([undefined]);
+        });
+
+        it("forwards the changes of the context root provider", () => {
+            const { provider, contextRootListeners } = createProvider({
+                collectionRoots: [],
+                contextRoots: [],
+            });
+            const changes: (BrunoTreeItem | undefined)[] = [];
+            provider.onDidChangeTreeData((item) => changes.push(item));
+            const changedItem = new ContextRootTreeItem("/ws/shared", false);
+
+            contextRootListeners.forEach((listener) => listener(changedItem));
+
+            expect(changes).toEqual([changedItem]);
         });
     });
 });
 
-function makeItem(
-    isFile: boolean,
-    label: string,
-    sequence?: number,
-): BrunoTreeItem {
-    return {
-        isFile,
-        label,
-        getSequence: () => sequence,
-    } as unknown as BrunoTreeItem;
-}
+function createProvider({
+    collectionRoots,
+    contextRoots,
+}: {
+    collectionRoots: string[];
+    contextRoots: string[];
+}) {
+    const additionalContextRootListeners: (() => void)[] = [];
+    const contextRootListeners: ((item?: BrunoTreeItem) => void)[] = [];
 
-function getSortedItems(
-    provider: BrunoTreeItemProvider,
-    items: BrunoTreeItem[],
-): BrunoTreeItem[] {
-    return (
-        provider as unknown as {
-            getSortedTreeItems(items: BrunoTreeItem[]): BrunoTreeItem[];
-        }
-    ).getSortedTreeItems(items);
+    const collections = collectionRoots.map((rootDirectory) => ({
+        getRootDirectory: () => rootDirectory,
+        getStoredDataForPath: () => ({
+            additionalData: {
+                treeItem: new BrunoTreeItem(rootDirectory, false, true),
+            },
+        }),
+    }));
+    const itemProvider = {
+        subscribeToUpdates: () => {},
+        subscribeToAdditionalContextRootChanges: (listener: () => void) =>
+            additionalContextRootListeners.push(listener),
+        ensureCacheIsLoaded: () => Promise.resolve(),
+        getRegisteredCollections: () => collections,
+        getAncestorCollectionForPath: () => undefined,
+    } as unknown as TypedCollectionItemProvider;
+    const contextRootProvider = {
+        onDidChange: (listener: (item?: BrunoTreeItem) => void) =>
+            contextRootListeners.push(listener),
+        getRootItems: jest.fn(() =>
+            Promise.resolve(
+                contextRoots.map(
+                    (path) =>
+                        new ContextRootTreeItem(path, false, {
+                            description: path,
+                            collectionNames: [],
+                        }),
+                ),
+            ),
+        ),
+        getChildren: jest.fn<ContextRootItemProvider["getChildren"]>(),
+        getParent: jest.fn<ContextRootItemProvider["getParent"]>(),
+    };
+
+    return {
+        provider: new BrunoTreeItemProvider(
+            "/ws",
+            itemProvider,
+            contextRootProvider as unknown as ContextRootItemProvider,
+        ),
+        contextRootProvider,
+        additionalContextRootListeners,
+        contextRootListeners,
+    };
 }

@@ -10,16 +10,25 @@ const folderSettingsIcon = createIcon("settings", "charts.orange");
 const collectionSettingsIcon = createIcon("settings-gear", "charts.purple");
 const environmentIcon = createIcon("variable-group", "charts.green");
 const appIcon = createIcon("browser", "charts.yellow");
+const collectionRootIcon = createIcon("library", "charts.blue");
+
+/** The icon for the top-level nodes of the collection explorer that show an additional context root (a folder with shared scripts outside of the collection). */
+export const contextRootIcon = createIcon("folder-library", "charts.red");
 
 /**
- * Determines the icon for Bruno specific files in the collection explorer.
+ * Determines the icon for collection roots and Bruno specific files in the collection explorer.
  *
- * For all other items (e.g. folders, `.js` or `.json` files), no icon is returned, so that the icons of the active file icon theme are used.
+ * For all other items (e.g. other folders, `.js` or `.json` files), no icon is returned, so that the icons of the active file icon theme are used.
  */
 export function getIconForItem(
     item: CollectionItem,
     isCollectionRootFile: boolean,
+    isCollectionRoot: boolean,
 ) {
+    if (isCollectionRoot) {
+        return collectionRootIcon;
+    }
+
     switch (item.getItemType()) {
         case BrunoFileType.RequestFile:
             return requestIcon;

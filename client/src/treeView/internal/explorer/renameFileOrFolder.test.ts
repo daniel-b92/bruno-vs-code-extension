@@ -55,6 +55,37 @@ describe("renameFileOrFolder", () => {
         expect(save.mock.calls[0][0]).toMatchObject({ fsPath: callerPath });
     });
 
+    it("replaces an existing item at the target path only when requested", async () => {
+        const applyEdit = jest.spyOn(workspace, "applyEdit");
+        const itemProvider = createItemProvider();
+
+        await renameFileOrFolder(
+            itemProvider,
+            join(root, "users/a.bru"),
+            join(root, "users/b.bru"),
+            true,
+        );
+        await renameFileOrFolder(
+            itemProvider,
+            join(root, "users/a.bru"),
+            join(root, "users/b.bru"),
+            true,
+            undefined,
+            true,
+        );
+
+        const [withoutOverwrite, withOverwrite] = applyEdit.mock.calls.map(
+            ([edit]) =>
+                (
+                    edit as WorkspaceEdit & {
+                        renames: { options?: { overwrite?: boolean } }[];
+                    }
+                ).renames[0].options,
+        );
+        expect(withoutOverwrite).toBeUndefined();
+        expect(withOverwrite).toEqual({ overwrite: true });
+    });
+
     it("does not save documents that had unsaved changes", async () => {
         const save = jest.spyOn(workspace, "save");
         openDocuments(openDocument(callerPath, callerContent, true));
