@@ -97,7 +97,22 @@ Show the title and the body in two separate code blocks, so each can be copied w
 - The title in a plain code block (one line).
 - The body in a code block fenced with four backticks (` ````markdown `), because the body itself may contain code blocks with three backticks, which would otherwise end the outer block early. This is about your chat reply; don't save the issue body to a file (a formatter may rewrite the fences there).
 
-After the code blocks, add one line saying which template to choose under "New issue" on GitHub ("Bug report", "Feature or enhancement" or "Technical task"), since the template sets the labels, and that the prefilled body should be replaced with the copied one. Apart from that, a possible short note on a reframed premise before the blocks (see step 1) and the additions described below for split issues and revisions, don't add commentary between or inside the blocks: anything inside them ends up in the issue.
+After the code blocks, add one line saying which template to choose under "New issue" on GitHub ("Bug report", "Feature or enhancement" or "Technical task"), since the template sets the labels, and that the prefilled body should be replaced with the copied one. Add a second line with your recommendation on the `good first issue` label (see below). Apart from that, a possible short note on a reframed premise before the blocks (see step 1) and the additions described below for split issues and revisions, don't add commentary between or inside the blocks: anything inside them ends up in the issue.
+
+#### Recommending the `good first issue` label
+
+The templates don't set this label, so the user adds it by hand. For every issue you draft, recommend in one line whether to add it, with the main reason in a few words, e.g. "`good first issue`: yes, a single option in an existing dialog, following the pattern of the existing ones" or "`good first issue`: no, depends on the issue '<title>' and touches the drag-and-drop logic".
+
+Recommend it only if all of these hold:
+
+- The scope is small and clearly defined: one feature area and a handful of files.
+- No design decision is left open. Open questions only cover details whose assumption is fine either way.
+- The issue doesn't depend on another issue that isn't done yet.
+- Similar code already exists that shows the pattern to follow (e.g. a comparable diagnostic, completion or command), and the change can be covered by unit tests.
+- It doesn't require a deep understanding of cross-cutting internals, such as the collection cache and its syncing with the file system, sequence normalization, the drag-and-drop logic of the collection explorer, or how test runs are orchestrated.
+- It doesn't add dependencies, use restricted modules or APIs, change files checked by the security checks (see "Security checks" in `CONTRIBUTING.md`), or introduce a webview.
+
+If an issue doesn't qualify, but a small, self-contained part of it would, you may say so in the same line (e.g. "no, but adding the `--insecure` flag alone would be one"). Recommend the label sparingly: a newcomer who gets stuck on a mislabeled issue is worse off than one who finds no labeled issue.
 
 Writing an issue changes no code, so the `CHANGELOG.md` rule from `CLAUDE.md` doesn't apply to this reply.
 
@@ -109,7 +124,7 @@ If the user chose to split the request into several issues:
 
 When the user asks for changes to the draft:
 
-- Show the complete title and body again, not only the changed section, so they can still be copied with one click. Before the blocks, say in one line what changed.
+- Show the complete title and body again, not only the changed section, so they can still be copied with one click. Before the blocks, say in one line what changed. After them, repeat the `good first issue` recommendation, updated if the change affects it.
 - A change request often shows that you made a decision on your own. If so, check whether other parts of the draft rest on similar decisions the user wasn't asked about, and ask about them (as in step 2) before redrafting.
 
 ### 5. Offer the implementation-details file
@@ -218,3 +233,5 @@ This works in `.bru` files and in `yaml` collections.
 ````
 
 Choose the "Feature or enhancement" template on GitHub and replace its prefilled body with the one above.
+
+`good first issue`: yes, a single hover provider following the existing hovers, with no open design decisions.
