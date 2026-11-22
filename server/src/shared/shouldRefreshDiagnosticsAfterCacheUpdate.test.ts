@@ -73,12 +73,17 @@ describe("shouldRefreshDiagnosticsAfterCacheUpdate", () => {
             "an environment file",
             new BrunoEnvironmentFile("/collection/environments/dev.yml", []),
         ],
-    ])("returns false for a deleted %s", (_, item) => {
-        expect(
-            shouldRefreshDiagnosticsAfterCacheUpdate([
-                createNotification(FileChangeType.Deleted, item),
-            ]),
-        ).toBe(false);
+    ])("returns false for a created or deleted %s", (_, item) => {
+        for (const updateType of [
+            FileChangeType.Created,
+            FileChangeType.Deleted,
+        ] as const) {
+            expect(
+                shouldRefreshDiagnosticsAfterCacheUpdate([
+                    createNotification(updateType, item),
+                ]),
+            ).toBe(false);
+        }
     });
 
     it("returns true for a modification with a changed sequence", () => {
@@ -119,14 +124,13 @@ describe("shouldRefreshDiagnosticsAfterCacheUpdate", () => {
     });
 });
 
-type ChangedData = {
-    sequenceChanged: boolean;
-    tagsChanged: boolean;
-    additionalDataChanged: boolean;
-};
+type ChangedData = Extract<
+    NotificationData<undefined>,
+    { updateType: FileChangeType.Modified }
+>["changedData"];
 
 function createModification(
-    changedData: ChangedData | undefined,
+    changedData: ChangedData,
 ): NotificationData<undefined> {
     return {
         ...createNotificationBase(
