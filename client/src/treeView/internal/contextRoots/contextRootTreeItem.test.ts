@@ -12,7 +12,7 @@ describe("ContextRootTreeItem", () => {
         expect(item.isTopLevel).toBe(true);
         expect(item.contextValue).toBe("contextRoot");
         expect(item.description).toBe("shared/scripts");
-        expect((item.iconPath as { id: string }).id).toBe("folder-library");
+        expect((item.iconPath as { id: string }).id).toBe("file-symlink-directory");
         expect(item.command).toBeUndefined();
     });
 
