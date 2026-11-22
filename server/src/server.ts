@@ -27,7 +27,6 @@ import { runUpdatesOnWillSave as runUpdatesOnWillSaveForYamlFile } from "./yamlF
 import { handleCodeActionRequest as handleCodeActionRequestForYamlFile } from "./yamlFiles/quickFixes/handleCodeActionRequest";
 import { handleCodeActionRequest as handleCodeActionRequestForBruFile } from "./bruFiles/quickFixes/handleCodeActionRequest";
 import {
-    FileChangeType,
     getConfiguredEnvironmentNameAsync,
     getItemType,
     NonBrunoSpecificItemType,
@@ -62,6 +61,7 @@ import { getYamlFileTypeForEditorContent } from "./yamlFiles/getYamlFileTypeForE
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 import { getSequencePrefixDiagnostic } from "./shared/diagnostics/sequencePrefix/getSequencePrefixDiagnostic";
 import { getSequencePrefixQuickFixes } from "./shared/diagnostics/sequencePrefix/getSequencePrefixQuickFixes";
+import { shouldRefreshDiagnosticsAfterCacheUpdate } from "./shared/shouldRefreshDiagnosticsAfterCacheUpdate";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
@@ -154,14 +154,7 @@ disposables.push(
         itemProvider.subscribeToUpdates((changes) => {
             updateFormattingRegistration();
 
-            if (
-                changes.some(
-                    (change) =>
-                        change.updateType == FileChangeType.Modified &&
-                        change.changedData?.sequenceChanged,
-                )
-            ) {
-                // Needed for keeping diagnostics for duplicate sequences in sync.
+            if (shouldRefreshDiagnosticsAfterCacheUpdate(changes)) {
                 connection.languages.diagnostics.refresh();
             }
         });

@@ -1,5 +1,5 @@
-import { MultiFileOperationWithStatus } from "../../fileSystem/interfaces";
-import { Disposable, Event, EventEmitter } from "vscode";
+import { Event } from "vscode";
+import { dirname } from "path";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
 import {
     TypedCollection,
@@ -7,11 +7,8 @@ import {
 } from "../../model/interfaces";
 import {
     isCollectionItemWithSequence,
-    normalizePath,
     parseSequenceFromFile,
 } from "@global_shared";
-import { dirname } from "path";
-import { determineFilesToCheckWhetherInSync } from "../internal/determineFilesToCheckWhetherInSync";
 import {
     ResultCode,
     waitForFilesFromFolderToBeInSync,
@@ -20,35 +17,9 @@ import {
 export class FileSystemCacheSyncingHelper {
     constructor(
         private itemProvider: TypedCollectionItemProvider,
-        multiFileOperationSubscription: Event<MultiFileOperationWithStatus>,
         private logger?: OutputChannelLogger,
-    ) {
-        this.multiFileOperationFinishedNotifier = new EventEmitter<string>();
+    ) {}
 
-        this.disposables.push(
-            multiFileOperationSubscription(({ parentFolder, running }) => {
-                if (running) {
-                    this.latestMultiFileOperation = {
-                        folderPath: parentFolder,
-                        completionDate: undefined,
-                    };
-                } else {
-                    this.latestMultiFileOperation = {
-                        folderPath: parentFolder,
-                        completionDate: new Date(),
-                    };
-                    this.multiFileOperationFinishedNotifier.fire(parentFolder);
-                }
-            }),
-        );
-    }
-
-    private disposables: Disposable[] = [];
-    private multiFileOperationFinishedNotifier: EventEmitter<string>;
-    private latestMultiFileOperation: {
-        folderPath: string | undefined;
-        completionDate: Date | undefined;
-    } = { folderPath: undefined, completionDate: undefined };
     private readonly commonPreMessageForLogging =
         "[FileSystemCacheSyncingHelper]";
 
@@ -69,7 +40,6 @@ export class FileSystemCacheSyncingHelper {
                 `${this.commonPreMessageForLogging} Aborting waiting for file '${filePath}' to be registered in cache.`,
             );
         };
-        const parentFolder = dirname(filePath);
         const collection =
             this.itemProvider.getAncestorCollectionForPath(
                 collectionRootFolder,
@@ -87,10 +57,7 @@ export class FileSystemCacheSyncingHelper {
             return false;
         }
 
-        if (
-            !this.hasMultiFileOperationRecentlyBeenActive(parentFolder) &&
-            (await this.isCachedFileInSync(collection, filePath))
-        ) {
+        if (await this.isCachedFileInSync(collection, filePath)) {
             this.logger?.debug(
                 `Cached item '${filePath}' already up to date on first check.`,
             );
@@ -104,26 +71,12 @@ export class FileSystemCacheSyncingHelper {
 
         const startTime = performance.now();
 
-        // Multi file operations often cause the cache to not be in sync with the file system for a little while.
-        // Therefore, wait until the operation is completed before continuing and afterwards we wait until all items for files in the folder are in sync.
-        const filesToCheck = await determineFilesToCheckWhetherInSync(
-            filePath,
-            parentFolder,
-            collection,
+        const filesToCheck = [
             {
-                currentlyActive: (folder) =>
-                    this.isMultiFileOperationActive(folder),
-                recentlyActive: (folder) =>
-                    this.hasMultiFileOperationRecentlyBeenActive(folder),
-                multiFileOperationFinishedNotifier:
-                    this.multiFileOperationFinishedNotifier.event,
+                path: filePath,
+                sequence: await parseSequenceFromFile(filePath),
             },
-            {
-                getRegisteredItem: (collection, path) =>
-                    this.itemProvider.getRegisteredItem(collection, path),
-            },
-            this.logger,
-        );
+        ];
 
         if (shouldAbort) {
             addLogEntryForAbortion();
@@ -132,7 +85,7 @@ export class FileSystemCacheSyncingHelper {
 
         const resultCode = await waitForFilesFromFolderToBeInSync(
             filesToCheck,
-            parentFolder,
+            dirname(filePath),
             {
                 shouldAbort: () => shouldAbort,
                 getSubscriptionForCacheUpdates: (callback) =>
@@ -144,10 +97,7 @@ export class FileSystemCacheSyncingHelper {
             this.logger,
         );
 
-        if (
-            resultCode == ResultCode.WaitingCompleted &&
-            filesToCheck.length > 0
-        ) {
+        if (resultCode == ResultCode.WaitingCompleted) {
             this.logger?.trace(
                 `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
                     filesToCheck.map(({ path }) => path),
@@ -158,39 +108,6 @@ export class FileSystemCacheSyncingHelper {
         }
 
         return resultCode == ResultCode.WaitingCompleted;
-    }
-
-    public dispose() {
-        for (const d of this.disposables) {
-            d.dispose();
-        }
-    }
-
-    private hasMultiFileOperationRecentlyBeenActive(folderPath: string) {
-        const maxDiffInMillis = 3_000;
-
-        const hasRecentlyBeenActive =
-            this.latestMultiFileOperation.completionDate != undefined &&
-            new Date().getTime() <=
-                this.latestMultiFileOperation.completionDate.getTime() +
-                    maxDiffInMillis;
-
-        return (
-            this.isMultiFileOperationActive(folderPath) ||
-            (hasRecentlyBeenActive &&
-                this.latestMultiFileOperation.folderPath != undefined &&
-                normalizePath(this.latestMultiFileOperation.folderPath) ==
-                    normalizePath(folderPath))
-        );
-    }
-
-    private isMultiFileOperationActive(folderPath: string) {
-        return (
-            this.latestMultiFileOperation.completionDate == undefined &&
-            this.latestMultiFileOperation.folderPath != undefined &&
-            normalizePath(this.latestMultiFileOperation.folderPath) ==
-                normalizePath(folderPath)
-        );
     }
 
     private async isCachedFileInSync(

@@ -3,7 +3,6 @@ import { EventEmitter, ExtensionContext, Uri } from "vscode";
 import {
     TypedCollectionItemProvider,
     getLoggerFromSubscriptions,
-    MultiFileOperationWithStatus,
     FileSystemCacheSyncingHelper,
 } from "../shared";
 
@@ -15,14 +14,12 @@ export function activateTreeView(
         uri: Uri;
         withDialog: boolean;
     }>,
-    multiFileOperationNotifier: EventEmitter<MultiFileOperationWithStatus>,
 ) {
     context.subscriptions.push(
         new CollectionExplorer(
             itemProvider,
             cacheSyncingHelper,
             startTestRunEmitter,
-            multiFileOperationNotifier,
             getLoggerFromSubscriptions(context),
         ),
     );

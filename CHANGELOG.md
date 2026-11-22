@@ -14,6 +14,7 @@
 - Show an info message (once per session) when the Typescript 7 language server is used, since Javascript intellisense in Bruno files is not available with it yet. The message can be disabled permanently via the new setting `bru-as-code.informAboutTypescript7`, and is always written to the output channel. The limitation is now documented in the README.
 - Insert the flow-specific keys of an `oauth2` auth in Yaml files (e.g. `accessTokenUrl`, `credentials`, `scope`) when selecting a completion for its `flow`. Keys that are already defined are kept as they are.
 - Show a warning for keys of an `oauth2` auth in Yaml files that Bruno ignores for the selected `flow` (e.g. `authorizationUrl` for `client_credentials`), with a quick fix that removes the key. This works for request files, `folder.yml` and `opencollection.yml`.
+- Fix an issue that caused a false error about a duplicate sequence to be shown for a request after renaming or moving it, until the file was changed and saved again. The diagnostics for duplicate sequences are now also updated when requests, app files or folders with a sequence are created, moved or deleted.
 
 ## [2.2.0] (2026-11-19)
 
