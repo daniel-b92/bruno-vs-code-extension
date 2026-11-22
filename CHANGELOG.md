@@ -2,7 +2,7 @@
 
 ### Features
 
-- Show the folders configured in `additionalContextRoots` (in `bruno.json` or `opencollection.yml`) as top-level nodes in the collection explorer, after the collections. Collection roots and context roots have distinct icons, and the tooltip of a context root lists the collections that use it. Their files and folders can be created, renamed, duplicated, copied, pasted, moved via drag and drop (also from and to collections) and deleted, and opened in a new tab group. Bruno specific actions (e.g. creating requests, starting test runs or normalizing sequences) are not offered for them. Roots inside a collection, nested in another root, or that do not exist are not shown separately, and neither are `node_modules` folders and collections within a context root.
+- Show the folders configured in `additionalContextRoots` (in `bruno.json` or `opencollection.yml`) as top-level nodes in the collection explorer, after the collections. Collection roots and context roots have distinct icons, and the tooltip of a context root lists the collections that use it. Their files and folders can be created, renamed, duplicated, copied, pasted, moved via drag and drop (also from and to collections) and deleted, and opened in a new tab group. Bruno specific actions (e.g. creating requests, starting test runs or normalizing sequences) are not offered for them. Roots that do not exist yet are shown as soon as their folder is created. Roots inside a collection or nested in another root are not shown separately, and neither are `node_modules` folders and collections within a context root.
 
 ### Fixes / Maintenance
 

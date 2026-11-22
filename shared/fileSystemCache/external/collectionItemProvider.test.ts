@@ -8,6 +8,7 @@ import {
     BrunoEnvironmentFile,
     BrunoFileType,
     BrunoRequestFile,
+    Collection,
     CollectionDirectory,
     CollectionFormat,
     CollectionItem,
@@ -307,6 +308,76 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         expect(collection.getAdditionalContextRoots()).toEqual([
             join(rootDir, "shared"),
         ]);
+    });
+
+    it("returns context roots that only differ in their spelling once, in the spelling that was found first", async () => {
+        const requestContent =
+            "meta {\n  name: request\n  type: http\n  seq: 1\n}\n";
+        const workspace = await createTemporaryDirectory({
+            "colA/bruno.json": "{}",
+            "colA/request.bru": requestContent,
+            "colB/bruno.json": "{}",
+            "colB/request.bru": requestContent,
+            "colC/bruno.json": "{}",
+            "colC/request.bru": requestContent,
+        });
+        const provider = createProvider(workspace);
+        await provider.refreshCache();
+        const [colA, colB, colC] = getCollectionsByName(provider, [
+            "colA",
+            "colB",
+            "colC",
+        ]);
+        const shared = join(workspace, "shared");
+        colA.setAdditionalContextRoots([shared, join(workspace, "other")]);
+        colB.setAdditionalContextRoots([`${shared}/`]);
+        colC.setAdditionalContextRoots([shared]);
+
+        expect(provider.getUniqueAdditionalContextRoots()).toEqual([
+            shared,
+            join(workspace, "other"),
+        ]);
+    });
+
+    it("finds the collections that use exactly the given folder as a context root, regardless of the spelling", async () => {
+        const requestContent =
+            "meta {\n  name: request\n  type: http\n  seq: 1\n}\n";
+        const workspace = await createTemporaryDirectory({
+            "colA/bruno.json": "{}",
+            "colA/request.bru": requestContent,
+            "colB/bruno.json": "{}",
+            "colB/request.bru": requestContent,
+            "colC/bruno.json": "{}",
+            "colC/request.bru": requestContent,
+            "colD/bruno.json": "{}",
+            "colD/request.bru": requestContent,
+        });
+        const provider = createProvider(workspace);
+        await provider.refreshCache();
+        const [colA, colB, colC, colD] = getCollectionsByName(provider, [
+            "colA",
+            "colB",
+            "colC",
+            "colD",
+        ]);
+        const shared = join(workspace, "shared");
+        colA.setAdditionalContextRoots([shared]);
+        colB.setAdditionalContextRoots([`${shared}/`]);
+        // Roots above or below the folder are not an exact match.
+        colC.setAdditionalContextRoots([join(shared, "nested")]);
+        colD.setAdditionalContextRoots([workspace]);
+
+        expect(
+            provider
+                .getCollectionsUsingAdditionalContextRoot(shared)
+                .map((collection) => basename(collection.getRootDirectory()))
+                .sort(),
+        ).toEqual(["colA", "colB"]);
+        expect(
+            provider.getCollectionsUsingAdditionalContextRoot(
+                join(workspace, "missing"),
+            ),
+        ).toEqual([]);
     });
 
     it("notifies subscribers only when the additional context roots of a collection actually change", async () => {
@@ -1097,3 +1168,23 @@ type AdditionalDataCallback = (
     isCollectionRoot: boolean,
     isCollectionRootFile: boolean,
 ) => undefined;
+
+/** Returns the registered collections with the given directory names, as modifiable instances. */
+function getCollectionsByName(
+    provider: ReturnType<typeof createProvider>,
+    names: string[],
+) {
+    return names.map((name) => {
+        const collection = provider
+            .getRegisteredCollections()
+            .find(
+                (registered) => basename(registered.getRootDirectory()) == name,
+            );
+
+        if (!collection) {
+            throw new Error(`Collection '${name}' is not registered.`);
+        }
+
+        return collection as unknown as Collection<undefined>;
+    });
+}

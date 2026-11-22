@@ -1,7 +1,13 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
+import { mkdir } from "fs/promises";
 import { join } from "path";
 import { workspace } from "vscode";
-import { CollectionFormat, isPathEqualOrDescendant } from "@global_shared";
+import {
+    CollectionFormat,
+    getTemporaryJsFileBasename,
+    isPathEqualOrDescendant,
+    normalizePath,
+} from "@global_shared";
 import {
     createCollectionWithEnvironments,
     useTemporaryDirectories,
@@ -20,21 +26,6 @@ describe("ContextRootItemProvider", () => {
     });
 
     describe("getRootItems", () => {
-        it("shows equal roots with different spellings only once", async () => {
-            const base = await createTemporaryDirectory({
-                "shared/a.js": "",
-            });
-            const shared = join(base, "shared");
-            const provider = createProvider(base, [
-                { name: "first", roots: [shared] },
-                { name: "second", roots: [`${shared}/`] },
-            ]);
-
-            const items = await provider.getRootItems();
-
-            expect(items.map((item) => item.label)).toEqual(["shared"]);
-        });
-
         it("leaves out roots inside a collection, roots in other roots and roots that are no existing directories", async () => {
             const base = await createTemporaryDirectory({
                 "collection/inside/a.js": "",
@@ -122,6 +113,35 @@ describe("ContextRootItemProvider", () => {
 
             expect((item.tooltip as { value: string }).value).toContain(
                 "'first', 'second'",
+            );
+        });
+
+        it("does not keep an outdated top-level node when a root is located in another root later", async () => {
+            const base = await createTemporaryDirectory({
+                "shared/nested/a.js": "",
+            });
+            const collection = createCollection("first", base);
+            collection.setAdditionalContextRoots([
+                join(base, "shared", "nested"),
+            ]);
+            const provider = createProvider(base, [], undefined, [collection]);
+            const [nestedRoot] = await provider.getRootItems();
+
+            collection.setAdditionalContextRoots([
+                join(base, "shared", "nested"),
+                join(base, "shared"),
+            ]);
+            const [outerRoot] = await provider.getRootItems();
+            const nestedItem = provider.getOrCreateItem(
+                join(base, "shared", "nested"),
+                false,
+            );
+
+            expect(outerRoot.getPath()).toBe(join(base, "shared"));
+            expect(nestedItem).not.toBe(nestedRoot);
+            expect(nestedItem.isTopLevel).toBe(false);
+            expect(provider.isTopLevelContextRoot(nestedItem.getPath())).toBe(
+                false,
             );
         });
 
@@ -318,6 +338,21 @@ describe("ContextRootItemProvider", () => {
             expect(changes).toEqual([]);
         });
 
+        it("ignores events for ignored files", async () => {
+            const base = await createTemporaryDirectory({ "shared/a.js": "" });
+            const watchers = mockFileSystemWatchers();
+            const provider = createProvider(base, [
+                { name: "first", roots: [join(base, "shared")] },
+            ]);
+            await provider.getRootItems();
+            const changes = collectChanges(provider);
+
+            watchers.create(join(base, "shared", getTemporaryJsFileBasename()));
+            await new Promise((resolve) => setTimeout(resolve, 50));
+
+            expect(changes).toEqual([]);
+        });
+
         it("refreshes the whole tree when a root was deleted", async () => {
             const base = await createTemporaryDirectory({ "shared/a.js": "" });
             const watchers = mockFileSystemWatchers();
@@ -351,6 +386,100 @@ describe("ContextRootItemProvider", () => {
 
             expect(watchers.createdWatchers).toBe(2);
             expect(watchers.disposedWatchers).toBe(1);
+        });
+    });
+
+    describe("roots that do not exist yet", () => {
+        it("shows a root once the missing folders were created", async () => {
+            const base = await createTemporaryDirectory({ "other/a.js": "" });
+            const watchers = mockFileSystemWatchers();
+            const root = join(base, "shared", "lib");
+            const provider = createProvider(base, [
+                { name: "first", roots: [root] },
+            ]);
+            const changes = collectChanges(provider);
+
+            expect(await provider.getRootItems()).toEqual([]);
+            // Only the first missing folder is watched.
+            expect(watchers.getWatchedPatterns()).toEqual([
+                { base, pattern: "shared" },
+            ]);
+
+            await mkdir(join(base, "shared"));
+            watchers.create(join(base, "shared"));
+            await waitUntil(() => changes.length == 1);
+            expect(await provider.getRootItems()).toEqual([]);
+            // Now the next missing folder is watched.
+            expect(watchers.getWatchedPatterns()).toEqual([
+                { base: join(base, "shared"), pattern: "lib" },
+            ]);
+
+            await mkdir(root);
+            watchers.create(root);
+            await waitUntil(() => changes.length == 2);
+            const items = await provider.getRootItems();
+
+            expect(changes).toEqual([undefined, undefined]);
+            expect(items.map((item) => item.getPath())).toEqual([root]);
+            expect(watchers.getWatchedPatterns()).toEqual([
+                { base: root, pattern: "**/*" },
+            ]);
+        });
+
+        it("watches a folder only once if it is the first missing folder of multiple roots", async () => {
+            const base = await createTemporaryDirectory({});
+            const watchers = mockFileSystemWatchers();
+            const provider = createProvider(base, [
+                {
+                    name: "first",
+                    roots: [
+                        join(base, "shared", "a"),
+                        join(base, "shared", "b"),
+                    ],
+                },
+            ]);
+
+            await provider.getRootItems();
+
+            expect(watchers.getWatchedPatterns()).toEqual([
+                { base, pattern: "shared" },
+            ]);
+        });
+
+        it("stops watching missing roots that are not configured anymore", async () => {
+            const base = await createTemporaryDirectory({});
+            const watchers = mockFileSystemWatchers();
+            const collection = createCollection("first", base);
+            collection.setAdditionalContextRoots([join(base, "shared")]);
+            const provider = createProvider(base, [], undefined, [collection]);
+            await provider.getRootItems();
+
+            collection.setAdditionalContextRoots([]);
+            await provider.getRootItems();
+
+            expect(watchers.getWatchedPatterns()).toEqual([]);
+        });
+
+        it("does not watch roots that can never be created or that are inside a collection", async () => {
+            const base = await createTemporaryDirectory({
+                "file.js": "",
+                "collection/a.js": "",
+            });
+            const watchers = mockFileSystemWatchers();
+            const provider = createProvider(base, [
+                {
+                    name: "first",
+                    rootDirectory: join(base, "collection"),
+                    roots: [
+                        join(base, "file.js", "lib"),
+                        join(base, "collection", "missing"),
+                    ],
+                },
+            ]);
+
+            await provider.getRootItems();
+
+            expect(watchers.getWatchedPatterns()).toEqual([]);
         });
     });
 
@@ -405,6 +534,14 @@ function createItemProvider(
             collections
                 .flatMap((collection) => collection.getAdditionalContextRoots())
                 .filter((path, index, all) => all.indexOf(path) === index),
+        getCollectionsUsingAdditionalContextRoot: (root: string) =>
+            collections.filter((collection) =>
+                collection
+                    .getAdditionalContextRoots()
+                    .some(
+                        (other) => normalizePath(other) == normalizePath(root),
+                    ),
+            ),
         getAncestorCollectionForPath: (path: string) =>
             collections.find((collection) =>
                 isPathEqualOrDescendant(path, collection.getRootDirectory()),
@@ -419,35 +556,84 @@ function collectChanges(provider: ContextRootItemProvider) {
     return changes;
 }
 
-/** Replaces the watchers of the workspace, so that tests can trigger their events. */
+/**
+ * Replaces the watchers of the workspace, so that tests can trigger their events.
+ * Events only reach the watchers that would receive them: Watchers with the pattern for a whole folder receive the events of all items in it,
+ * watchers with a name receive the events for the item with this name in their folder.
+ */
 function mockFileSystemWatchers() {
-    const createListeners: ((uri: { fsPath: string }) => void)[] = [];
-    const deleteListeners: ((uri: { fsPath: string }) => void)[] = [];
+    type Listener = (uri: { fsPath: string }) => void;
+    const watchers: {
+        base: string;
+        pattern: string;
+        disposed: boolean;
+        createListeners: Listener[];
+        deleteListeners: Listener[];
+    }[] = [];
+
+    const trigger = (
+        path: string,
+        getListeners: (watcher: (typeof watchers)[number]) => Listener[],
+    ) =>
+        watchers
+            .filter(
+                (watcher) =>
+                    !watcher.disposed &&
+                    (watcher.pattern == "**/*"
+                        ? normalizePath(path).startsWith(
+                              normalizePath(watcher.base),
+                          )
+                        : normalizePath(path) ==
+                          normalizePath(join(watcher.base, watcher.pattern))),
+            )
+            .forEach((watcher) =>
+                getListeners(watcher).forEach((listener) =>
+                    listener({ fsPath: path }),
+                ),
+            );
+
     const result = {
         createdWatchers: 0,
         disposedWatchers: 0,
         create: (path: string) =>
-            createListeners.forEach((listener) => listener({ fsPath: path })),
+            trigger(path, (watcher) => watcher.createListeners),
         delete: (path: string) =>
-            deleteListeners.forEach((listener) => listener({ fsPath: path })),
+            trigger(path, (watcher) => watcher.deleteListeners),
+        getWatchedPatterns: () =>
+            watchers
+                .filter((watcher) => !watcher.disposed)
+                .map(({ base, pattern }) => ({ base, pattern })),
     };
 
-    jest.spyOn(workspace, "createFileSystemWatcher").mockImplementation(() => {
-        result.createdWatchers++;
+    jest.spyOn(workspace, "createFileSystemWatcher").mockImplementation(
+        ((globPattern: { base: { fsPath: string }; pattern: string }) => {
+            result.createdWatchers++;
+            const record = {
+                base: globPattern.base.fsPath,
+                pattern: globPattern.pattern,
+                disposed: false,
+                createListeners: [] as Listener[],
+                deleteListeners: [] as Listener[],
+            };
+            watchers.push(record);
 
-        return {
-            onDidCreate: (listener: (uri: { fsPath: string }) => void) => {
-                createListeners.push(listener);
-                return { dispose: () => {} };
-            },
-            onDidDelete: (listener: (uri: { fsPath: string }) => void) => {
-                deleteListeners.push(listener);
-                return { dispose: () => {} };
-            },
-            onDidChange: () => ({ dispose: () => {} }),
-            dispose: () => result.disposedWatchers++,
-        } as never;
-    });
+            return {
+                onDidCreate: (listener: Listener) => {
+                    record.createListeners.push(listener);
+                    return { dispose: () => {} };
+                },
+                onDidDelete: (listener: Listener) => {
+                    record.deleteListeners.push(listener);
+                    return { dispose: () => {} };
+                },
+                onDidChange: () => ({ dispose: () => {} }),
+                dispose: () => {
+                    record.disposed = true;
+                    result.disposedWatchers++;
+                },
+            };
+        }) as never,
+    );
 
     return result;
 }

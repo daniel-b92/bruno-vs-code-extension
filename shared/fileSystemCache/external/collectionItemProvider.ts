@@ -260,10 +260,30 @@ export class CollectionItemProvider<T> {
         );
     }
 
+    /** Roots that only differ in their spelling (e.g. with and without a trailing separator) are returned once, in the spelling that was found first. */
     public getUniqueAdditionalContextRoots() {
-        return this.getRegisteredCollections()
-            .flatMap((collection) => collection.getAdditionalContextRoots())
-            .filter((path, index, array) => array.indexOf(path) === index);
+        const uniqueRoots = new Map<string, string>();
+
+        for (const collection of this.getRegisteredCollections()) {
+            for (const root of collection.getAdditionalContextRoots()) {
+                if (!uniqueRoots.has(normalizePath(root))) {
+                    uniqueRoots.set(normalizePath(root), root);
+                }
+            }
+        }
+
+        return [...uniqueRoots.values()];
+    }
+
+    /** Returns the collections that configured exactly the given folder as an additional context root (not the ones with a root that is located somewhere above or below it). */
+    public getCollectionsUsingAdditionalContextRoot(contextRoot: string) {
+        return this.getRegisteredCollections().filter((collection) =>
+            collection
+                .getAdditionalContextRoots()
+                .some(
+                    (root) => normalizePath(root) == normalizePath(contextRoot),
+                ),
+        );
     }
 
     /**
