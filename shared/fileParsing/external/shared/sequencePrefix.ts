@@ -13,8 +13,13 @@ export function getMinimumDigitsForSequencePrefix(sequenceStep: number) {
     return `${itemsPerFolderWithoutAdditionalDigits * sequenceStep}`.length;
 }
 
+/** Other numbers (e.g. in hand-edited files) could not be recognized as a prefix afterwards. */
+export function canSequenceBeUsedAsPrefix(sequence: number) {
+    return Number.isSafeInteger(sequence) && sequence >= 0;
+}
+
 /**
- * The prefix for the name of an item with the given sequence, e.g. `0010_` for sequence 10 and step 10 (4 digits).
+ * The prefix for the name of an item with the given sequence (see {@link canSequenceBeUsedAsPrefix}), e.g. `0010_` for sequence 10 and step 10 (4 digits).
  * If the sequence does not fit into the minimum number of digits, more digits are used.
  */
 export function getSequencePrefix(sequence: number, sequenceStep: number) {
@@ -37,23 +42,28 @@ export function parseSequencePrefix(name: string) {
         : undefined;
 }
 
+/** What is known about an item, for determining whether the digits at the start of its name are a sequence prefix. */
+export interface KnownItemData {
+    sequence?: number;
+    /** The name that is stored in the file, which never contains the prefix. Without it, only the digits themselves are checked. */
+    storedName?: string;
+    /** If it is missing, the number of digits is not considered. */
+    sequenceStep?: number;
+}
+
 /**
- * Removes a leading sequence prefix from the name of an existing item. Names that merely start with digits and an underscore (e.g. `2024_reports`) are kept,
- * since the prefix is only recognized if it looks like one that was created for the given step:
- * It matches the expected sequence, is padded with zeros or has the number of digits that prefixes have for the step.
+ * Removes a leading sequence prefix from the name (without file extension, if a stored name is given) of an existing item.
+ * Names can also start with digits and an underscore without having a prefix (e.g. `404_not-found`). The digits are treated as a prefix, if one of the following is true:
+ * - They match the sequence or are padded with zeros.
+ * - The stored name is the same as the name without them.
+ * - The stored name is neither the same as the name with them nor as the one without them, but they have the number of digits that prefixes have for the step.
+ *
  * Don't use it for names that were entered by the user, since they must not be changed.
  */
-export function removeSequencePrefix(
-    name: string,
-    expected: { sequence?: number; sequenceStep: number },
-) {
+export function removeSequencePrefix(name: string, itemData: KnownItemData) {
     const parsed = parseSequencePrefix(name);
 
-    return parsed &&
-        (parsed.sequence === expected.sequence ||
-            parsed.digits.startsWith("0") ||
-            parsed.digits.length ==
-                getMinimumDigitsForSequencePrefix(expected.sequenceStep))
+    return parsed && isSequencePrefix(name, parsed, itemData)
         ? parsed.nameWithoutPrefix
         : name;
 }
@@ -61,10 +71,11 @@ export function removeSequencePrefix(
 /** Sets the prefix for the given sequence. An already existing prefix is replaced (see {@link removeSequencePrefix}). */
 export function addSequencePrefix(
     name: string,
-    sequence: number,
-    sequenceStep: number,
+    itemData: { sequence: number; sequenceStep: number; storedName?: string },
 ) {
-    return `${getSequencePrefix(sequence, sequenceStep)}${removeSequencePrefix(name, { sequence, sequenceStep })}`;
+    const { sequence, sequenceStep } = itemData;
+
+    return `${getSequencePrefix(sequence, sequenceStep)}${removeSequencePrefix(name, itemData)}`;
 }
 
 /**
@@ -76,4 +87,43 @@ export function doesNameHaveSequencePrefixMatching(
     sequence: number,
 ) {
     return parseSequencePrefix(name)?.sequence === sequence;
+}
+
+function isSequencePrefix(
+    name: string,
+    {
+        digits,
+        sequence: sequenceInName,
+        nameWithoutPrefix,
+    }: { digits: string; sequence: number; nameWithoutPrefix: string },
+    { sequence, storedName, sequenceStep }: KnownItemData,
+) {
+    if (sequenceInName === sequence || digits.startsWith("0")) {
+        return true;
+    }
+
+    if (storedName !== undefined) {
+        if (areNamesEquivalent(storedName, name)) {
+            return false;
+        }
+        if (areNamesEquivalent(storedName, nameWithoutPrefix)) {
+            return true;
+        }
+    }
+
+    return (
+        sequenceStep !== undefined &&
+        digits.length == getMinimumDigitsForSequencePrefix(sequenceStep)
+    );
+}
+
+/** Names of files and folders often only differ in case and separators from the stored name (e.g. `get-token` and `Get token`). */
+function areNamesEquivalent(first: string, second: string) {
+    const simplify = (name: string) =>
+        name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+    return (
+        first === second ||
+        (simplify(first) != "" && simplify(first) == simplify(second))
+    );
 }

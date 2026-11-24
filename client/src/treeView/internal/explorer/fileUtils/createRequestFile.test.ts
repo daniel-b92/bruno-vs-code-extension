@@ -175,6 +175,24 @@ describe("createRequestFile", () => {
             expect(content).toContain("name: 404_not-found\n");
         });
 
+        it("does not prefix the file name if the sequence cannot be used as a prefix", async () => {
+            const directory = await createTemporaryDirectory({
+                "existing.bru":
+                    "meta {\n  name: existing\n  type: http\n  seq: 1.5\n}\n",
+            });
+
+            await runCreateRequestFile(directory, CollectionFormat.Bru, {
+                requestName: "my_request",
+                pickedLabels: [RequestType.Http, RequestFileBlockName.Post],
+                settings,
+            });
+
+            expect((await readdir(directory)).sort()).toEqual([
+                "existing.bru",
+                "my_request.bru",
+            ]);
+        });
+
         it("prefixes the file name, but not the stored name (yaml)", async () => {
             const directory = await createTemporaryDirectory();
 

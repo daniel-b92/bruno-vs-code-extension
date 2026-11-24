@@ -110,7 +110,7 @@ describe("renameFileOrFolder", () => {
         expect(save).not.toHaveBeenCalled();
     });
 
-    it("renames several items in one workspace edit with updates for the final locations", async () => {
+    it("renames items within a folder in an earlier workspace edit than the folder, with updates for the final locations", async () => {
         const applyEdit = jest.spyOn(workspace, "applyEdit");
         openDocuments(openDocument(callerPath, callerContent, false));
 
@@ -128,19 +128,21 @@ describe("renameFileOrFolder", () => {
         ]);
 
         expect(result).toBe(true);
-        expect(applyEdit).toHaveBeenCalledTimes(1);
-        const edit = applyEdit.mock.calls[0][0] as WorkspaceEdit & {
-            renames: { from: { fsPath: string }; to: { fsPath: string } }[];
-            replacements: { newText: string }[];
-        };
-        // Items within a folder are renamed before the folder.
-        expect(edit.renames.map(({ from }) => from.fsPath)).toEqual([
-            join(root, "users/a.bru"),
-            join(root, "users"),
-        ]);
-        expect(edit.replacements.map(({ newText }) => newText)).toEqual([
-            "0020_users/0010_a",
-        ]);
+        const edits = applyEdit.mock.calls.map(
+            ([edit]) =>
+                edit as WorkspaceEdit & {
+                    renames: { from: { fsPath: string } }[];
+                    replacements: { newText: string }[];
+                },
+        );
+        expect(
+            edits.map(({ renames }) => renames.map(({ from }) => from.fsPath)),
+        ).toEqual([[join(root, "users/a.bru")], [join(root, "users")]]);
+        expect(
+            edits.map(({ replacements }) =>
+                replacements.map(({ newText }) => newText),
+            ),
+        ).toEqual([[], ["0020_users/0010_a"]]);
     });
 
     it("does nothing when an item is renamed to its own path", async () => {

@@ -16,6 +16,7 @@ import {
 import { renameFilesAndFolders } from "../renameFileOrFolder";
 import { PathRename } from "../runRequestPaths/getEditsForRunRequestPaths";
 import { excludeConflictingRenames } from "../excludeConflictingRenames";
+import { getStoredNameOfItem } from "./getStoredNameOfItem";
 
 export interface RemovalOfSequencePrefixesResult {
     renamedCount: number;
@@ -28,7 +29,7 @@ export interface RemovalOfSequencePrefixesResult {
 /**
  * Removes the sequence prefixes (e.g. `0010_`) from the names of all requests, app files and folders (with a settings file) below the given folder.
  * Items that have no sequence (any more) are included, since the prefix cannot match their sequence.
- * Only prefixes that look like they were created by the extension are removed, so a name like `2024_reports` is kept (see `removeSequencePrefix`).
+ * Digits that belong to the actual name are kept (e.g. `2024_reports`, see `removeSequencePrefix`).
  * The given folder itself keeps its name. All renames are executed together. Items are never overwritten. If the name without prefix is already taken, the item keeps its name.
  * Does not depend on the setting for prefixing names with their sequence.
  */
@@ -70,6 +71,7 @@ export async function removeSequencePrefixesRecursively(
                 ? item.getSequence()
                 : undefined,
             sequenceStep,
+            storedName: await getStoredNameOfItem(item),
         });
 
         if (nameWithoutPrefix != name) {

@@ -3,6 +3,7 @@ import {
     BrunoFileType,
     getFolderSettingsFilePath,
     getSequenceForFolder,
+    getStoredItemNameFromFile,
 } from "@global_shared";
 import {
     getMaxSequenceForFolders,
@@ -11,7 +12,7 @@ import {
 } from "@shared";
 import { replaceItemName } from "../fileUtils/replaceItemName";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
-import { getStoredNameForItemName } from "../sequencePrefixUtils/getStoredNameForItemName";
+import { getStoredNameForCopiedItem } from "../sequencePrefixUtils/getStoredNameForCopiedItem";
 
 /**
  * Has to be called after the original folder has already been copied to the new location.
@@ -47,7 +48,11 @@ export async function updateSettingsFileOfDuplicatedFolder(
 
     await replaceItemName(
         newFolderSettingsFile,
-        getStoredNameForItemName(basename(newFolderPath), originalSequence),
+        getStoredNameForCopiedItem(basename(newFolderPath), {
+            name: basename(originalPath),
+            sequence: originalSequence,
+            storedName: await getStoredItemNameFromFile(newFolderSettingsFile),
+        }),
         BrunoFileType.FolderSettingsFile,
         format,
     );

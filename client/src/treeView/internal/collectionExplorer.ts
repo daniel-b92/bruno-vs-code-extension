@@ -13,6 +13,7 @@ import {
     CollectionFormat,
     getBrunoJsonFilePath,
     NonBrunoFile,
+    canSequenceBeUsedAsPrefix,
     getSequencePrefix,
     removeSequencePrefix,
 } from "@global_shared";
@@ -64,6 +65,7 @@ import { deleteItemOutsideCollections } from "./explorer/contextRootUtils/delete
 import { showErrorMessageForFailedDragAndDrop } from "./explorer/showErrorMessageForFailedDragAndDrop";
 import { syncSequencePrefixes } from "./explorer/sequencePrefixUtils/syncSequencePrefixes";
 import { getPathAfterRenames } from "./explorer/runRequestPaths/getEditsForRunRequestPaths";
+import { getStoredNameOfItem } from "./explorer/sequencePrefixUtils/getStoredNameOfItem";
 import { removeSequencePrefixesRecursively } from "./explorer/sequencePrefixUtils/removeSequencePrefixesRecursively";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
@@ -629,26 +631,37 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     this.itemProvider.getRegisteredItemAndCollection(
                         originalPath,
                     )?.data.item;
-                // The tree item has no sequence for app files.
-                const sequenceForPrefix = shouldPrefixNamesWithSequence()
-                    ? registeredItem &&
-                      isCollectionItemWithSequence(registeredItem)
+                const registeredSequence =
+                    registeredItem &&
+                    isCollectionItemWithSequence(registeredItem)
                         ? registeredItem.getSequence()
-                        : treeItem.getSequence()
-                    : undefined;
+                        : undefined;
+                const sequenceForPrefix =
+                    shouldPrefixNamesWithSequence() &&
+                    registeredSequence !== undefined &&
+                    canSequenceBeUsedAsPrefix(registeredSequence)
+                        ? registeredSequence
+                        : undefined;
                 const sequenceStep = getSequenceStepFromSettings();
                 // The entered name is used as it is, even if it starts with digits and an underscore.
                 const getFullItemName = (enteredName: string) =>
                     sequenceForPrefix === undefined
                         ? enteredName
                         : `${getSequencePrefix(sequenceForPrefix, sequenceStep)}${enteredName}`;
+                const extension = isFile ? extname(originalPath) : "";
                 const displayedName =
+                    registeredItem === undefined ||
                     sequenceForPrefix === undefined
                         ? basename(originalPath)
-                        : removeSequencePrefix(basename(originalPath), {
-                              sequence: sequenceForPrefix,
-                              sequenceStep,
-                          });
+                        : `${removeSequencePrefix(
+                              basename(originalPath, extension),
+                              {
+                                  sequence: sequenceForPrefix,
+                                  sequenceStep,
+                                  storedName:
+                                      await getStoredNameOfItem(registeredItem),
+                              },
+                          )}${extension}`;
 
                 const originalName =
                     isFile && extname(originalPath) != ""

@@ -37,9 +37,9 @@ export async function renameFileOrFolder(
 }
 
 /**
- * Renames or moves several files and folders in one workspace edit, so that all updates of `bru.runRequest` paths refer to the final locations.
+ * Renames or moves several files and folders together, so that all updates of `bru.runRequest` paths refer to the final locations.
  * The renames refer to the paths before any of them is executed. They are executed in an order that never overwrites an item that is renamed as well,
- * so the names of items can be shifted or swapped. This can take several workspace edits, since VS Code checks all targets of an edit before executing it.
+ * so the names of items can be shifted or swapped. This can take several workspace edits, since the renames of an edit must not depend on each other (see `splitStepsIntoGroupsWithoutDependencies`).
  * The updates of `bru.runRequest` paths are part of the last one. The target paths must be distinct. Renames of an item to its own path are ignored.
  *
  * @returns Whether all items were renamed.

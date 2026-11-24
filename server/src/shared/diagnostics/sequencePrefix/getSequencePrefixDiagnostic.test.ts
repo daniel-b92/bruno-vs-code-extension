@@ -74,15 +74,34 @@ describe("getSequencePrefixDiagnostic", () => {
             ).toBe(resolve(folder, "005_get-token.bru"));
         });
 
-        it("returns no diagnostic if the sequence is invalid", () => {
+        it.each(["abc", "1.5", "-1", "99999999999999999999"])(
+            "returns no diagnostic for the invalid sequence '%s'",
+            (sequence) => {
+                expect(
+                    getSequencePrefixDiagnostic({
+                        filePath: resolve(folder, "get-token.bru"),
+                        content: getContent(sequence),
+                        fileType: BrunoFileType.RequestFile,
+                        sequenceStep: 1,
+                    }),
+                ).toBeUndefined();
+            },
+        );
+
+        it.each([
+            ["keeps digits that are part of", "404_a", "404_a", "005_404_a"],
+            ["removes digits that are not part of", "1000_a", "a", "005_a"],
+        ])("%s the stored name", (_, currentName, storedName, expectedName) => {
+            const diagnostic = getSequencePrefixDiagnostic({
+                filePath: resolve(folder, `${currentName}.bru`),
+                content: `meta {\n  name: ${storedName}\n  type: http\n  seq: 5\n}\n`,
+                fileType: BrunoFileType.RequestFile,
+                sequenceStep: 1,
+            });
+
             expect(
-                getSequencePrefixDiagnostic({
-                    filePath: resolve(folder, "get-token.bru"),
-                    content: getContent("abc"),
-                    fileType: BrunoFileType.RequestFile,
-                    sequenceStep: 1,
-                }),
-            ).toBeUndefined();
+                (diagnostic?.data as SequencePrefixDiagnosticData).targetPath,
+            ).toBe(resolve(folder, `${expectedName}.bru`));
         });
 
         it("checks the name of the folder for folder settings files", () => {

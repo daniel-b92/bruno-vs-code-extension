@@ -1,4 +1,4 @@
-import { normalizePath } from "@global_shared";
+import { isPathEqualOrDescendant, normalizePath } from "@global_shared";
 import { getPathDepth } from "./runRequestPaths/applyRenamesToPath";
 
 export interface RenameStep {
@@ -71,6 +71,8 @@ export function getRenameStepsInExecutionOrder(
  *
  * VS Code checks the targets of all consecutive renames of a workspace edit before it executes any of them.
  * So a step must not be in the same group as an earlier step that frees its target or that creates its source.
+ * It also determines the new locations of open files with unsaved changes separately for each rename, based on their paths before all of them.
+ * So a folder must not be in the same group as an item within it either. Otherwise, the unsaved changes would end up at paths that do not exist.
  */
 export function splitStepsIntoGroupsWithoutDependencies(
     steps: RenameStep[],
@@ -79,16 +81,7 @@ export function splitStepsIntoGroupsWithoutDependencies(
     let current: RenameStep[] = [];
 
     for (const step of steps) {
-        const from = normalizePath(step.from);
-        const to = normalizePath(step.to);
-
-        if (
-            current.some(
-                (other) =>
-                    normalizePath(other.from) == to ||
-                    normalizePath(other.to) == from,
-            )
-        ) {
+        if (current.some((other) => areStepsDependent(other, step))) {
             groups.push(current);
             current = [];
         }
@@ -101,4 +94,15 @@ export function splitStepsIntoGroupsWithoutDependencies(
     }
 
     return groups;
+}
+
+/** Whether a path of one step is the same as, or located within, a path of the other one. */
+function areStepsDependent(first: RenameStep, second: RenameStep) {
+    return [first.from, first.to].some((firstPath) =>
+        [second.from, second.to].some(
+            (secondPath) =>
+                isPathEqualOrDescendant(firstPath, secondPath) ||
+                isPathEqualOrDescendant(secondPath, firstPath),
+        ),
+    );
 }

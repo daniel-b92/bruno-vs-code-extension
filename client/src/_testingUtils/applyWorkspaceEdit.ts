@@ -23,6 +23,7 @@ type MockedWorkspaceEdit = WorkspaceEdit & {
  *
  * Like VS Code, it fails without applying anything if one of the targets of the renames exists already (unless overwriting is allowed),
  * even if the item at the target is renamed by an earlier rename of the same edit.
+ * Not simulated: The unsaved changes of open files, which VS Code restores at wrong paths if a folder and an item within it are renamed by the same edit.
  * Otherwise the renames are applied in the given order, then the text replacements (single-line ranges only) to the files at their new locations.
  */
 export async function applyWorkspaceEdit(edit: unknown) {

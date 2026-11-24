@@ -2,8 +2,10 @@ import { basename, dirname, extname, resolve } from "path";
 import {
     addSequencePrefix,
     BrunoFileType,
+    canSequenceBeUsedAsPrefix,
     doesNameHaveSequencePrefixMatching,
     getSequenceValueRangeFromFileContent,
+    getStoredItemNameFromFileContent,
     Range,
     TextDocumentHelper,
 } from "@global_shared";
@@ -73,9 +75,11 @@ export function getSequencePrefixDiagnostic(data: {
         return undefined;
     }
 
-    const newName = isFolder
-        ? addSequencePrefix(itemName, sequence, sequenceStep)
-        : `${addSequencePrefix(itemName, sequence, sequenceStep)}${extname(itemPath)}`;
+    const newName = `${addSequencePrefix(itemName, {
+        sequence,
+        sequenceStep,
+        storedName: getStoredItemNameFromFileContent(filePath, content),
+    })}${isFolder ? "" : extname(itemPath)}`;
     const diagnosticData: SequencePrefixDiagnosticData = {
         kind: "renameToMatchSequence",
         sourcePath: itemPath,
@@ -102,5 +106,9 @@ function readSequence(content: string, range: Range) {
         .slice(range.start.character, range.end.character)
         .trim();
 
-    return /^\d+$/.test(text) ? Number.parseInt(text, 10) : undefined;
+    const sequence = /^\d+$/.test(text) ? Number.parseInt(text, 10) : undefined;
+
+    return sequence !== undefined && canSequenceBeUsedAsPrefix(sequence)
+        ? sequence
+        : undefined;
 }

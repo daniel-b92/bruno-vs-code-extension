@@ -1,7 +1,9 @@
 import { basename, dirname, extname, resolve } from "path";
 import {
     addSequencePrefix,
+    canSequenceBeUsedAsPrefix,
     getSequencesForRequestsAndAppFiles,
+    getStoredItemNameFromFile,
     Logger,
     normalizePath,
 } from "@global_shared";
@@ -17,6 +19,7 @@ import { excludeConflictingRenames } from "../excludeConflictingRenames";
 
 /**
  * Renames the requests, app files and folders (that have a sequence) directly within the given folders, so that their names start with their sequence.
+ * Items whose sequence cannot be used as a prefix (see `canSequenceBeUsedAsPrefix`) keep their names.
  * Does nothing if prefixing names with the sequence is not enabled in the settings.
  *
  * All renames are executed together, so that items can take over the names of items that are renamed as well (e.g. when sequences were shifted).
@@ -47,21 +50,34 @@ export async function syncSequencePrefixes(
     const plannedRenames: PathRename[] = [];
 
     for (const folderPath of getUniquePaths(folderPaths)) {
-        const files = await getSequencesForRequestsAndAppFiles(
-            itemProvider,
-            folderPath,
-        );
-        const folders = await getSequencesForFolders(itemProvider, folderPath);
+        const items = [
+            ...(
+                await getSequencesForRequestsAndAppFiles(
+                    itemProvider,
+                    folderPath,
+                )
+            ).map(({ path, sequence }) => ({
+                path,
+                sequence,
+                fileWithStoredName: path,
+                isFile: true,
+            })),
+            ...(await getSequencesForFolders(itemProvider, folderPath)).map(
+                ({ folderPath: path, settingsFile, sequence }) => ({
+                    path,
+                    sequence,
+                    fileWithStoredName: settingsFile,
+                    isFile: false,
+                }),
+            ),
+        ];
 
-        for (const { path, sequence } of files) {
-            plannedRenames.push(
-                getRenameToMatchSequence(path, sequence, true, sequenceStep),
-            );
-        }
-        for (const { folderPath: path, sequence } of folders) {
-            plannedRenames.push(
-                getRenameToMatchSequence(path, sequence, false, sequenceStep),
-            );
+        for (const item of items) {
+            if (canSequenceBeUsedAsPrefix(item.sequence)) {
+                plannedRenames.push(
+                    await getRenameToMatchSequence(item, sequenceStep),
+                );
+            }
         }
     }
 
@@ -75,18 +91,26 @@ export async function syncSequencePrefixes(
         : [];
 }
 
-function getRenameToMatchSequence(
-    path: string,
-    sequence: number,
-    isFile: boolean,
+async function getRenameToMatchSequence(
+    {
+        path,
+        sequence,
+        fileWithStoredName,
+        isFile,
+    }: {
+        path: string;
+        sequence: number;
+        fileWithStoredName: string;
+        isFile: boolean;
+    },
     sequenceStep: number,
-): PathRename {
+): Promise<PathRename> {
     const extension = isFile ? extname(path) : "";
-    const newName = addSequencePrefix(
-        basename(path, extension),
+    const newName = addSequencePrefix(basename(path, extension), {
         sequence,
         sequenceStep,
-    );
+        storedName: await getStoredItemNameFromFile(fileWithStoredName),
+    });
 
     return {
         sourcePath: path,

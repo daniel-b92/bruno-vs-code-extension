@@ -178,6 +178,34 @@ describe("handleFileInsertion", () => {
         },
     );
 
+    it("keeps digits that are part of the stored name of the original request if names are prefixed with sequences", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 1,
+        });
+        const directory = await createTemporaryDirectory({
+            "404_error.bru":
+                "meta {\n  name: 404_error\n  type: http\n  seq: 5\n}\n",
+        });
+        const targetPath = join(directory, "404_error_Copy.bru");
+
+        await handleFileInsertion(
+            new BrunoRequestFile(join(directory, "404_error.bru"), 5),
+            {
+                insertionPosition: RequestFileInsertionPositionType.Folder,
+                newPath: targetPath,
+            },
+            createItemProviderStub<TypedCollectionItemProvider>(
+                directory,
+                CollectionFormat.Bru,
+            ),
+        );
+
+        expect(await readFile(targetPath, "utf-8")).toContain(
+            "name: 404_error_Copy\n",
+        );
+    });
+
     it("rejects a Bruno specific file from outside of any collection", async () => {
         const directory = await createTemporaryDirectory({});
         const showErrorMessage = jest

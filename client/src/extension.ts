@@ -41,6 +41,7 @@ import {
     AdditionalCollectionSimpleDataProvider,
     AdditionalCollectionDataProviderType,
     BrunoFileType,
+    canSequenceBeUsedAsPrefix,
     isCollectionItemWithSequence,
     NonBrunoSpecificItemType,
 } from "@global_shared";
@@ -263,7 +264,7 @@ function getAdditionalCollectionDataProvider(
                     : undefined,
                 isCollectionItemWithTags(item) ? item.getTags() : undefined,
                 getIconForItem(item, isCollectionRootFile, isCollectionRoot),
-                canHaveSequencePrefix(item, isCollectionRoot),
+                getSequenceForPrefix(item, isCollectionRoot),
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),
@@ -274,28 +275,33 @@ function getAdditionalCollectionDataProvider(
             return (
                 oldTreeItem.description != newTreeItem.description ||
                 oldTreeItem.tooltip != newTreeItem.tooltip ||
-                oldTreeItem.canHaveSequencePrefix !=
-                    newTreeItem.canHaveSequencePrefix
+                oldTreeItem.sequenceForPrefix != newTreeItem.sequenceForPrefix
             );
         },
     };
 }
 
-/** Only requests, app files and folders that have a sequence get a prefix with it in their names. */
-function canHaveSequencePrefix(
-    item: CollectionItem,
-    isCollectionRoot: boolean,
-) {
+/** Only requests, app files and folders that have a (valid) sequence get a prefix with it in their names. */
+function getSequenceForPrefix(item: CollectionItem, isCollectionRoot: boolean) {
     const itemType = item.getItemType();
 
-    return (
-        !isCollectionRoot &&
-        (itemType == BrunoFileType.RequestFile ||
+    if (
+        isCollectionRoot ||
+        !(
+            itemType == BrunoFileType.RequestFile ||
             itemType == BrunoFileType.AppFile ||
-            itemType == NonBrunoSpecificItemType.Directory) &&
-        isCollectionItemWithSequence(item) &&
-        item.getSequence() !== undefined
-    );
+            itemType == NonBrunoSpecificItemType.Directory
+        ) ||
+        !isCollectionItemWithSequence(item)
+    ) {
+        return undefined;
+    }
+
+    const sequence = item.getSequence();
+
+    return sequence !== undefined && canSequenceBeUsedAsPrefix(sequence)
+        ? sequence
+        : undefined;
 }
 
 function getCallbackForRestartingClient() {

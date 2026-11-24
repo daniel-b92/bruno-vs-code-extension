@@ -162,6 +162,34 @@ describe("removeSequencePrefixesRecursively", () => {
         ]);
     });
 
+    it("keeps digits that are part of the stored name, also when removing the prefixes again", async () => {
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "005_404_error.bru":
+                "meta {\n  name: 404_error\n  type: http\n  seq: 5\n}\n",
+        });
+
+        for (const name of ["005_404_error.bru", "404_error.bru"]) {
+            const { collection, itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [new BrunoRequestFile(join(directory, name), 5)],
+                    CollectionFormat.Bru,
+                    [],
+                    directory,
+                );
+
+            await removeSequencePrefixesRecursively(
+                itemProvider,
+                collection,
+                directory,
+            );
+
+            expect(await readdir(directory)).toEqual(["404_error.bru"]);
+        }
+    });
+
     it("reports the items that are not renamed because the name is taken", async () => {
         jest.spyOn(workspace, "applyEdit").mockImplementation(
             applyWorkspaceEdit,

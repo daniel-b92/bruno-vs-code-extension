@@ -36,6 +36,7 @@ export * from "./fileSystemCache/external/interfaces";
 // file parsing - bru format
 export * from "./fileParsing/external/bruFormat/parseBruFile";
 export * from "./fileParsing/external/shared/getSequenceForFile";
+export * from "./fileParsing/external/bruFormat/getFieldFromMetaBlock";
 export * from "./fileParsing/external/bruFormat/getSequenceFieldFromMetaBlock";
 export * from "./fileParsing/external/bruFormat/parseSequenceFromMetaBlock";
 export * from "./fileParsing/external/bruFormat/util/getBlockStartPatternByName";
@@ -52,6 +53,7 @@ export * from "./fileParsing/external/shared/getSequenceForFolder";
 export * from "./fileParsing/external/shared/getFolderSettingsFilePath";
 export * from "./fileParsing/external/shared/getSequencesForRequestsAndAppFiles";
 export * from "./fileParsing/external/shared/getMaxSequenceForRequestsAndAppFiles";
+export * from "./fileParsing/external/shared/getStoredItemName";
 export * from "./fileParsing/external/shared/sequencePrefix";
 export * from "./fileParsing/external/shared/getCollectionPresets";
 export * from "./fileParsing/external/shared/getCollectionRootFileSections";

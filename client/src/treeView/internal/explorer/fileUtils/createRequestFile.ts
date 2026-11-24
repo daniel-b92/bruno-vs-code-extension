@@ -1,5 +1,6 @@
 import { basename, resolve } from "path";
 import {
+    canSequenceBeUsedAsPrefix,
     checkIfPathExistsAsync,
     CollectionFormat,
     getFileExtensionForFormat,
@@ -136,9 +137,11 @@ export async function createRequestFile(
                 itemProvider,
                 parentFolderPath,
             )) ?? 0) + sequenceStep;
-        const fileName = shouldPrefixNamesWithSequence()
-            ? `${getSequencePrefix(requestSequence, sequenceStep)}${requestName}`
-            : requestName;
+        const fileName =
+            shouldPrefixNamesWithSequence() &&
+            canSequenceBeUsedAsPrefix(requestSequence)
+                ? `${getSequencePrefix(requestSequence, sequenceStep)}${requestName}`
+                : requestName;
         const filePath = resolve(
             parentFolderPath,
             `${fileName}${fileExtension}`,

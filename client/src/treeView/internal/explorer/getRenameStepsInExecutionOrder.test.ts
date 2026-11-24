@@ -75,10 +75,29 @@ describe("splitStepsIntoGroupsWithoutDependencies", () => {
         expect(splitStepsIntoGroupsWithoutDependencies(steps)).toEqual([steps]);
     });
 
-    it("keeps items within a folder and the folder itself in one group", () => {
+    it("starts a new group for a folder if an item within it is renamed by an earlier step of the group", () => {
+        expect(
+            splitStepsIntoGroupsWithoutDependencies([
+                step("users/nested/a.bru", "users/nested/0010_a.bru"),
+                step("users/nested/b.bru", "users/nested/0020_b.bru"),
+                step("users/nested", "users/0010_nested"),
+                step("users", "0020_users"),
+                step("other", "0030_other"),
+            ]),
+        ).toEqual([
+            [
+                step("users/nested/a.bru", "users/nested/0010_a.bru"),
+                step("users/nested/b.bru", "users/nested/0020_b.bru"),
+            ],
+            [step("users/nested", "users/0010_nested")],
+            [step("users", "0020_users"), step("other", "0030_other")],
+        ]);
+    });
+
+    it("keeps items in one group if their names only start the same", () => {
         const steps = [
             step("users/a.bru", "users/0010_a.bru"),
-            step("users", "0020_users"),
+            step("users2", "0020_users2"),
         ];
 
         expect(splitStepsIntoGroupsWithoutDependencies(steps)).toEqual([steps]);

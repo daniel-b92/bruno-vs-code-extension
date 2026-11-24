@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     addSequencePrefix,
+    canSequenceBeUsedAsPrefix,
     doesNameHaveSequencePrefixMatching,
     getMinimumDigitsForSequencePrefix,
     getSequencePrefix,
@@ -29,6 +30,16 @@ describe("sequencePrefix", () => {
 
         it("uses more digits if the sequence does not fit", () => {
             expect(getSequencePrefix(1234, 1)).toBe("1234_");
+        });
+    });
+
+    describe("canSequenceBeUsedAsPrefix", () => {
+        it.each([0, 1, 1000])("accepts %d", (sequence) => {
+            expect(canSequenceBeUsedAsPrefix(sequence)).toBe(true);
+        });
+
+        it.each([-1, 1.5, NaN, Infinity, 1e21])("rejects %d", (sequence) => {
+            expect(canSequenceBeUsedAsPrefix(sequence)).toBe(false);
         });
     });
 
@@ -91,29 +102,155 @@ describe("sequencePrefix", () => {
                 ).toBe(name);
             },
         );
+
+        it.each([
+            ["404_not-found", "404_not-found"],
+            ["404_not-found", "404 Not found"],
+            ["100_login", "100_login"],
+        ])(
+            "keeps the digits of '%s' if they are part of the stored name '%s'",
+            (name, storedName) => {
+                expect(
+                    removeSequencePrefix(name, {
+                        sequence: 3,
+                        sequenceStep: 1,
+                        storedName,
+                    }),
+                ).toBe(name);
+            },
+        );
+
+        it.each([
+            ["1000_login", "login"],
+            ["1000_get-token", "Get token"],
+            ["12_login", "login"],
+        ])(
+            "removes the digits of '%s' if the stored name is '%s', regardless of the number of digits",
+            (name, storedName) => {
+                expect(
+                    removeSequencePrefix(name, {
+                        sequence: 3,
+                        sequenceStep: 1,
+                        storedName,
+                    }),
+                ).toBe(name.substring(name.indexOf("_") + 1));
+            },
+        );
+
+        it.each([
+            ["matching the sequence", "100_login", 100],
+            ["padded with zeros", "001_login", 3],
+        ])(
+            "removes digits %s even if they are part of the stored name",
+            (_, name, sequence) => {
+                expect(
+                    removeSequencePrefix(name, {
+                        sequence,
+                        sequenceStep: 1,
+                        storedName: name,
+                    }),
+                ).toBe("login");
+            },
+        );
+
+        it.each([
+            ["100_login", "login"],
+            ["1000_login", "1000_login"],
+        ])(
+            "considers the number of digits of '%s' if the stored name is a different one",
+            (name, expected) => {
+                expect(
+                    removeSequencePrefix(name, {
+                        sequence: 3,
+                        sequenceStep: 1,
+                        storedName: "Something else",
+                    }),
+                ).toBe(expected);
+            },
+        );
+
+        it("does not treat names without any letters or digits as the same", () => {
+            expect(
+                removeSequencePrefix("1000_--", {
+                    sequenceStep: 1,
+                    storedName: "++",
+                }),
+            ).toBe("1000_--");
+        });
+
+        it("does not consider the number of digits without a step", () => {
+            expect(removeSequencePrefix("404_not-found", { sequence: 3 })).toBe(
+                "404_not-found",
+            );
+        });
     });
 
     describe("addSequencePrefix", () => {
         it("adds a prefix", () => {
-            expect(addSequencePrefix("get-token", 25, 5)).toBe(
-                "0025_get-token",
-            );
+            expect(
+                addSequencePrefix("get-token", {
+                    sequence: 25,
+                    sequenceStep: 5,
+                }),
+            ).toBe("0025_get-token");
         });
 
         it("replaces an existing prefix", () => {
-            expect(addSequencePrefix("010_get-token", 20, 10)).toBe(
-                "0020_get-token",
-            );
+            expect(
+                addSequencePrefix("010_get-token", {
+                    sequence: 20,
+                    sequenceStep: 10,
+                }),
+            ).toBe("0020_get-token");
         });
 
         it("replaces an outdated prefix with the digits for the step", () => {
-            expect(addSequencePrefix("100_login", 101, 1)).toBe("101_login");
+            expect(
+                addSequencePrefix("100_login", {
+                    sequence: 101,
+                    sequenceStep: 1,
+                }),
+            ).toBe("101_login");
         });
 
         it("keeps digits that do not look like a prefix as part of the name", () => {
-            expect(addSequencePrefix("2024_reports", 2, 1)).toBe(
-                "002_2024_reports",
-            );
+            expect(
+                addSequencePrefix("2024_reports", {
+                    sequence: 2,
+                    sequenceStep: 1,
+                }),
+            ).toBe("002_2024_reports");
+        });
+    });
+
+    describe("addSequencePrefix with a stored name", () => {
+        it.each([
+            ["a lower sequence", "1000_login", 3, 1, "003_login"],
+            ["a smaller step", "1000_login", 100, 1, "100_login"],
+            ["a larger step", "100_login", 1000, 10, "1000_login"],
+        ])(
+            "replaces a prefix without padding for %s",
+            (_, name, sequence, sequenceStep, expected) => {
+                expect(
+                    addSequencePrefix(name, {
+                        sequence,
+                        sequenceStep,
+                        storedName: "login",
+                    }),
+                ).toBe(expected);
+            },
+        );
+
+        it("keeps digits that are part of the stored name", () => {
+            const data = {
+                sequence: 1,
+                sequenceStep: 1,
+                storedName: "404_error",
+            };
+            const withPrefix = addSequencePrefix("404_error", data);
+
+            expect(withPrefix).toBe("001_404_error");
+            expect(addSequencePrefix(withPrefix, data)).toBe(withPrefix);
         });
     });
 

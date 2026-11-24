@@ -46,7 +46,7 @@ describe("BrunoTreeItem", () => {
 
         it("does not contain the sequence prefix if names are prefixed with sequences", () => {
             mockVsCodeSettings({ "bru-as-code.prefixNamesWithSequence": true });
-            const item = createItem("0010_get-token.bru", true);
+            const item = createItem("0010_get-token.bru", 10);
 
             item.updateLabel();
 
@@ -56,7 +56,7 @@ describe("BrunoTreeItem", () => {
 
         it("is the file name if names are not prefixed with sequences", () => {
             mockVsCodeSettings({});
-            const item = createItem("0010_get-token.bru", true);
+            const item = createItem("0010_get-token.bru", 10);
 
             item.updateLabel();
 
@@ -64,7 +64,7 @@ describe("BrunoTreeItem", () => {
         });
 
         it("follows changes of the setting", () => {
-            const item = createItem("0010_get-token.bru", true);
+            const item = createItem("0010_get-token.bru", 10);
 
             mockVsCodeSettings({ "bru-as-code.prefixNamesWithSequence": true });
             item.updateLabel();
@@ -77,16 +77,34 @@ describe("BrunoTreeItem", () => {
 
         it("keeps the file name for items that cannot have a sequence prefix", () => {
             mockVsCodeSettings({ "bru-as-code.prefixNamesWithSequence": true });
-            const item = createItem("2024_report.json", false);
+            const item = createItem("2024_report.json");
 
             item.updateLabel();
 
             expect(item.label).toBe("2024_report.json");
         });
+
+        it("keeps digits that could belong to the actual name", () => {
+            mockVsCodeSettings({ "bru-as-code.prefixNamesWithSequence": true });
+            const item = createItem("404_not-found.bru", 10);
+
+            item.updateLabel();
+
+            expect(item.label).toBe("404_not-found.bru");
+        });
+
+        it("does not contain a prefix without padding that matches the sequence", () => {
+            mockVsCodeSettings({ "bru-as-code.prefixNamesWithSequence": true });
+            const item = createItem("1000_get-token.bru", 1000);
+
+            item.updateLabel();
+
+            expect(item.label).toBe("get-token.bru");
+        });
     });
 });
 
-function createItem(name: string, canHaveSequencePrefix: boolean) {
+function createItem(name: string, sequenceForPrefix?: number) {
     return new BrunoTreeItem(
         `/collection/${name}`,
         true,
@@ -94,6 +112,6 @@ function createItem(name: string, canHaveSequencePrefix: boolean) {
         10,
         undefined,
         undefined,
-        canHaveSequencePrefix,
+        sequenceForPrefix,
     );
 }

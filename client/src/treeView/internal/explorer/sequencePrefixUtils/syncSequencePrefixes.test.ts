@@ -311,7 +311,7 @@ describe("syncSequencePrefixes", () => {
         ).toBe(true);
     });
 
-    it("keeps digits at the start of a name that do not look like a prefix", async () => {
+    it("keeps digits at the start of a name that are part of the stored name", async () => {
         mockVsCodeSettings({
             "bru-as-code.prefixNamesWithSequence": true,
             "bru-as-code.sequenceStep": 1,
@@ -320,15 +320,64 @@ describe("syncSequencePrefixes", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "2024_reports.bru": requestContent("reports", 2),
+            "2024_reports.bru": requestContent("2024_reports", 2),
+            "404_error.bru": requestContent("404_error", 3),
+            "500_error/folder.bru": "meta {\n  name: 500_error\n  seq: 4\n}\n",
         });
-        const itemProvider = createItemProvider(directory, [
-            new BrunoRequestFile(join(directory, "2024_reports.bru"), 2),
+        const itemProvider = createItemProvider(directory, []);
+
+        await syncSequencePrefixes(itemProvider, [directory]);
+        const namesAfterFirstSync = (await readdir(directory)).sort();
+        await syncSequencePrefixes(itemProvider, [directory]);
+
+        expect(namesAfterFirstSync).toEqual([
+            "002_2024_reports.bru",
+            "003_404_error.bru",
+            "004_500_error",
         ]);
+        expect((await readdir(directory)).sort()).toEqual(namesAfterFirstSync);
+    });
+
+    it("replaces outdated prefixes with more digits than needed for the step", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 1,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "1000_login.yml": yamlRequestContent("login", 3),
+            "2000_users/folder.yml":
+                "info:\n  name: users\n  type: folder\n  seq: 4\n",
+        });
+        const itemProvider = createItemProvider(
+            directory,
+            [],
+            CollectionFormat.Yaml,
+        );
 
         await syncSequencePrefixes(itemProvider, [directory]);
 
-        expect(await readdir(directory)).toEqual(["002_2024_reports.bru"]);
+        expect((await readdir(directory)).sort()).toEqual([
+            "003_login.yml",
+            "004_users",
+        ]);
+    });
+
+    it("keeps the names of items whose sequence cannot be used as a prefix", async () => {
+        mockVsCodeSettings(prefixSettings);
+        const applyEdit = jest.spyOn(workspace, "applyEdit");
+        const directory = await createTemporaryDirectory({
+            "a.bru": requestContent("a", 1.5),
+            "b.bru": requestContent("b", -1),
+        });
+
+        await syncSequencePrefixes(createItemProvider(directory, []), [
+            directory,
+        ]);
+
+        expect(applyEdit).not.toHaveBeenCalled();
     });
 
     describe("paths in `bru.runRequest` calls", () => {
