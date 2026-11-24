@@ -133,14 +133,14 @@ function getCommonTypeDefinitions() {
  */
 /**
  * @typedef {object} BrunoCookieJar
- * @property {((url: string, name: string, value: string) => void) & ((url: string, cookieObject: CookieObject) => void)} setCookie Set a single cookie with specified attributes. For \`__Host-\` prefixed cookies, Bruno omits \`domain\` automatically; setting a \`domain\` makes the cookie get rejected.
- * @property {(url: string, cookieObjects: CookieObject[]) => void} setCookies Set multiple cookies at once using an array of cookie objects.
+ * @property {((url: string, name: string, value: string) => Promise<void>) & ((url: string, cookieObject: CookieObject) => Promise<void>)} setCookie Set a single cookie with specified attributes. For \`__Host-\` prefixed cookies, Bruno omits \`domain\` automatically; setting a \`domain\` makes the cookie get rejected.
+ * @property {(url: string, cookieObjects: CookieObject[]) => Promise<void>} setCookies Set multiple cookies at once using an array of cookie objects.
  * @property {(url: string, name: string) => Promise<CookieObject | null>} getCookie Get a specific cookie by name.
  * @property {((url: string, name: string) => Promise<boolean>) & ((url: string, name: string, callback: (err: Error | null | undefined, exists?: boolean) => void) => void)} hasCookie Check whether a cookie with the given name exists for a specific URL. Optionally accepts a callback as the third argument; if omitted, returns a Promise.
  * @property {(url: string) => Promise<CookieObject[]>} getCookies Get all cookies for a specific URL.
- * @property {(url: string, name: string) => void} deleteCookie Delete a specific cookie by name. Only succeeds if domain and path match the stored cookie.
- * @property {(url: string) => void} deleteCookies Delete all cookies for a specific URL.
- * @property {() => void} clear Clear all cookies from the cookie jar.
+ * @property {(url: string, name: string) => Promise<void>} deleteCookie Delete a specific cookie by name. Only succeeds if domain and path match the stored cookie.
+ * @property {(url: string) => Promise<void>} deleteCookies Delete all cookies for a specific URL.
+ * @property {() => Promise<void>} clear Clear all cookies from the cookie jar.
  */
 /**
  * @typedef {object} IterationData The current row of the data file that the collection run iterates over.
