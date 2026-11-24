@@ -2,6 +2,7 @@ import { extname, relative, resolve } from "path";
 import {
     BrunoFileType,
     getFileExtensionForFormat,
+    getItemType,
     getRunRequestPathLiterals,
     isPathEqualOrDescendant,
     ItemType,
@@ -12,10 +13,8 @@ import {
 } from "@global_shared";
 import { TypedCollection } from "@shared";
 import { getRunRequestPathForItem } from "./getRunRequestPathForItem";
-import {
-    getUpdatedRunRequestPath,
-    RunRequestPathRename,
-} from "./getUpdatedRunRequestPath";
+import { getUpdatedRunRequestPath } from "./getUpdatedRunRequestPath";
+import { applyRenamesToPath, getPathDepth } from "./applyRenamesToPath";
 
 export interface PathRename {
     /** Absolute paths. */
@@ -33,33 +32,31 @@ export interface RunRequestPathEdit {
 
 /**
  * Calculates the edits that are needed to keep the paths in `bru.runRequest` calls (of the same collection) up-to-date after renaming or moving requests and folders.
+ * The renames are treated as if they were executed at once (see `applyRenamesToPath`).
  *
  * The collection data must not be updated for the renames yet. The ranges refer to the file content before the renames,
  * the paths of the edits to the file locations after them.
+ *
+ * @param previousRenames Renames that were executed before, but are not reflected in the collection data yet. They are needed for finding the files that are cached with their old paths.
  */
 export async function getEditsForRunRequestPaths(
     collection: TypedCollection,
     renames: PathRename[],
     getFileContent: (path: string) => Promise<string | undefined>,
     logger?: Logger,
+    previousRenames: PathRename[] = [],
 ): Promise<RunRequestPathEdit[]> {
     const rootDirectory = collection.getRootDirectory();
     const format = collection.getFormat();
     const extension = getFileExtensionForFormat(format);
 
-    const relevantRenames = renames.filter(
-        ({ sourcePath, targetPath, isFile }) =>
-            // E.g. when changing the sequence of a request via drag-and-drop within the same folder.
-            normalizePath(sourcePath) != normalizePath(targetPath) &&
-            !collection.isRootDirectory(sourcePath) &&
-            isPathEqualOrDescendant(sourcePath, rootDirectory) &&
-            isPathEqualOrDescendant(targetPath, rootDirectory) &&
-            (!isFile ||
-                (collection
-                    .getStoredDataForPath(sourcePath)
-                    ?.item.getItemType() == BrunoFileType.RequestFile &&
-                    extname(targetPath) == extension)),
-    );
+    const relevantRenames: PathRename[] = [];
+
+    for (const rename of renames) {
+        if (await isRelevantRename(collection, rename, extension)) {
+            relevantRenames.push(rename);
+        }
+    }
 
     if (relevantRenames.length == 0) {
         return [];
@@ -67,6 +64,7 @@ export async function getEditsForRunRequestPaths(
 
     const runRequestRenames = relevantRenames.map(
         ({ sourcePath, targetPath, isFile }) => ({
+            depth: getPathDepth(sourcePath),
             oldPath: getRunRequestPathForItem(
                 rootDirectory,
                 sourcePath,
@@ -83,11 +81,15 @@ export async function getEditsForRunRequestPaths(
         }),
     );
 
-    const edits: RunRequestPathEdit[] = [];
+    const edits = new Map<string, RunRequestPathEdit>();
 
     for (const { item } of collection.getAllStoredDataForCollection()) {
         const itemType = item.getItemType();
-        const originalPath = item.getPath();
+        // Files that were moved by a previous rename may still be cached with their old path.
+        const originalPath = getPathAfterRenames(
+            item.getPath(),
+            previousRenames,
+        );
 
         if (!isFileToSearch(itemType, originalPath)) {
             continue;
@@ -106,10 +108,11 @@ export async function getEditsForRunRequestPaths(
             itemType,
             format,
         )) {
-            const newPath = getNewPath(
+            const newPath = applyRenamesToPath(
                 literal.path,
                 runRequestRenames,
-                extension,
+                (path, rename) =>
+                    getUpdatedRunRequestPath(path, rename, extension),
             );
 
             if (newPath == undefined) {
@@ -125,11 +128,44 @@ export async function getEditsForRunRequestPaths(
                 continue;
             }
 
-            edits.push({ filePath, range: literal.range, newText: newPath });
+            const { start, end } = literal.range;
+
+            // The same file can be found twice if the collection data was updated for a previous rename in the meantime.
+            edits.set(
+                `${normalizePath(filePath)}:${start.line}:${start.character}:${end.line}:${end.character}`,
+                { filePath, range: literal.range, newText: newPath },
+            );
         }
     }
 
-    return edits;
+    return Array.from(edits.values());
+}
+
+async function isRelevantRename(
+    collection: TypedCollection,
+    { sourcePath, targetPath, isFile }: PathRename,
+    extension: string,
+) {
+    const rootDirectory = collection.getRootDirectory();
+
+    if (
+        // E.g. when changing the sequence of a request via drag-and-drop within the same folder.
+        normalizePath(sourcePath) == normalizePath(targetPath) ||
+        collection.isRootDirectory(sourcePath) ||
+        !isPathEqualOrDescendant(sourcePath, rootDirectory) ||
+        !isPathEqualOrDescendant(targetPath, rootDirectory)
+    ) {
+        return false;
+    }
+
+    return (
+        !isFile ||
+        (extname(targetPath) == extension &&
+            // The collection data may not know the file yet if it was moved or created shortly before.
+            (collection.getStoredDataForPath(sourcePath)?.item.getItemType() ??
+                (await getItemType(collection, sourcePath))) ==
+                BrunoFileType.RequestFile)
+    );
 }
 
 function isFileToSearch(itemType: ItemType, path: string) {
@@ -143,34 +179,21 @@ function isFileToSearch(itemType: ItemType, path: string) {
     );
 }
 
+/** The location of the item with the given path after all renames (see `applyRenamesToPath`). */
 export function getPathAfterRenames(path: string, renames: PathRename[]) {
-    const rename = renames.find(({ sourcePath }) =>
-        isPathEqualOrDescendant(path, sourcePath),
+    return (
+        applyRenamesToPath(
+            path,
+            renames.map((rename) => ({
+                ...rename,
+                depth: getPathDepth(rename.sourcePath),
+            })),
+            (currentPath, { sourcePath, targetPath }) =>
+                isPathEqualOrDescendant(currentPath, sourcePath)
+                    ? resolve(targetPath, relative(sourcePath, currentPath))
+                    : undefined,
+        ) ?? path
     );
-
-    return rename
-        ? resolve(rename.targetPath, relative(rename.sourcePath, path))
-        : path;
-}
-
-function getNewPath(
-    referencedPath: string,
-    renames: RunRequestPathRename[],
-    extension: string,
-) {
-    for (const rename of renames) {
-        const updated = getUpdatedRunRequestPath(
-            referencedPath,
-            rename,
-            extension,
-        );
-
-        if (updated != undefined) {
-            return updated;
-        }
-    }
-
-    return undefined;
 }
 
 function getReasonForUnsafeText(

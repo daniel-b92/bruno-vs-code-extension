@@ -133,6 +133,71 @@ describe("createRequestFile", () => {
         ).toContain("seq: 5");
     });
 
+    describe("if names are prefixed with sequences", () => {
+        const settings = {
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 10,
+        };
+
+        it("prefixes the file name, but not the stored name (bru)", async () => {
+            const directory = await createTemporaryDirectory({
+                "0010_existing.bru":
+                    "meta {\n  name: existing\n  type: http\n  seq: 10\n}\n",
+            });
+
+            await runCreateRequestFile(directory, CollectionFormat.Bru, {
+                requestName: "my_request",
+                pickedLabels: [RequestType.Http, RequestFileBlockName.Post],
+                settings,
+            });
+
+            const content = await readFile(
+                join(directory, "0020_my_request.bru"),
+                "utf-8",
+            );
+            expect(content).toContain("name: my_request");
+            expect(content).toContain("seq: 20");
+        });
+
+        it("prefixes the file name, but not the stored name (yaml)", async () => {
+            const directory = await createTemporaryDirectory();
+
+            await runCreateRequestFile(directory, CollectionFormat.Yaml, {
+                requestName: "my_request",
+                pickedLabels: [RequestType.Http, RequestFileBlockName.Get],
+                settings,
+            });
+
+            const content = await readFile(
+                join(directory, "0010_my_request.yml"),
+                "utf-8",
+            );
+            expect(content).toContain("name: my_request");
+            expect(content).toContain("seq: 10");
+        });
+
+        it("does not overwrite an existing file that has the prefixed name", async () => {
+            const directory = await createTemporaryDirectory({
+                "0010_my_request.bru": "existing",
+            });
+            const showErrorMessage = jest
+                .spyOn(window, "showErrorMessage")
+                .mockResolvedValue(undefined);
+
+            await runCreateRequestFile(directory, CollectionFormat.Bru, {
+                requestName: "my_request",
+                pickedLabels: [RequestType.Http, RequestFileBlockName.Get],
+                settings,
+            });
+
+            expect(showErrorMessage).toHaveBeenCalledTimes(1);
+            expect(
+                await readFile(join(directory, "0010_my_request.bru"), "utf-8"),
+            ).toBe("existing");
+            expect(await readdir(directory)).toEqual(["0010_my_request.bru"]);
+        });
+    });
+
     it("uses the request URL from the presets for any request type and creates matching params blocks (bru)", async () => {
         const directory = await createTemporaryDirectory({
             "bruno.json": JSON.stringify({
@@ -306,13 +371,20 @@ async function runCreateRequestFile(
     {
         requestName,
         pickedLabels,
-    }: { requestName: string; pickedLabels: string[] },
+        settings = {},
+    }: {
+        requestName: string;
+        pickedLabels: string[];
+        /** Values of settings by their full names. */
+        settings?: Record<string, unknown>;
+    },
 ) {
     jest.spyOn(window, "showInputBox").mockResolvedValue(requestName);
     jest.spyOn(commands, "executeCommand").mockResolvedValue(undefined);
     // Use a fixed line break, so that the tests do not depend on the platform.
     jest.spyOn(workspace, "getConfiguration").mockReturnValue({
-        get: () => "\n",
+        get: (key: string) => (key in settings ? settings[key] : "\n"),
+        inspect: (key: string) => ({ key, globalValue: settings[key] }),
     } as never);
 
     const quickPick = createFakeQuickPick();

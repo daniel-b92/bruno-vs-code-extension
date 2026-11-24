@@ -31,6 +31,7 @@ import {
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
+import { validateNewNameForRenaming } from "./explorer/validateNewNameForRenaming";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
 import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
 import { replaceNameInBrunoJson } from "./explorer/fileUtils/replaceNameInBrunoJson";
@@ -103,6 +104,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             this.contextRootProvider,
             logger,
         );
+        this.disposables.push(treeDataProvider);
 
         const treeView = vscode.window.createTreeView(this.treeViewId, {
             treeDataProvider,
@@ -663,15 +665,12 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         originalPath,
                     )}'`,
                     value: displayedName,
-                    validateInput: (newItemName: string) => {
-                        return validateNewItemNameIsUnique(
-                            resolve(
-                                dirname(originalPath),
-                                getFullItemName(newItemName),
-                            ),
+                    validateInput: (newItemName: string) =>
+                        validateNewNameForRenaming(
+                            newItemName,
                             originalPath,
-                        );
-                    },
+                            getFullItemName,
+                        ),
                     valueSelection: [0, originalName.length],
                 });
 
@@ -962,6 +961,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             dirname(path),
                             sequenceStep,
                         );
+                        await syncSequencePrefixes(
+                            this.itemProvider,
+                            [dirname(path)],
+                            this.logger,
+                        );
                     }
                 } else if (
                     (itemType == BrunoFileType.FolderSettingsFile ||
@@ -971,12 +975,20 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     if (shouldRenumber) {
-                        await normalizeSequencesForFolders(
-                            this.itemProvider,
+                        const parentFolder =
                             itemType == BrunoFileType.FolderSettingsFile
                                 ? dirname(dirname(path))
-                                : dirname(path),
+                                : dirname(path);
+
+                        await normalizeSequencesForFolders(
+                            this.itemProvider,
+                            parentFolder,
                             sequenceStep,
+                        );
+                        await syncSequencePrefixes(
+                            this.itemProvider,
+                            [parentFolder],
+                            this.logger,
                         );
                     }
                 } else if (collection.isRootDirectory(treeItem.getPath())) {
@@ -1275,21 +1287,32 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     return;
                 }
 
-                const renamedCount = await this.withProgressInExplorer(
-                    "Removing sequence prefixes",
-                    () =>
-                        removeSequencePrefixesRecursively(
-                            this.itemProvider,
-                            collection,
-                            selectedPath,
-                            this.logger,
-                        ),
-                );
+                const { renamedCount, skippedCount, failed } =
+                    await this.withProgressInExplorer(
+                        "Removing sequence prefixes",
+                        () =>
+                            removeSequencePrefixesRecursively(
+                                this.itemProvider,
+                                collection,
+                                selectedPath,
+                                this.logger,
+                            ),
+                    );
+
+                if (failed) {
+                    // The error has already been shown.
+                    return;
+                }
+
+                const skippedHint =
+                    skippedCount == 0
+                        ? ""
+                        : ` ${skippedCount} item${skippedCount == 1 ? " was" : "s were"} not renamed, because an item with the name without the prefix already exists.`;
 
                 vscode.window.showInformationMessage(
-                    renamedCount == 0
+                    renamedCount == 0 && skippedCount == 0
                         ? "No sequence prefixes found."
-                        : `Removed the sequence prefix from ${renamedCount} item${renamedCount == 1 ? "" : "s"}.`,
+                        : `Removed the sequence prefix from ${renamedCount} item${renamedCount == 1 ? "" : "s"}.${skippedHint}`,
                 );
             },
         );
@@ -1449,7 +1472,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                   targetPath,
                   await syncSequencePrefixes(
                       this.itemProvider,
-                      [dirname(targetPath)],
+                      // The sequences in the folder of the source file may have been renumbered as well.
+                      [dirname(targetPath), dirname(sourceItem.getPath())],
                       this.logger,
                   ),
               )

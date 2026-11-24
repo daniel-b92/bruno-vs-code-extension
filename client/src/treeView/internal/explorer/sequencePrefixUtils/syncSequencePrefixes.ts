@@ -1,7 +1,6 @@
-import { basename, dirname, extname, resolve, sep } from "path";
+import { basename, dirname, extname, resolve } from "path";
 import {
     addSequencePrefix,
-    checkIfPathExistsAsync,
     getSequencesForRequestsAndAppFiles,
     Logger,
     normalizePath,
@@ -12,20 +11,25 @@ import {
     shouldPrefixNamesWithSequence,
     TypedCollectionItemProvider,
 } from "@shared";
-import { renameFileOrFolder } from "../renameFileOrFolder";
+import { renameFilesAndFolders } from "../renameFileOrFolder";
+import { PathRename } from "../runRequestPaths/getEditsForRunRequestPaths";
+import { excludeConflictingRenames } from "../excludeConflictingRenames";
 
 /**
  * Renames the requests, app files and folders (that have a sequence) directly within the given folders, so that their names start with their sequence.
  * Does nothing if prefixing names with the sequence is not enabled in the settings.
  *
- * Items are never overwritten. If the new name is already taken, the item keeps its name.
+ * All renames are executed together, so that items can take over the names of items that are renamed as well (e.g. when sequences were shifted).
+ * Items are never overwritten. If the new name is taken by an item that is not renamed, the item keeps its name.
  *
+ * @param previousRenames Renames that were executed shortly before and are not reflected in the collection data yet (e.g. when moving an item), so that `bru.runRequest` paths are updated correctly.
  * @returns The new paths of the renamed items, with the normalized old paths as keys.
  */
 export async function syncSequencePrefixes(
     itemProvider: TypedCollectionItemProvider,
     folderPaths: string[],
     logger?: Logger,
+    previousRenames?: PathRename[],
 ) {
     const renamedPaths = new Map<string, string>();
 
@@ -34,9 +38,9 @@ export async function syncSequencePrefixes(
     }
 
     const sequenceStep = getSequenceStepFromSettings();
+    const plannedRenames: PathRename[] = [];
 
-    for (const folderPath of getUniquePathsWithDescendantsFirst(folderPaths)) {
-        // Folders are renamed after the files, but both only have an effect on direct children of the folder.
+    for (const folderPath of getUniquePaths(folderPaths)) {
         const files = await getSequencesForRequestsAndAppFiles(
             itemProvider,
             folderPath,
@@ -44,17 +48,28 @@ export async function syncSequencePrefixes(
         const folders = await getSequencesForFolders(itemProvider, folderPath);
 
         for (const { path, sequence } of files) {
-            await renameToMatchSequence(
-                { path, sequence, isFile: true },
-                { itemProvider, sequenceStep, renamedPaths, logger },
+            plannedRenames.push(
+                getRenameToMatchSequence(path, sequence, true, sequenceStep),
             );
         }
         for (const { folderPath: path, sequence } of folders) {
-            await renameToMatchSequence(
-                { path, sequence, isFile: false },
-                { itemProvider, sequenceStep, renamedPaths, logger },
+            plannedRenames.push(
+                getRenameToMatchSequence(path, sequence, false, sequenceStep),
             );
         }
+    }
+
+    const renames = await excludeConflictingRenames(plannedRenames, logger);
+
+    if (
+        await renameFilesAndFolders(itemProvider, renames, {
+            logger,
+            previousRenames,
+        })
+    ) {
+        renames.forEach(({ sourcePath, targetPath }) =>
+            renamedPaths.set(normalizePath(sourcePath), targetPath),
+        );
     }
 
     return renamedPaths;
@@ -68,46 +83,28 @@ export function getPathAfterSequencePrefixSync(
     return renamedPaths.get(normalizePath(path)) ?? path;
 }
 
-async function renameToMatchSequence(
-    item: { path: string; sequence: number; isFile: boolean },
-    context: {
-        itemProvider: TypedCollectionItemProvider;
-        sequenceStep: number;
-        renamedPaths: Map<string, string>;
-        logger?: Logger;
-    },
-) {
-    const { path, sequence, isFile } = item;
-    const { itemProvider, sequenceStep, renamedPaths, logger } = context;
+function getRenameToMatchSequence(
+    path: string,
+    sequence: number,
+    isFile: boolean,
+    sequenceStep: number,
+): PathRename {
     const extension = isFile ? extname(path) : "";
-    const currentName = basename(path, extension);
-    const newName = addSequencePrefix(currentName, sequence, sequenceStep);
-
-    if (newName == currentName) {
-        return;
-    }
-
-    const newPath = resolve(dirname(path), `${newName}${extension}`);
-
-    if (await checkIfPathExistsAsync(newPath)) {
-        logger?.warn(
-            `Did not rename '${path}' to match its sequence, because '${newPath}' already exists.`,
-        );
-        return;
-    }
-
-    if (await renameFileOrFolder(itemProvider, path, newPath, isFile, logger)) {
-        renamedPaths.set(normalizePath(path), newPath);
-    }
-}
-
-/** Folders that are located deeper are first, so that renaming a folder does not invalidate the paths of folders that are still to be handled. */
-function getUniquePathsWithDescendantsFirst(paths: string[]) {
-    const uniquePaths = new Map(
-        paths.map((path) => [normalizePath(path), path]),
+    const newName = addSequencePrefix(
+        basename(path, extension),
+        sequence,
+        sequenceStep,
     );
 
-    return Array.from(uniquePaths.values()).sort(
-        (a, b) => b.split(sep).length - a.split(sep).length,
+    return {
+        sourcePath: path,
+        targetPath: resolve(dirname(path), `${newName}${extension}`),
+        isFile,
+    };
+}
+
+function getUniquePaths(paths: string[]) {
+    return Array.from(
+        new Map(paths.map((path) => [normalizePath(path), path])).values(),
     );
 }

@@ -40,6 +40,9 @@ import {
     getPathsToIgnoreForCollections,
     AdditionalCollectionSimpleDataProvider,
     AdditionalCollectionDataProviderType,
+    BrunoFileType,
+    isCollectionItemWithSequence,
+    NonBrunoSpecificItemType,
 } from "@global_shared";
 
 let client: LanguageClient;
@@ -260,6 +263,7 @@ function getAdditionalCollectionDataProvider(
                     : undefined,
                 isCollectionItemWithTags(item) ? item.getTags() : undefined,
                 getIconForItem(item, isCollectionRootFile, isCollectionRoot),
+                canHaveSequencePrefix(item, isCollectionRoot),
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),
@@ -269,10 +273,29 @@ function getAdditionalCollectionDataProvider(
         ) {
             return (
                 oldTreeItem.description != newTreeItem.description ||
-                oldTreeItem.tooltip != newTreeItem.tooltip
+                oldTreeItem.tooltip != newTreeItem.tooltip ||
+                oldTreeItem.canHaveSequencePrefix !=
+                    newTreeItem.canHaveSequencePrefix
             );
         },
     };
+}
+
+/** Only requests, app files and folders that have a sequence get a prefix with it in their names. */
+function canHaveSequencePrefix(
+    item: CollectionItem,
+    isCollectionRoot: boolean,
+) {
+    const itemType = item.getItemType();
+
+    return (
+        !isCollectionRoot &&
+        (itemType == BrunoFileType.RequestFile ||
+            itemType == BrunoFileType.AppFile ||
+            itemType == NonBrunoSpecificItemType.Directory) &&
+        isCollectionItemWithSequence(item) &&
+        item.getSequence() !== undefined
+    );
 }
 
 function getCallbackForRestartingClient() {

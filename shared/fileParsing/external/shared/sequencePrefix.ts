@@ -14,7 +14,7 @@ export function getMinimumDigitsForSequencePrefix(sequenceStep: number) {
 }
 
 /**
- * The prefix for the name of an item with the given sequence, e.g. `010_` for sequence 10 and step 10.
+ * The prefix for the name of an item with the given sequence, e.g. `0010_` for sequence 10 and step 10 (4 digits).
  * If the sequence does not fit into the minimum number of digits, more digits are used.
  */
 export function getSequencePrefix(sequence: number, sequenceStep: number) {

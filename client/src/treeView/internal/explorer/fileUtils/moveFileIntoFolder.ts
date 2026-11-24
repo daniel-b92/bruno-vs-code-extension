@@ -52,5 +52,7 @@ export async function moveFileIntoFolder(
         itemProvider,
         [dirname(newPath), dirname(sourcePath)],
         logger,
+        // The collection data may not know the moved file at its new location yet.
+        [{ sourcePath, targetPath: newPath, isFile: true }],
     );
 }

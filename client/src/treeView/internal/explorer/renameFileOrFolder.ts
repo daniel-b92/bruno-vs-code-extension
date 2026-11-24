@@ -1,11 +1,20 @@
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
 import { Logger, getFileContent } from "@global_shared";
-import { TypedCollectionItemProvider, mapToVsCodeRange } from "@shared";
+import {
+    TypedCollection,
+    TypedCollectionItemProvider,
+    mapToVsCodeRange,
+} from "@shared";
 import {
     getEditsForRunRequestPaths,
     getPathAfterRenames,
+    PathRename,
     RunRequestPathEdit,
 } from "./runRequestPaths/getEditsForRunRequestPaths";
+import {
+    getRenameStepsInExecutionOrder,
+    RenameStep,
+} from "./getRenameStepsInExecutionOrder";
 
 /**
  * Renames or moves the file or folder. Paths in `bru.runRequest` calls that refer to renamed requests are updated within the same workspace edit.
@@ -19,33 +28,65 @@ export async function renameFileOrFolder(
     /** Whether an existing item at the target path should be replaced. Without it, the rename fails if the target exists. */
     overwrite = false,
 ) {
+    return await renameFilesAndFolders(
+        itemProvider,
+        [{ sourcePath, targetPath, isFile }],
+        { logger, overwrite },
+    );
+}
+
+/**
+ * Renames or moves several files and folders in one workspace edit, so that all updates of `bru.runRequest` paths refer to the final locations.
+ * The renames refer to the paths before any of them is executed. They are executed in an order that never overwrites an item that is renamed as well,
+ * so the names of items can be shifted or swapped. The target paths must be distinct.
+ *
+ * @returns Whether all items were renamed.
+ */
+export async function renameFilesAndFolders(
+    itemProvider: TypedCollectionItemProvider,
+    renames: PathRename[],
+    options: {
+        logger?: Logger;
+        /** Whether existing items at the target paths should be replaced. Without it, the rename fails if a target exists. */
+        overwrite?: boolean;
+        /** Renames that were executed before, which are not reflected in the collection data yet (see `getEditsForRunRequestPaths`). */
+        previousRenames?: PathRename[];
+    } = {},
+) {
+    const { logger, overwrite = false, previousRenames } = options;
+
+    if (renames.length == 0) {
+        return true;
+    }
+
     const pathEdits = await getRunRequestPathEditsSafely(
         itemProvider,
-        sourcePath,
-        targetPath,
-        isFile,
+        renames,
+        previousRenames,
         logger,
+    );
+    const steps = getRenameStepsInExecutionOrder(
+        renames.map(({ sourcePath, targetPath }) => ({
+            from: sourcePath,
+            to: targetPath,
+        })),
     );
     // Documents with unsaved changes keep them. The others are saved after the edit, so that later writes to the files do not conflict with their buffers.
     const dirtyFilePathsAfterRename = workspace.textDocuments
         .filter(({ isDirty }) => isDirty)
-        .map(({ uri }) =>
-            getPathAfterRenames(uri.fsPath, [
-                { sourcePath, targetPath, isFile },
-            ]),
-        );
+        .map(({ uri }) => getPathAfterRenames(uri.fsPath, renames));
 
     let renamedSuccessfully = await workspace.applyEdit(
-        createWorkspaceEdit(sourcePath, targetPath, pathEdits, overwrite),
+        createWorkspaceEdit(steps, pathEdits, overwrite),
         { isRefactoring: true },
     );
 
     if (!renamedSuccessfully && pathEdits.length > 0) {
         logger?.warn(
-            `Renaming '${sourcePath}' together with the updates of 'bru.runRequest' paths failed. Renaming without these updates.`,
+            `Renaming ${describeRenames(renames)} together with the updates of 'bru.runRequest' paths failed. Renaming without these updates.`,
         );
         renamedSuccessfully = await workspace.applyEdit(
-            createWorkspaceEdit(sourcePath, targetPath, [], overwrite),
+            createWorkspaceEdit(steps, [], overwrite),
         );
     } else if (renamedSuccessfully) {
         await saveEditedFiles(pathEdits, dirtyFilePathsAfterRename, logger);
@@ -55,55 +96,81 @@ export async function renameFileOrFolder(
         return true;
     } else {
         window.showErrorMessage(
-            `Renaming / Moving ${
-                isFile ? "file" : "folder"
-            } '${sourcePath}' failed unexpectedly.`,
+            renames.length == 1
+                ? `Renaming / Moving ${
+                      renames[0].isFile ? "file" : "folder"
+                  } '${renames[0].sourcePath}' failed unexpectedly.`
+                : `Renaming / Moving ${renames.length} items failed unexpectedly.`,
         );
 
         return false;
     }
 }
 
+function describeRenames(renames: PathRename[]) {
+    return renames.length == 1
+        ? `'${renames[0].sourcePath}'`
+        : `${renames.length} items`;
+}
+
 async function getRunRequestPathEditsSafely(
     itemProvider: TypedCollectionItemProvider,
-    sourcePath: string,
-    targetPath: string,
-    isFile: boolean,
+    renames: PathRename[],
+    previousRenames: PathRename[] | undefined,
     logger?: Logger,
 ): Promise<RunRequestPathEdit[]> {
-    const collection = itemProvider.getAncestorCollectionForPath(sourcePath);
+    const renamesByCollection = new Map<TypedCollection, PathRename[]>();
 
-    if (!collection) {
-        return [];
+    for (const rename of renames) {
+        const collection = itemProvider.getAncestorCollectionForPath(
+            rename.sourcePath,
+        );
+
+        if (collection) {
+            renamesByCollection.set(collection, [
+                ...(renamesByCollection.get(collection) ?? []),
+                rename,
+            ]);
+        }
     }
 
-    try {
-        return await getEditsForRunRequestPaths(
-            collection,
-            [{ sourcePath, targetPath, isFile }],
-            getCurrentFileContent,
-            logger,
-        );
-    } catch (error) {
-        logger?.error(
-            `Could not determine the 'bru.runRequest' paths to update when renaming '${sourcePath}': ${error}`,
-        );
-        return [];
+    const edits: RunRequestPathEdit[] = [];
+
+    for (const [collection, collectionRenames] of renamesByCollection) {
+        try {
+            edits.push(
+                ...(await getEditsForRunRequestPaths(
+                    collection,
+                    collectionRenames,
+                    getCurrentFileContent,
+                    logger,
+                    previousRenames,
+                )),
+            );
+        } catch (error) {
+            logger?.error(
+                `Could not determine the 'bru.runRequest' paths to update when renaming ${describeRenames(collectionRenames)}: ${error}`,
+            );
+        }
     }
+
+    return edits;
 }
 
 function createWorkspaceEdit(
-    sourcePath: string,
-    targetPath: string,
+    steps: RenameStep[],
     pathEdits: RunRequestPathEdit[],
     overwrite: boolean,
 ) {
     const workspaceEdit = new WorkspaceEdit();
 
-    workspaceEdit.renameFile(
-        Uri.file(sourcePath),
-        Uri.file(targetPath),
-        overwrite ? { overwrite: true } : undefined,
+    // The file operations are applied in the order they were added. The text edits refer to the locations after all of them.
+    steps.forEach(({ from, to }) =>
+        workspaceEdit.renameFile(
+            Uri.file(from),
+            Uri.file(to),
+            overwrite ? { overwrite: true } : undefined,
+        ),
     );
     pathEdits.forEach(({ filePath, range, newText }) =>
         workspaceEdit.replace(

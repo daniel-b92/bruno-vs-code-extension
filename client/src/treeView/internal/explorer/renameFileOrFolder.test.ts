@@ -4,7 +4,10 @@ import { workspace, WorkspaceEdit } from "vscode";
 import { BrunoRequestFile, CollectionFormat } from "@global_shared";
 import { createCollectionWithItems } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
-import { renameFileOrFolder } from "./renameFileOrFolder";
+import {
+    renameFileOrFolder,
+    renameFilesAndFolders,
+} from "./renameFileOrFolder";
 
 const root = join("/", "collection");
 const callerPath = join(root, "caller.bru");
@@ -98,6 +101,48 @@ describe("renameFileOrFolder", () => {
         );
 
         expect(save).not.toHaveBeenCalled();
+    });
+
+    it("renames several items in one workspace edit with updates for the final locations", async () => {
+        const applyEdit = jest.spyOn(workspace, "applyEdit");
+        openDocuments(openDocument(callerPath, callerContent, false));
+
+        const result = await renameFilesAndFolders(createItemProvider(), [
+            {
+                sourcePath: join(root, "users/a.bru"),
+                targetPath: join(root, "users/0010_a.bru"),
+                isFile: true,
+            },
+            {
+                sourcePath: join(root, "users"),
+                targetPath: join(root, "0020_users"),
+                isFile: false,
+            },
+        ]);
+
+        expect(result).toBe(true);
+        expect(applyEdit).toHaveBeenCalledTimes(1);
+        const edit = applyEdit.mock.calls[0][0] as WorkspaceEdit & {
+            renames: { from: { fsPath: string }; to: { fsPath: string } }[];
+            replacements: { newText: string }[];
+        };
+        // Items within a folder are renamed before the folder.
+        expect(edit.renames.map(({ from }) => from.fsPath)).toEqual([
+            join(root, "users/a.bru"),
+            join(root, "users"),
+        ]);
+        expect(edit.replacements.map(({ newText }) => newText)).toEqual([
+            "0020_users/0010_a",
+        ]);
+    });
+
+    it("does nothing if there is nothing to rename", async () => {
+        const applyEdit = jest.spyOn(workspace, "applyEdit");
+
+        expect(await renameFilesAndFolders(createItemProvider(), [])).toBe(
+            true,
+        );
+        expect(applyEdit).not.toHaveBeenCalled();
     });
 
     it("renames without updates if the rename with updates fails", async () => {

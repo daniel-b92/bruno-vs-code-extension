@@ -1,31 +1,38 @@
-import { basename, dirname, extname, resolve, sep } from "path";
+import { basename, dirname, extname, resolve } from "path";
 import {
     BrunoFileType,
-    checkIfPathExistsAsync,
-    isCollectionItemWithSequence,
+    CollectionDirectory,
     isPathEqualOrDescendant,
     Logger,
-    NonBrunoSpecificItemType,
     normalizePath,
     parseSequencePrefix,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionItemProvider } from "@shared";
-import { renameFileOrFolder } from "../renameFileOrFolder";
+import { renameFilesAndFolders } from "../renameFileOrFolder";
+import { PathRename } from "../runRequestPaths/getEditsForRunRequestPaths";
+import { excludeConflictingRenames } from "../excludeConflictingRenames";
+
+export interface RemovalOfSequencePrefixesResult {
+    renamedCount: number;
+    /** The number of items that were not renamed, because an item with the name without the prefix already exists. */
+    skippedCount: number;
+    /** Whether renaming the items failed. The user has already been informed about it then. */
+    failed: boolean;
+}
 
 /**
- * Removes the sequence prefixes (e.g. `010_`) from the names of all requests, app files and folders with a sequence below the given folder.
- * The given folder itself keeps its name. Items are never overwritten. If the name without prefix is already taken, the item keeps its name.
+ * Removes the sequence prefixes (e.g. `0010_`) from the names of all requests, app files and folders (with a settings file) below the given folder.
+ * Items that have no sequence (any more) are included, since the prefix cannot match their sequence.
+ * The given folder itself keeps its name. All renames are executed together. Items are never overwritten. If the name without prefix is already taken, the item keeps its name.
  * Does not depend on the setting for prefixing names with their sequence.
- *
- * @returns The number of renamed items.
  */
 export async function removeSequencePrefixesRecursively(
     itemProvider: TypedCollectionItemProvider,
     collection: TypedCollection,
     folderPath: string,
     logger?: Logger,
-) {
-    const itemsToRename: { path: string; isFile: boolean }[] = [];
+): Promise<RemovalOfSequencePrefixesResult> {
+    const plannedRenames: PathRename[] = [];
 
     for (const { item } of collection.getAllStoredDataForCollection()) {
         const itemPath = item.getPath();
@@ -33,64 +40,45 @@ export async function removeSequencePrefixesRecursively(
 
         if (
             normalizePath(itemPath) == normalizePath(folderPath) ||
-            !isPathEqualOrDescendant(itemPath, folderPath) ||
-            !isCollectionItemWithSequence(item) ||
-            item.getSequence() === undefined
+            !isPathEqualOrDescendant(itemPath, folderPath)
         ) {
             continue;
         }
 
-        if (
+        const isFile =
             itemType == BrunoFileType.RequestFile ||
-            itemType == BrunoFileType.AppFile
-        ) {
-            itemsToRename.push({ path: itemPath, isFile: true });
-        } else if (itemType == NonBrunoSpecificItemType.Directory) {
-            itemsToRename.push({ path: itemPath, isFile: false });
+            itemType == BrunoFileType.AppFile;
+        const isFolderWithSettings =
+            item instanceof CollectionDirectory &&
+            item.getSettingsFilePath() !== undefined;
+
+        if (!isFile && !isFolderWithSettings) {
+            continue;
         }
-    }
 
-    // Folders must be renamed after the items within them, since the paths of their descendants change.
-    itemsToRename.sort(
-        (a, b) => b.path.split(sep).length - a.path.split(sep).length,
-    );
-
-    let renamedCount = 0;
-
-    for (const { path, isFile } of itemsToRename) {
-        const extension = isFile ? extname(path) : "";
+        const extension = isFile ? extname(itemPath) : "";
         const nameWithoutPrefix = parseSequencePrefix(
-            basename(path, extension),
+            basename(itemPath, extension),
         )?.nameWithoutPrefix;
 
-        if (nameWithoutPrefix === undefined) {
-            continue;
-        }
-
-        const newPath = resolve(
-            dirname(path),
-            `${nameWithoutPrefix}${extension}`,
-        );
-
-        if (await checkIfPathExistsAsync(newPath)) {
-            logger?.warn(
-                `Did not remove the sequence prefix of '${path}', because '${newPath}' already exists.`,
-            );
-            continue;
-        }
-
-        if (
-            await renameFileOrFolder(
-                itemProvider,
-                path,
-                newPath,
+        if (nameWithoutPrefix !== undefined) {
+            plannedRenames.push({
+                sourcePath: itemPath,
+                targetPath: resolve(
+                    dirname(itemPath),
+                    `${nameWithoutPrefix}${extension}`,
+                ),
                 isFile,
-                logger,
-            )
-        ) {
-            renamedCount++;
+            });
         }
     }
 
-    return renamedCount;
+    const renames = await excludeConflictingRenames(plannedRenames, logger);
+    const skippedCount = plannedRenames.length - renames.length;
+
+    if (!(await renameFilesAndFolders(itemProvider, renames, { logger }))) {
+        return { renamedCount: 0, skippedCount, failed: true };
+    }
+
+    return { renamedCount: renames.length, skippedCount, failed: false };
 }
