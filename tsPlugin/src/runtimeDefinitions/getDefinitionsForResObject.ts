@@ -1,7 +1,7 @@
 export function getDefinitionsForResObject() {
     return `/**
  * Object representing the response returned from a server
- * @see {@link https://docs.usebruno.com/scripting/javascript-reference#response} Documentation
+ * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#response} Documentation
  */
 var res = {
 	/**
@@ -85,7 +85,7 @@ var res = {
 	getResponseTime: () => {},
 	/**
 	 * Get the response size in bytes.
-	 * @returns {{body: number, headers: number, total: number}}
+	 * @returns {{header: number, body: number, total: number}}
 	 */
 	getSize: () => {},
 };`;

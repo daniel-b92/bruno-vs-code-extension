@@ -12,7 +12,7 @@ export function getDefinitionsForBruObject() {
     return `${getCommonTypeDefinitions()}
 /**
  * Object with common utility function for Bruno.
- * @see {@link https://docs.usebruno.com/scripting/javascript-reference} Documentation
+ * @see {@link https://docs.usebruno.com/testing/script/javascript-reference} Documentation
  */
 var bru = {
 	${insertDefinitions(envVariableDefinitions)}
@@ -43,7 +43,7 @@ function getCommonTypeDefinitions() {
  * @property {(name: string) => PropertyHeader | undefined} one
  * @property {() => PropertyHeader[]} all
  * @property {() => number} count
- * @property {((name: string, value?: string) => boolean) | ((header: {key: string}) => boolean)} has
+ * @property {(nameOrItem: string | {key: string}, value?: string) => boolean} has
  * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader | undefined} find
  * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader[]} filter
  * @property {(item: string | {key: string, value: string}) => number} indexOf
@@ -67,7 +67,7 @@ function getCommonTypeDefinitions() {
  * @property {(name: string) => PropertyHeader | undefined} one
  * @property {() => PropertyHeader[]} all
  * @property {() => number} count
- * @property {((name: string, value?: string) => boolean) | ((header: {key: string}) => boolean)} has
+ * @property {(nameOrItem: string | {key: string}, value?: string) => boolean} has
  * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader | undefined} find
  * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader[]} filter
  * @property {(item: string | {key: string, value: string}) => number} indexOf
@@ -133,21 +133,52 @@ function getCommonTypeDefinitions() {
  */
 /**
  * @typedef {object} BrunoCookieJar
- * @property {((url: string, name: string, value: string) => void) | ((url: string, cookieObject: CookieObject) => void)} setCookie Set a single cookie with specified attributes. For \`__Host-\` prefixed cookies, Bruno omits \`domain\` automatically; setting a \`domain\` makes the cookie get rejected.
+ * @property {((url: string, name: string, value: string) => void) & ((url: string, cookieObject: CookieObject) => void)} setCookie Set a single cookie with specified attributes. For \`__Host-\` prefixed cookies, Bruno omits \`domain\` automatically; setting a \`domain\` makes the cookie get rejected.
  * @property {(url: string, cookieObjects: CookieObject[]) => void} setCookies Set multiple cookies at once using an array of cookie objects.
  * @property {(url: string, name: string) => Promise<CookieObject | null>} getCookie Get a specific cookie by name.
- * @property {((url: string, name: string) => Promise<boolean>) | ((url: string, name: string, callback: (err: Error, exists: boolean) => void) => void)} hasCookie Check whether a cookie with the given name exists for a specific URL. Optionally accepts a callback as the third argument; if omitted, returns a Promise.
+ * @property {((url: string, name: string) => Promise<boolean>) & ((url: string, name: string, callback: (err: Error | null | undefined, exists?: boolean) => void) => void)} hasCookie Check whether a cookie with the given name exists for a specific URL. Optionally accepts a callback as the third argument; if omitted, returns a Promise.
  * @property {(url: string) => Promise<CookieObject[]>} getCookies Get all cookies for a specific URL.
  * @property {(url: string, name: string) => void} deleteCookie Delete a specific cookie by name. Only succeeds if domain and path match the stored cookie.
  * @property {(url: string) => void} deleteCookies Delete all cookies for a specific URL.
  * @property {() => void} clear Clear all cookies from the cookie jar.
+ */
+/**
+ * @typedef {object} IterationData The current row of the data file that the collection run iterates over.
+ * @property {(key?: string) => any} get Get the value of a field, or all fields of the current row if no key is given.
+ * @property {(key: string) => boolean} has Check if a field exists in the current iteration.
+ * @property {(key: string) => void} unset Remove a field from the current iteration.
+ * @property {() => string} stringify Return the current iteration row as a JSON string.
+ */
+/**
+ * @typedef {object} ResultsSummary
+ * @property {number} total
+ * @property {number} passed
+ * @property {number} failed
+ * @property {number} skipped
+ */
+/**
+ * @typedef {object} TestResult
+ * @property {"pass" | "fail"} status
+ * @property {string} description The name of the test.
+ * @property {any} [expected]
+ * @property {any} [actual]
+ * @property {string} [error]
+ */
+/**
+ * @typedef {object} AssertionResult
+ * @property {"pass" | "fail"} status
+ * @property {string} lhsExpr
+ * @property {string} rhsExpr
+ * @property {string} operator
+ * @property {any} rhsOperand
+ * @property {string} [error]
  */`;
 }
 
 function getDefinitionsForEnvironmentVariables() {
     return `/**
- * Returns the name of the currently selected environment. Null if no environment is selected.
- * @returns {string | null}
+ * Returns the name of the currently selected environment. Undefined if no environment is selected.
+ * @returns {string | undefined}
  */
 getEnvName: () => {},
 /** 
@@ -402,13 +433,14 @@ runRequest: (requestPath) => {},
  */
 sendRequest: (options, callback = undefined) => {},
 /**
- * Obtain the test results of a request. Use this within test scripts.
- * @returns {Promise<{name: string, status: "pass" | "fail"}[]>}
+ * Obtain the results of the tests that were defined so far in the current script, together with a summary.
+ * @returns {Promise<{summary: ResultsSummary, results: TestResult[]}>}
  */
 getTestResults: () => {},
 /**
- * Obtain the assertion results of a request. Use this within test scripts.
- * @returns {Promise<{lhs: string, operator: string, rhs: string, status: "pass" | "fail"}[]>}
+ * Obtain the results of the assertions of a request, together with a summary.
+ * The assertions run after the post-response script, so they are first available in test scripts.
+ * @returns {Promise<{summary: ResultsSummary, results: AssertionResult[]}>}
  */
 getAssertionResults: () => {},`;
 }
@@ -446,11 +478,7 @@ function getDefinitionsForRunnerSubobject() {
 	/**
 	 * Object for accessing and manipulating the current row from an attached CSV or JSON data file.
 		 * Only populated while the runner iterates an attached file (UI runner or CLI \`--csv-file-path\` / \`--json-file-path\`).
-	 * @type {object}
-	 * @property {(key?: string) => any} get Get a field value or all fields for the current row.
-	 * @property {(key: string) => boolean} has Check if a field exists in the current iteration.
-	 * @property {(key: string) => void} unset Remove a field from the current iteration.
-	 * @property {() => string} stringify Return the current iteration row as a JSON string.
+	 * @type {IterationData}
 	 */
 	iterationData: {}
 }`;
