@@ -4,7 +4,10 @@ import {
 } from "@global_shared";
 import { basename } from "path";
 import * as vscode from "vscode";
-import { shouldPrefixNamesWithSequence } from "../vsCodeSettings/sequenceSettings";
+import {
+    getSequenceStepFromSettings,
+    shouldPrefixNamesWithSequence,
+} from "../vsCodeSettings/sequenceSettings";
 
 export class BrunoTreeItem extends vscode.TreeItem {
     constructor(
@@ -67,7 +70,10 @@ export class BrunoTreeItem extends vscode.TreeItem {
         const name = basename(this.path);
 
         this.label = shouldPrefixNamesWithSequence()
-            ? removeSequencePrefix(name)
+            ? removeSequencePrefix(name, {
+                  sequence: this.sequence,
+                  sequenceStep: getSequenceStepFromSettings(),
+              })
             : name;
         this.tooltip = this.getTooltip();
     }

@@ -1,6 +1,5 @@
 import { basename, resolve } from "path";
 import {
-    addSequencePrefix,
     checkIfPathExistsAsync,
     CollectionFormat,
     getFileExtensionForFormat,
@@ -8,6 +7,7 @@ import {
     RequestFileBlockName,
     MethodBlockBodies,
     getMaxSequenceForRequestsAndAppFiles,
+    getSequencePrefix,
     AuthTypes,
     getPossibleMethodBlocksForRequestType,
     FileInfoType,
@@ -32,7 +32,6 @@ import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
 import { stringify } from "yaml";
-import { getStoredNameForItemName } from "../sequencePrefixUtils/getStoredNameForItemName";
 
 export async function createRequestFile(
     itemProvider: TypedCollectionItemProvider,
@@ -138,7 +137,7 @@ export async function createRequestFile(
                 parentFolderPath,
             )) ?? 0) + sequenceStep;
         const fileName = shouldPrefixNamesWithSequence()
-            ? addSequencePrefix(requestName, requestSequence, sequenceStep)
+            ? `${getSequencePrefix(requestSequence, sequenceStep)}${requestName}`
             : requestName;
         const filePath = resolve(
             parentFolderPath,
@@ -160,7 +159,7 @@ export async function createRequestFile(
             filePath,
             getFileContent(format, requestSequence, {
                 filePath,
-                requestName: getStoredNameForItemName(requestName),
+                requestName,
                 requestType,
                 methodBlockName: pickedLabels[1],
                 url,

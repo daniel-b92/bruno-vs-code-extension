@@ -70,9 +70,8 @@ export async function normalizeSequencesRecursively(
     // Also covers folders where only the names are outdated (e.g. because the sequences already were normalized).
     await syncSequencePrefixes(
         itemProvider,
-        Array.from(
-            new Set([...requestGroups.keys(), ...folderGroups.keys()]),
-        ),
+        Array.from(new Set([...requestGroups.keys(), ...folderGroups.keys()])),
+        { sequenceStep },
     );
 }
 

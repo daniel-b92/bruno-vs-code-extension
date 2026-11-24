@@ -44,17 +44,6 @@ describe("BrunoTreeItem", () => {
             jest.restoreAllMocks();
         });
 
-        const createItem = (name: string, canHaveSequencePrefix: boolean) =>
-            new BrunoTreeItem(
-                `/collection/${name}`,
-                true,
-                false,
-                10,
-                undefined,
-                undefined,
-                canHaveSequencePrefix,
-            );
-
         it("does not contain the sequence prefix if names are prefixed with sequences", () => {
             mockVsCodeSettings({ "bru-as-code.prefixNamesWithSequence": true });
             const item = createItem("0010_get-token.bru", true);
@@ -96,3 +85,15 @@ describe("BrunoTreeItem", () => {
         });
     });
 });
+
+function createItem(name: string, canHaveSequencePrefix: boolean) {
+    return new BrunoTreeItem(
+        `/collection/${name}`,
+        true,
+        false,
+        10,
+        undefined,
+        undefined,
+        canHaveSequencePrefix,
+    );
+}

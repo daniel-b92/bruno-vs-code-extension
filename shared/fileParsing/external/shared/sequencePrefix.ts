@@ -30,23 +30,41 @@ export function parseSequencePrefix(name: string) {
 
     return match
         ? {
+              digits: match[1],
               sequence: Number.parseInt(match[1], 10),
               nameWithoutPrefix: match[2],
           }
         : undefined;
 }
 
-export function removeSequencePrefix(name: string) {
-    return parseSequencePrefix(name)?.nameWithoutPrefix ?? name;
+/**
+ * Removes a leading sequence prefix from the name of an existing item. Names that merely start with digits and an underscore (e.g. `2024_reports`) are kept,
+ * since the prefix is only recognized if it looks like one that was created for the given step:
+ * It matches the expected sequence, is padded with zeros or has the number of digits that prefixes have for the step.
+ * Don't use it for names that were entered by the user, since they must not be changed.
+ */
+export function removeSequencePrefix(
+    name: string,
+    expected: { sequence?: number; sequenceStep: number },
+) {
+    const parsed = parseSequencePrefix(name);
+
+    return parsed &&
+        (parsed.sequence === expected.sequence ||
+            parsed.digits.startsWith("0") ||
+            parsed.digits.length ==
+                getMinimumDigitsForSequencePrefix(expected.sequenceStep))
+        ? parsed.nameWithoutPrefix
+        : name;
 }
 
-/** Sets the prefix for the given sequence. An already existing prefix is replaced. */
+/** Sets the prefix for the given sequence. An already existing prefix is replaced (see {@link removeSequencePrefix}). */
 export function addSequencePrefix(
     name: string,
     sequence: number,
     sequenceStep: number,
 ) {
-    return `${getSequencePrefix(sequence, sequenceStep)}${removeSequencePrefix(name)}`;
+    return `${getSequencePrefix(sequence, sequenceStep)}${removeSequencePrefix(name, { sequence, sequenceStep })}`;
 }
 
 /**

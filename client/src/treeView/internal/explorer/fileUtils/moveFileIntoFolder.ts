@@ -51,8 +51,12 @@ export async function moveFileIntoFolder(
     await syncSequencePrefixes(
         itemProvider,
         [dirname(newPath), dirname(sourcePath)],
-        logger,
-        // The collection data may not know the moved file at its new location yet.
-        [{ sourcePath, targetPath: newPath, isFile: true }],
+        {
+            logger,
+            // The collection data may not know the moved file at its new location yet.
+            previousRenames: [
+                { sourcePath, targetPath: newPath, isFile: true },
+            ],
+        },
     );
 }

@@ -39,20 +39,20 @@ export async function updateSettingsFileOfDuplicatedFolder(
         return;
     }
 
+    const originalSequence = await getSequenceForFolder(
+        collection.getRootDirectory(),
+        originalPath,
+        format,
+    );
+
     await replaceItemName(
         newFolderSettingsFile,
-        getStoredNameForItemName(basename(newFolderPath)),
+        getStoredNameForItemName(basename(newFolderPath), originalSequence),
         BrunoFileType.FolderSettingsFile,
         format,
     );
 
-    if (
-        await getSequenceForFolder(
-            collection.getRootDirectory(),
-            originalPath,
-            format,
-        )
-    ) {
+    if (originalSequence) {
         await replaceSequenceForFile(
             newFolderSettingsFile,
             ((await getMaxSequenceForFolders(

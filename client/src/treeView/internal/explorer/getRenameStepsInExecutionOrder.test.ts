@@ -1,12 +1,11 @@
 import { describe, it, expect } from "@jest/globals";
 import { join } from "path";
-import { getRenameStepsInExecutionOrder } from "./getRenameStepsInExecutionOrder";
+import {
+    getRenameStepsInExecutionOrder,
+    splitStepsIntoGroupsWithoutDependencies,
+} from "./getRenameStepsInExecutionOrder";
 
 const dir = join("/", "collection");
-const step = (from: string, to: string) => ({
-    from: join(dir, from),
-    to: join(dir, to),
-});
 
 describe("getRenameStepsInExecutionOrder", () => {
     it("returns independent renames unchanged", () => {
@@ -68,6 +67,63 @@ describe("getRenameStepsInExecutionOrder", () => {
         ).toBeLessThan(10);
     });
 });
+
+describe("splitStepsIntoGroupsWithoutDependencies", () => {
+    it("keeps independent steps in one group", () => {
+        const steps = [step("a", "x"), step("b", "y")];
+
+        expect(splitStepsIntoGroupsWithoutDependencies(steps)).toEqual([steps]);
+    });
+
+    it("keeps items within a folder and the folder itself in one group", () => {
+        const steps = [
+            step("users/a.bru", "users/0010_a.bru"),
+            step("users", "0020_users"),
+        ];
+
+        expect(splitStepsIntoGroupsWithoutDependencies(steps)).toEqual([steps]);
+    });
+
+    it("starts a new group for a step whose target is freed by an earlier step of the group", () => {
+        expect(
+            splitStepsIntoGroupsWithoutDependencies([
+                step("0020_a", "0030_a"),
+                step("0010_a", "0020_a"),
+                step("0005_a", "0010_a"),
+            ]),
+        ).toEqual([
+            [step("0020_a", "0030_a")],
+            [step("0010_a", "0020_a")],
+            [step("0005_a", "0010_a")],
+        ]);
+    });
+
+    it("starts a new group for a step whose source is created by an earlier step of the group", () => {
+        const [aside, , last] = getRenameStepsInExecutionOrder([
+            step("a", "b"),
+            step("b", "a"),
+        ]);
+
+        expect(
+            splitStepsIntoGroupsWithoutDependencies([
+                aside,
+                step("b", "a"),
+                last,
+            ]),
+        ).toEqual([[aside], [step("b", "a")], [last]]);
+    });
+
+    it("returns no groups without steps", () => {
+        expect(splitStepsIntoGroupsWithoutDependencies([])).toEqual([]);
+    });
+});
+
+function step(from: string, to: string) {
+    return {
+        from: join(dir, from),
+        to: join(dir, to),
+    };
+}
 
 /** Executes the steps on a set of existing items and fails if an item would be overwritten. */
 function simulate(steps: { from: string; to: string }[], names: string[]) {

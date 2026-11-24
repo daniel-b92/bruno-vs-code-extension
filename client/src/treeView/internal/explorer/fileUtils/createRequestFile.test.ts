@@ -159,6 +159,22 @@ describe("createRequestFile", () => {
             expect(content).toContain("seq: 20");
         });
 
+        it("keeps digits and an underscore at the start of the entered name", async () => {
+            const directory = await createTemporaryDirectory();
+
+            await runCreateRequestFile(directory, CollectionFormat.Bru, {
+                requestName: "404_not-found",
+                pickedLabels: [RequestType.Http, RequestFileBlockName.Get],
+                settings,
+            });
+
+            const content = await readFile(
+                join(directory, "0010_404_not-found.bru"),
+                "utf-8",
+            );
+            expect(content).toContain("name: 404_not-found\n");
+        });
+
         it("prefixes the file name, but not the stored name (yaml)", async () => {
             const directory = await createTemporaryDirectory();
 

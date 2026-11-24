@@ -13,7 +13,7 @@ import {
     CollectionFormat,
     getBrunoJsonFilePath,
     NonBrunoFile,
-    addSequencePrefix,
+    getSequencePrefix,
     removeSequencePrefix,
 } from "@global_shared";
 import {
@@ -62,10 +62,8 @@ import { duplicateItemOutsideCollections } from "./explorer/contextRootUtils/dup
 import { pasteFileOutsideCollections } from "./explorer/contextRootUtils/pasteFileOutsideCollections";
 import { deleteItemOutsideCollections } from "./explorer/contextRootUtils/deleteItemOutsideCollections";
 import { showErrorMessageForFailedDragAndDrop } from "./explorer/showErrorMessageForFailedDragAndDrop";
-import {
-    getPathAfterSequencePrefixSync,
-    syncSequencePrefixes,
-} from "./explorer/sequencePrefixUtils/syncSequencePrefixes";
+import { syncSequencePrefixes } from "./explorer/sequencePrefixUtils/syncSequencePrefixes";
+import { getPathAfterRenames } from "./explorer/runRequestPaths/getEditsForRunRequestPaths";
 import { removeSequencePrefixesRecursively } from "./explorer/sequencePrefixUtils/removeSequencePrefixesRecursively";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
@@ -639,18 +637,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         : treeItem.getSequence()
                     : undefined;
                 const sequenceStep = getSequenceStepFromSettings();
+                // The entered name is used as it is, even if it starts with digits and an underscore.
                 const getFullItemName = (enteredName: string) =>
                     sequenceForPrefix === undefined
                         ? enteredName
-                        : addSequencePrefix(
-                              enteredName,
-                              sequenceForPrefix,
-                              sequenceStep,
-                          );
+                        : `${getSequencePrefix(sequenceForPrefix, sequenceStep)}${enteredName}`;
                 const displayedName =
                     sequenceForPrefix === undefined
                         ? basename(originalPath)
-                        : removeSequencePrefix(basename(originalPath));
+                        : removeSequencePrefix(basename(originalPath), {
+                              sequence: sequenceForPrefix,
+                              sequenceStep,
+                          });
 
                 const originalName =
                     isFile && extname(originalPath) != ""
@@ -679,10 +677,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
 
                 const newItemName = getFullItemName(enteredItemName);
-                const getStoredName = (itemName: string) =>
-                    sequenceForPrefix === undefined
-                        ? itemName
-                        : removeSequencePrefix(itemName);
                 const newPath = resolve(dirname(originalPath), newItemName);
 
                 const itemDataWithcollection =
@@ -740,13 +734,12 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         if (isRequestFile) {
                             await replaceItemName(
                                 newPath,
-                                getStoredName(
-                                    newItemName.replace(
-                                        getFileExtensionForFormat(
-                                            oldCollection.getFormat(),
-                                        ),
-                                        "",
+                                // The name stored in the file never contains the sequence prefix.
+                                enteredItemName.replace(
+                                    getFileExtensionForFormat(
+                                        oldCollection.getFormat(),
                                     ),
+                                    "",
                                 ),
                                 oldItem.getItemType(),
                                 oldCollection.getFormat(),
@@ -765,7 +758,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             if (folderSettingsPath) {
                                 await replaceItemName(
                                     folderSettingsPath,
-                                    getStoredName(newItemName),
+                                    enteredItemName,
                                     oldItem.getItemType(),
                                     oldCollection.getFormat(),
                                 );
@@ -842,7 +835,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 await syncSequencePrefixes(
                     this.itemProvider,
                     [dirname(newFolderPath)],
-                    this.logger,
+                    { logger: this.logger },
                 );
             },
         );
@@ -943,6 +936,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 await promisify(rm)(path, {
                     recursive: treeItem.isFile ? false : true,
                 });
+                // Before renumbering, because a remaining item can be renamed to the path of the deleted one then.
+                await closeTabsRelatedToItem(treeItem);
 
                 // ToDo: Replace usage of item provider in called utility functions with passing collection as a parameter directly.
 
@@ -964,7 +959,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         await syncSequencePrefixes(
                             this.itemProvider,
                             [dirname(path)],
-                            this.logger,
+                            { logger: this.logger },
                         );
                     }
                 } else if (
@@ -988,13 +983,12 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         await syncSequencePrefixes(
                             this.itemProvider,
                             [parentFolder],
-                            this.logger,
+                            { logger: this.logger },
                         );
                     }
                 } else if (collection.isRootDirectory(treeItem.getPath())) {
                     await removeConfigForCollection(treeItem.getPath());
                 }
-                await closeTabsRelatedToItem(treeItem);
             },
         );
     }
@@ -1468,13 +1462,13 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         );
         // The inserted file may be renamed to match its sequence.
         const finalPath = wasSuccessful
-            ? getPathAfterSequencePrefixSync(
+            ? getPathAfterRenames(
                   targetPath,
                   await syncSequencePrefixes(
                       this.itemProvider,
                       // The sequences in the folder of the source file may have been renumbered as well.
                       [dirname(targetPath), dirname(sourceItem.getPath())],
-                      this.logger,
+                      { logger: this.logger },
                   ),
               )
             : targetPath;

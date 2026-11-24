@@ -24,10 +24,8 @@ import {
     applyWorkspaceEdit,
     mockVsCodeSettings,
 } from "../../../../_testingUtils";
-import {
-    getPathAfterSequencePrefixSync,
-    syncSequencePrefixes,
-} from "./syncSequencePrefixes";
+import { getPathAfterRenames } from "../runRequestPaths/getEditsForRunRequestPaths";
+import { syncSequencePrefixes } from "./syncSequencePrefixes";
 
 describe("syncSequencePrefixes", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
@@ -45,7 +43,7 @@ describe("syncSequencePrefixes", () => {
 
         const renamed = await syncSequencePrefixes(itemProvider, [directory]);
 
-        expect(renamed.size).toBe(0);
+        expect(renamed).toEqual([]);
         expect(applyEdit).not.toHaveBeenCalled();
     });
 
@@ -73,12 +71,9 @@ describe("syncSequencePrefixes", () => {
                 ].map((name) => checkIfPathExistsAsync(join(directory, name))),
             ),
         ).toEqual([true, true, true, true]);
-        expect(
-            getPathAfterSequencePrefixSync(
-                join(directory, "first.bru"),
-                renamed,
-            ),
-        ).toBe(join(directory, "0010_first.bru"));
+        expect(getPathAfterRenames(join(directory, "first.bru"), renamed)).toBe(
+            join(directory, "0010_first.bru"),
+        );
     });
 
     it("replaces outdated prefixes", async () => {
@@ -119,7 +114,9 @@ describe("syncSequencePrefixes", () => {
 
         const renamed = await syncSequencePrefixes(itemProvider, [directory]);
 
-        expect(renamed.has(join(directory, "first.bru"))).toBe(false);
+        expect(renamed.map(({ sourcePath }) => sourcePath)).not.toContain(
+            join(directory, "first.bru"),
+        );
         expect(await checkIfPathExistsAsync(join(directory, "first.bru"))).toBe(
             true,
         );
@@ -254,6 +251,86 @@ describe("syncSequencePrefixes", () => {
         });
     });
 
+    it("uses the given step for the number of digits instead of the one of the settings", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 1,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "a.bru": requestContent("a", 200),
+            "b.bru": requestContent("b", 1000),
+        });
+        const itemProvider = createItemProvider(directory, [
+            new BrunoRequestFile(join(directory, "a.bru"), 200),
+            new BrunoRequestFile(join(directory, "b.bru"), 1000),
+        ]);
+
+        await syncSequencePrefixes(itemProvider, [directory], {
+            sequenceStep: 100,
+        });
+
+        expect((await readdir(directory)).sort()).toEqual([
+            "00200_a.bru",
+            "01000_b.bru",
+        ]);
+    });
+
+    it("returns the final location of an item whose ancestor folder is renamed as well", async () => {
+        mockVsCodeSettings(prefixSettings);
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "users/folder.bru": "meta {\n  name: users\n  seq: 10\n}\n",
+            "users/login.bru": requestContent("login", 10),
+        });
+        const itemProvider = createItemProvider(directory, [
+            new CollectionDirectory(
+                join(directory, "users"),
+                join(directory, "users", "folder.bru"),
+                10,
+            ),
+            new BrunoRequestFile(join(directory, "users", "login.bru"), 10),
+        ]);
+
+        const renamed = await syncSequencePrefixes(itemProvider, [
+            directory,
+            join(directory, "users"),
+        ]);
+
+        expect(
+            getPathAfterRenames(join(directory, "users", "login.bru"), renamed),
+        ).toBe(join(directory, "0010_users", "0010_login.bru"));
+        expect(
+            await checkIfPathExistsAsync(
+                join(directory, "0010_users", "0010_login.bru"),
+            ),
+        ).toBe(true);
+    });
+
+    it("keeps digits at the start of a name that do not look like a prefix", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 1,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "2024_reports.bru": requestContent("reports", 2),
+        });
+        const itemProvider = createItemProvider(directory, [
+            new BrunoRequestFile(join(directory, "2024_reports.bru"), 2),
+        ]);
+
+        await syncSequencePrefixes(itemProvider, [directory]);
+
+        expect(await readdir(directory)).toEqual(["002_2024_reports.bru"]);
+    });
+
     describe("paths in `bru.runRequest` calls", () => {
         beforeEach(() => {
             mockVsCodeSettings(prefixSettings);
@@ -322,18 +399,15 @@ describe("syncSequencePrefixes", () => {
                 new BrunoRequestFile(join(directory, "b", "0010_y.bru"), 10),
             ]);
 
-            await syncSequencePrefixes(
-                itemProvider,
-                [join(directory, "b")],
-                undefined,
-                [
+            await syncSequencePrefixes(itemProvider, [join(directory, "b")], {
+                previousRenames: [
                     {
                         sourcePath: join(directory, "a", "0010_x.bru"),
                         targetPath: join(directory, "b", "0010_x.bru"),
                         isFile: true,
                     },
                 ],
-            );
+            });
 
             expect(await readdir(join(directory, "b"))).toEqual([
                 "0010_y.bru",
@@ -363,18 +437,15 @@ describe("syncSequencePrefixes", () => {
                 new BrunoRequestFile(join(directory, "b", "0010_x.bru"), 20),
             ]);
 
-            await syncSequencePrefixes(
-                itemProvider,
-                [join(directory, "b")],
-                undefined,
-                [
+            await syncSequencePrefixes(itemProvider, [join(directory, "b")], {
+                previousRenames: [
                     {
                         sourcePath: join(directory, "a"),
                         targetPath: join(directory, "b"),
                         isFile: false,
                     },
                 ],
-            );
+            });
 
             expect(
                 await readFile(

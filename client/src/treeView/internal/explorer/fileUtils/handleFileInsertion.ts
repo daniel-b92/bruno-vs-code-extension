@@ -92,6 +92,9 @@ export async function handleFileInsertion(
                     getFileExtensionForFormat(format),
                     "",
                 ),
+                isCollectionItemWithSequence(sourceItem)
+                    ? sourceItem.getSequence()
+                    : undefined,
             ),
             itemType,
             format,

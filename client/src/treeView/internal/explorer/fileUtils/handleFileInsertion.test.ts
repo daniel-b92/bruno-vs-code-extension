@@ -142,22 +142,25 @@ describe("handleFileInsertion", () => {
     });
 
     it.each([
-        [true, "copy"],
-        [false, "0030_copy"],
+        [true, 10, "copy"],
+        [true, undefined, "0030_copy"],
+        [false, 10, "0030_copy"],
     ])(
-        "uses the name without the sequence prefix as the name of an inserted request if names are prefixed with sequences (%s)",
-        async (prefixNames, expectedName) => {
+        "uses the name without the sequence prefix as the name of an inserted request if names are prefixed with sequences and the request has a sequence (setting: %s, sequence: %s)",
+        async (prefixNames, sequence, expectedName) => {
             mockVsCodeSettings({
                 "bru-as-code.prefixNamesWithSequence": prefixNames,
             });
             const directory = await createTemporaryDirectory({
-                "0010_original.bru":
-                    "meta {\n  name: original\n  type: http\n}\n",
+                "0010_original.bru": `meta {\n  name: original\n  type: http\n${sequence === undefined ? "" : `  seq: ${sequence}\n`}}\n`,
             });
             const targetPath = join(directory, "0030_copy.bru");
 
             const result = await handleFileInsertion(
-                new BrunoRequestFile(join(directory, "0010_original.bru")),
+                new BrunoRequestFile(
+                    join(directory, "0010_original.bru"),
+                    sequence,
+                ),
                 {
                     insertionPosition: RequestFileInsertionPositionType.Folder,
                     newPath: targetPath,

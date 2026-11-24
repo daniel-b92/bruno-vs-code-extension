@@ -407,6 +407,27 @@ runtime:
             expect(summarize(edits)).toEqual([["b/caller.bru", "b/0010_b"]]);
         });
 
+        it("ignores files that were moved into another collection but are still registered here", async () => {
+            const edits = await getEdits(
+                format,
+                {
+                    "a/caller.bru": requestFile(format, call("users/login")),
+                    "users/login.bru": requestFile(format, ""),
+                },
+                [renameOf("users/login.bru", "users/0010_login.bru")],
+                undefined,
+                [
+                    {
+                        sourcePath: join(root, "a"),
+                        targetPath: join("/", "other-collection", "a"),
+                        isFile: false,
+                    },
+                ],
+            );
+
+            expect(edits).toEqual([]);
+        });
+
         it("only returns one edit per path if files are registered with their old and new location", async () => {
             const edits = await getEdits(
                 format,

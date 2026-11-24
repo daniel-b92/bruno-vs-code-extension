@@ -91,7 +91,11 @@ export async function getEditsForRunRequestPaths(
             previousRenames,
         );
 
-        if (!isFileToSearch(itemType, originalPath)) {
+        if (
+            // A file that was moved into another collection may still be cached here, but the renames of this collection do not affect it.
+            !isPathEqualOrDescendant(originalPath, rootDirectory) ||
+            !isFileToSearch(itemType, originalPath)
+        ) {
             continue;
         }
 

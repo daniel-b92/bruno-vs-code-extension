@@ -49,9 +49,11 @@ export async function moveFolderIntoTargetFolder(
                 : dirname(targetItem.getPath()),
             dirname(sourcePath),
         ],
-        logger,
-        // The collection data may not know the items of the moved folder at their new locations yet.
-        move.rename ? [move.rename] : undefined,
+        {
+            logger,
+            // The collection data may not know the items of the moved folder at their new locations yet.
+            previousRenames: move.rename ? [move.rename] : undefined,
+        },
     );
 }
 

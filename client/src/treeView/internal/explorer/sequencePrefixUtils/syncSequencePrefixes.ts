@@ -22,22 +22,28 @@ import { excludeConflictingRenames } from "../excludeConflictingRenames";
  * All renames are executed together, so that items can take over the names of items that are renamed as well (e.g. when sequences were shifted).
  * Items are never overwritten. If the new name is taken by an item that is not renamed, the item keeps its name.
  *
- * @param previousRenames Renames that were executed shortly before and are not reflected in the collection data yet (e.g. when moving an item), so that `bru.runRequest` paths are updated correctly.
- * @returns The new paths of the renamed items, with the normalized old paths as keys.
+ * @param options.previousRenames Renames that were executed shortly before and are not reflected in the collection data yet (e.g. when moving an item), so that `bru.runRequest` paths are updated correctly.
+ * @param options.sequenceStep The step that determines the number of digits of the prefixes. Defaults to the step of the settings. The sequences may have been normalized with another one.
+ * @returns The renames that were executed. Use `getPathAfterRenames` to get the new location of an item, which can also be affected by the rename of an ancestor folder.
  */
 export async function syncSequencePrefixes(
     itemProvider: TypedCollectionItemProvider,
     folderPaths: string[],
-    logger?: Logger,
-    previousRenames?: PathRename[],
-) {
-    const renamedPaths = new Map<string, string>();
-
+    options: {
+        logger?: Logger;
+        previousRenames?: PathRename[];
+        sequenceStep?: number;
+    } = {},
+): Promise<PathRename[]> {
     if (!shouldPrefixNamesWithSequence()) {
-        return renamedPaths;
+        return [];
     }
 
-    const sequenceStep = getSequenceStepFromSettings();
+    const {
+        logger,
+        previousRenames,
+        sequenceStep = getSequenceStepFromSettings(),
+    } = options;
     const plannedRenames: PathRename[] = [];
 
     for (const folderPath of getUniquePaths(folderPaths)) {
@@ -61,26 +67,12 @@ export async function syncSequencePrefixes(
 
     const renames = await excludeConflictingRenames(plannedRenames, logger);
 
-    if (
-        await renameFilesAndFolders(itemProvider, renames, {
-            logger,
-            previousRenames,
-        })
-    ) {
-        renames.forEach(({ sourcePath, targetPath }) =>
-            renamedPaths.set(normalizePath(sourcePath), targetPath),
-        );
-    }
-
-    return renamedPaths;
-}
-
-/** Applies the renames of {@link syncSequencePrefixes} to a path that was determined before. */
-export function getPathAfterSequencePrefixSync(
-    path: string,
-    renamedPaths: Map<string, string>,
-) {
-    return renamedPaths.get(normalizePath(path)) ?? path;
+    return (await renameFilesAndFolders(itemProvider, renames, {
+        logger,
+        previousRenames,
+    }))
+        ? renames
+        : [];
 }
 
 function getRenameToMatchSequence(

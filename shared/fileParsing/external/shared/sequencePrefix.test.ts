@@ -35,6 +35,7 @@ describe("sequencePrefix", () => {
     describe("parseSequencePrefix", () => {
         it("parses a prefix", () => {
             expect(parseSequencePrefix("010_get-token")).toEqual({
+                digits: "010",
                 sequence: 10,
                 nameWithoutPrefix: "get-token",
             });
@@ -42,6 +43,7 @@ describe("sequencePrefix", () => {
 
         it("only splits off the first prefix", () => {
             expect(parseSequencePrefix("1_2_name")).toEqual({
+                digits: "1",
                 sequence: 1,
                 nameWithoutPrefix: "2_name",
             });
@@ -56,13 +58,39 @@ describe("sequencePrefix", () => {
     });
 
     describe("removeSequencePrefix", () => {
-        it("removes an existing prefix", () => {
-            expect(removeSequencePrefix("010_get-token")).toBe("get-token");
+        it.each([
+            ["a padded prefix", "010_get-token", { sequenceStep: 10 }],
+            [
+                "a prefix with the digits for the step",
+                "100_get-token",
+                { sequenceStep: 1 },
+            ],
+            [
+                "a prefix matching the sequence",
+                "10_get-token",
+                { sequence: 10, sequenceStep: 1 },
+            ],
+        ])("removes %s", (_, name, expected) => {
+            expect(removeSequencePrefix(name, expected)).toBe("get-token");
         });
 
         it("keeps names without a prefix", () => {
-            expect(removeSequencePrefix("get-token")).toBe("get-token");
+            expect(removeSequencePrefix("get-token", { sequenceStep: 1 })).toBe(
+                "get-token",
+            );
         });
+
+        it.each(["2024_reports", "10_get-token"])(
+            "keeps '%s', since its digits do not look like a generated prefix",
+            (name) => {
+                expect(
+                    removeSequencePrefix(name, {
+                        sequence: 3,
+                        sequenceStep: 1,
+                    }),
+                ).toBe(name);
+            },
+        );
     });
 
     describe("addSequencePrefix", () => {
@@ -75,6 +103,16 @@ describe("sequencePrefix", () => {
         it("replaces an existing prefix", () => {
             expect(addSequencePrefix("010_get-token", 20, 10)).toBe(
                 "0020_get-token",
+            );
+        });
+
+        it("replaces an outdated prefix with the digits for the step", () => {
+            expect(addSequencePrefix("100_login", 101, 1)).toBe("101_login");
+        });
+
+        it("keeps digits that do not look like a prefix as part of the name", () => {
+            expect(addSequencePrefix("2024_reports", 2, 1)).toBe(
+                "002_2024_reports",
             );
         });
     });

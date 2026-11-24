@@ -1,5 +1,5 @@
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
-import { Logger, getFileContent } from "@global_shared";
+import { Logger, getFileContent, normalizePath } from "@global_shared";
 import {
     TypedCollection,
     TypedCollectionItemProvider,
@@ -14,6 +14,7 @@ import {
 import {
     getRenameStepsInExecutionOrder,
     RenameStep,
+    splitStepsIntoGroupsWithoutDependencies,
 } from "./getRenameStepsInExecutionOrder";
 
 /**
@@ -38,13 +39,14 @@ export async function renameFileOrFolder(
 /**
  * Renames or moves several files and folders in one workspace edit, so that all updates of `bru.runRequest` paths refer to the final locations.
  * The renames refer to the paths before any of them is executed. They are executed in an order that never overwrites an item that is renamed as well,
- * so the names of items can be shifted or swapped. The target paths must be distinct.
+ * so the names of items can be shifted or swapped. This can take several workspace edits, since VS Code checks all targets of an edit before executing it.
+ * The updates of `bru.runRequest` paths are part of the last one. The target paths must be distinct. Renames of an item to its own path are ignored.
  *
  * @returns Whether all items were renamed.
  */
 export async function renameFilesAndFolders(
     itemProvider: TypedCollectionItemProvider,
-    renames: PathRename[],
+    allRenames: PathRename[],
     options: {
         logger?: Logger;
         /** Whether existing items at the target paths should be replaced. Without it, the rename fails if a target exists. */
@@ -54,6 +56,10 @@ export async function renameFilesAndFolders(
     } = {},
 ) {
     const { logger, overwrite = false, previousRenames } = options;
+    const renames = allRenames.filter(
+        ({ sourcePath, targetPath }) =>
+            normalizePath(sourcePath) != normalizePath(targetPath),
+    );
 
     if (renames.length == 0) {
         return true;
@@ -65,31 +71,49 @@ export async function renameFilesAndFolders(
         previousRenames,
         logger,
     );
-    const steps = getRenameStepsInExecutionOrder(
-        renames.map(({ sourcePath, targetPath }) => ({
-            from: sourcePath,
-            to: targetPath,
-        })),
+    const groups = splitStepsIntoGroupsWithoutDependencies(
+        getRenameStepsInExecutionOrder(
+            renames.map(({ sourcePath, targetPath }) => ({
+                from: sourcePath,
+                to: targetPath,
+            })),
+        ),
     );
+    const lastGroup = groups.pop() as RenameStep[];
     // Documents with unsaved changes keep them. The others are saved after the edit, so that later writes to the files do not conflict with their buffers.
     const dirtyFilePathsAfterRename = workspace.textDocuments
         .filter(({ isDirty }) => isDirty)
         .map(({ uri }) => getPathAfterRenames(uri.fsPath, renames));
 
-    let renamedSuccessfully = await workspace.applyEdit(
-        createWorkspaceEdit(steps, pathEdits, overwrite),
-        { isRefactoring: true },
-    );
+    let renamedSuccessfully = true;
 
-    if (!renamedSuccessfully && pathEdits.length > 0) {
-        logger?.warn(
-            `Renaming ${describeRenames(renames)} together with the updates of 'bru.runRequest' paths failed. Renaming without these updates.`,
-        );
+    for (const group of groups) {
         renamedSuccessfully = await workspace.applyEdit(
-            createWorkspaceEdit(steps, [], overwrite),
+            createWorkspaceEdit(group, [], overwrite),
+            { isRefactoring: true },
         );
-    } else if (renamedSuccessfully) {
-        await saveEditedFiles(pathEdits, dirtyFilePathsAfterRename, logger);
+
+        if (!renamedSuccessfully) {
+            break;
+        }
+    }
+
+    if (renamedSuccessfully) {
+        renamedSuccessfully = await workspace.applyEdit(
+            createWorkspaceEdit(lastGroup, pathEdits, overwrite),
+            { isRefactoring: true },
+        );
+
+        if (!renamedSuccessfully && pathEdits.length > 0) {
+            logger?.warn(
+                `Renaming ${describeRenames(renames)} together with the updates of 'bru.runRequest' paths failed. Renaming without these updates.`,
+            );
+            renamedSuccessfully = await workspace.applyEdit(
+                createWorkspaceEdit(lastGroup, [], overwrite),
+            );
+        } else if (renamedSuccessfully) {
+            await saveEditedFiles(pathEdits, dirtyFilePathsAfterRename, logger);
+        }
     }
 
     if (renamedSuccessfully) {

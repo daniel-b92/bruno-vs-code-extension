@@ -1,9 +1,14 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { join } from "path";
-import { workspace, WorkspaceEdit } from "vscode";
+import { readdir, readFile } from "fs/promises";
+import { window, workspace, WorkspaceEdit } from "vscode";
 import { BrunoRequestFile, CollectionFormat } from "@global_shared";
-import { createCollectionWithItems } from "@global_shared/_testingUtils";
+import {
+    createCollectionWithItems,
+    useTemporaryDirectories,
+} from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
+import { applyWorkspaceEdit } from "../../../_testingUtils";
 import {
     renameFileOrFolder,
     renameFilesAndFolders,
@@ -17,6 +22,8 @@ const callerContent = `script:pre-request {
 `;
 
 describe("renameFileOrFolder", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
     afterEach(() => {
         jest.restoreAllMocks();
     });
@@ -136,6 +143,147 @@ describe("renameFileOrFolder", () => {
         ]);
     });
 
+    it("does nothing when an item is renamed to its own path", async () => {
+        const applyEdit = jest.spyOn(workspace, "applyEdit");
+        const showErrorMessage = jest.spyOn(window, "showErrorMessage");
+
+        const result = await renameFileOrFolder(
+            createItemProvider(),
+            join(root, "users/a.bru"),
+            join(root, "users/a.bru"),
+            true,
+        );
+
+        expect(result).toBe(true);
+        expect(applyEdit).not.toHaveBeenCalled();
+        expect(showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    it("ignores renames to the own path when renaming several items", async () => {
+        const applyEdit = jest.spyOn(workspace, "applyEdit");
+
+        await renameFilesAndFolders(createItemProvider(), [
+            {
+                sourcePath: join(root, "users/a.bru"),
+                targetPath: join(root, "users/a.bru"),
+                isFile: true,
+            },
+            {
+                sourcePath: join(root, "users/b.bru"),
+                targetPath: join(root, "users/c.bru"),
+                isFile: true,
+            },
+        ]);
+
+        expect(
+            (
+                applyEdit.mock.calls[0][0] as WorkspaceEdit & {
+                    renames: { from: { fsPath: string } }[];
+                }
+            ).renames.map(({ from }) => from.fsPath),
+        ).toEqual([join(root, "users/b.bru")]);
+    });
+
+    it("shifts the names of items with the same base name, using one workspace edit per dependent step", async () => {
+        const applyEdit = jest
+            .spyOn(workspace, "applyEdit")
+            .mockImplementation(applyWorkspaceEdit);
+        const directory = await createTemporaryDirectory({
+            "001_login.bru": "first",
+            "002_login.bru": "second",
+        });
+
+        const result = await renameFilesAndFolders(
+            createItemProviderFor(directory),
+            [
+                {
+                    sourcePath: join(directory, "001_login.bru"),
+                    targetPath: join(directory, "002_login.bru"),
+                    isFile: true,
+                },
+                {
+                    sourcePath: join(directory, "002_login.bru"),
+                    targetPath: join(directory, "003_login.bru"),
+                    isFile: true,
+                },
+            ],
+        );
+
+        expect(result).toBe(true);
+        expect(applyEdit).toHaveBeenCalledTimes(2);
+        expect(await readdir(directory)).toEqual([
+            "002_login.bru",
+            "003_login.bru",
+        ]);
+        expect(await readFile(join(directory, "002_login.bru"), "utf-8")).toBe(
+            "first",
+        );
+        expect(await readFile(join(directory, "003_login.bru"), "utf-8")).toBe(
+            "second",
+        );
+    });
+
+    it("swaps the names of two items", async () => {
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "001_login.bru": "first",
+            "002_login.bru": "second",
+        });
+
+        const result = await renameFilesAndFolders(
+            createItemProviderFor(directory),
+            [
+                {
+                    sourcePath: join(directory, "001_login.bru"),
+                    targetPath: join(directory, "002_login.bru"),
+                    isFile: true,
+                },
+                {
+                    sourcePath: join(directory, "002_login.bru"),
+                    targetPath: join(directory, "001_login.bru"),
+                    isFile: true,
+                },
+            ],
+        );
+
+        expect(result).toBe(true);
+        expect(await readFile(join(directory, "001_login.bru"), "utf-8")).toBe(
+            "second",
+        );
+        expect(await readFile(join(directory, "002_login.bru"), "utf-8")).toBe(
+            "first",
+        );
+    });
+
+    it("applies the updates of run request paths with the last workspace edit only", async () => {
+        const applyEdit = jest.spyOn(workspace, "applyEdit");
+        openDocuments(openDocument(callerPath, callerContent, false));
+
+        await renameFilesAndFolders(createItemProvider(), [
+            {
+                sourcePath: join(root, "users/a.bru"),
+                targetPath: join(root, "users/b.bru"),
+                isFile: true,
+            },
+            {
+                sourcePath: join(root, "users/c.bru"),
+                targetPath: join(root, "users/a.bru"),
+                isFile: true,
+            },
+        ]);
+
+        expect(applyEdit).toHaveBeenCalledTimes(2);
+        const [first, second] = applyEdit.mock.calls.map(
+            ([edit]) =>
+                (edit as WorkspaceEdit & { replacements: unknown[] })
+                    .replacements,
+        );
+        expect(first).toEqual([]);
+        expect(second).toHaveLength(1);
+    });
+
     it("does nothing if there is nothing to rename", async () => {
         const applyEdit = jest.spyOn(workspace, "applyEdit");
 
@@ -176,6 +324,15 @@ function createItemProvider() {
         CollectionFormat.Bru,
         [],
         root,
+    ).itemProvider;
+}
+
+function createItemProviderFor(directory: string) {
+    return createCollectionWithItems<TypedCollectionItemProvider>(
+        [],
+        CollectionFormat.Bru,
+        [],
+        directory,
     ).itemProvider;
 }
 

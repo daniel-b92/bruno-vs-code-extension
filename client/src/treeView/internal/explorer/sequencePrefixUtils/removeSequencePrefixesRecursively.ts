@@ -2,12 +2,17 @@ import { basename, dirname, extname, resolve } from "path";
 import {
     BrunoFileType,
     CollectionDirectory,
+    isCollectionItemWithSequence,
     isPathEqualOrDescendant,
     Logger,
     normalizePath,
-    parseSequencePrefix,
+    removeSequencePrefix,
 } from "@global_shared";
-import { TypedCollection, TypedCollectionItemProvider } from "@shared";
+import {
+    getSequenceStepFromSettings,
+    TypedCollection,
+    TypedCollectionItemProvider,
+} from "@shared";
 import { renameFilesAndFolders } from "../renameFileOrFolder";
 import { PathRename } from "../runRequestPaths/getEditsForRunRequestPaths";
 import { excludeConflictingRenames } from "../excludeConflictingRenames";
@@ -23,6 +28,7 @@ export interface RemovalOfSequencePrefixesResult {
 /**
  * Removes the sequence prefixes (e.g. `0010_`) from the names of all requests, app files and folders (with a settings file) below the given folder.
  * Items that have no sequence (any more) are included, since the prefix cannot match their sequence.
+ * Only prefixes that look like they were created by the extension are removed, so a name like `2024_reports` is kept (see `removeSequencePrefix`).
  * The given folder itself keeps its name. All renames are executed together. Items are never overwritten. If the name without prefix is already taken, the item keeps its name.
  * Does not depend on the setting for prefixing names with their sequence.
  */
@@ -33,6 +39,7 @@ export async function removeSequencePrefixesRecursively(
     logger?: Logger,
 ): Promise<RemovalOfSequencePrefixesResult> {
     const plannedRenames: PathRename[] = [];
+    const sequenceStep = getSequenceStepFromSettings();
 
     for (const { item } of collection.getAllStoredDataForCollection()) {
         const itemPath = item.getPath();
@@ -57,11 +64,15 @@ export async function removeSequencePrefixesRecursively(
         }
 
         const extension = isFile ? extname(itemPath) : "";
-        const nameWithoutPrefix = parseSequencePrefix(
-            basename(itemPath, extension),
-        )?.nameWithoutPrefix;
+        const name = basename(itemPath, extension);
+        const nameWithoutPrefix = removeSequencePrefix(name, {
+            sequence: isCollectionItemWithSequence(item)
+                ? item.getSequence()
+                : undefined,
+            sequenceStep,
+        });
 
-        if (nameWithoutPrefix !== undefined) {
+        if (nameWithoutPrefix != name) {
             plannedRenames.push({
                 sourcePath: itemPath,
                 targetPath: resolve(
