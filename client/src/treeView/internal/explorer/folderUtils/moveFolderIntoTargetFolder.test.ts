@@ -9,6 +9,8 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    requestContent,
+    runRequestBlock,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
@@ -37,11 +39,16 @@ describe("moveFolderIntoTargetFolder", () => {
         const directory = await createTemporaryDirectory({
             "a/0010_users/folder.bru": folderSettings("users", 10),
             "a/0010_users/0010_get.bru": requestContent(
+                CollectionFormat.Bru,
                 "get",
                 10,
-                "a/0010_users/0020_other",
+                runRequestBlock("a/0010_users/0020_other"),
             ),
-            "a/0010_users/0020_other.bru": requestContent("other", 20),
+            "a/0010_users/0020_other.bru": requestContent(
+                CollectionFormat.Bru,
+                "other",
+                20,
+            ),
             "b/0010_existing/folder.bru": folderSettings("existing", 10),
         });
         const itemProvider =
@@ -104,8 +111,4 @@ describe("moveFolderIntoTargetFolder", () => {
 
 function folderSettings(name: string, sequence: number) {
     return `meta {\n  name: ${name}\n  seq: ${sequence}\n}\n`;
-}
-
-function requestContent(name: string, sequence: number, calledPath?: string) {
-    return `meta {\n  name: ${name}\n  type: http\n  seq: ${sequence}\n}\n${calledPath === undefined ? "" : `\nscript:pre-request {\n  await bru.runRequest("${calledPath}");\n}\n`}`;
 }

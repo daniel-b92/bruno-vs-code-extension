@@ -7,9 +7,13 @@ import {
     BrunoRequestFile,
     CollectionDirectory,
     CollectionFormat,
+    NonBrunoFile,
+    NonBrunoSpecificItemType,
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    requestContent,
+    runRequestBlock,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
@@ -40,9 +44,14 @@ describe("moveFileIntoFolder", () => {
                 applyWorkspaceEdit,
             );
             const directory = await createTemporaryDirectory({
-                "caller.bru": `${requestContent("caller")}\nscript:pre-request {\n  await bru.runRequest("a/0010_x");\n}\n`,
-                "a/0010_x.bru": requestContent("x", 10),
-                "b/0010_y.bru": requestContent("y", 10),
+                "caller.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "caller",
+                    undefined,
+                    runRequestBlock("a/0010_x"),
+                ),
+                "a/0010_x.bru": requestContent(CollectionFormat.Bru, "x", 10),
+                "b/0010_y.bru": requestContent(CollectionFormat.Bru, "y", 10),
             });
             const itemProvider =
                 createCollectionWithItems<TypedCollectionItemProvider>(
@@ -83,8 +92,50 @@ describe("moveFileIntoFolder", () => {
             ).toContain(`runRequest("${expectedCall}")`);
         },
     );
-});
 
-function requestContent(name: string, sequence?: number) {
-    return `meta {\n  name: ${name}\n  type: http\n${sequence === undefined ? "" : `  seq: ${sequence}\n`}}\n`;
-}
+    it("does not rename requests when moving a file of another type", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 10,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "a/script.js": "",
+            "a/x.bru": requestContent(CollectionFormat.Bru, "x", 10),
+            "b/0020_y.bru": requestContent(CollectionFormat.Bru, "y", 10),
+        });
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    new NonBrunoFile(join(directory, "a", "script.js")),
+                    new BrunoRequestFile(join(directory, "a", "x.bru"), 10),
+                    new BrunoRequestFile(
+                        join(directory, "b", "0020_y.bru"),
+                        10,
+                    ),
+                ],
+                CollectionFormat.Bru,
+                [],
+                directory,
+            );
+
+        await moveFileIntoFolder(
+            itemProvider,
+            join(directory, "a", "script.js"),
+            join(directory, "b", "script.js"),
+            new BrunoTreeItem(join(directory, "b"), false, false),
+            join(directory, "b"),
+            NonBrunoSpecificItemType.OtherFileType,
+        );
+
+        expect(await readdir(join(directory, "a"))).toEqual(["x.bru"]);
+        expect((await readdir(join(directory, "b"))).sort()).toEqual([
+            "0020_y.bru",
+            "script.js",
+        ]);
+    });
+});

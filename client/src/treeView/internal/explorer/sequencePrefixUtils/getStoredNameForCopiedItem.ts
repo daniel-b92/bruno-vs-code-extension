@@ -1,8 +1,5 @@
 import { parseSequencePrefix, removeSequencePrefix } from "@global_shared";
-import {
-    getSequenceStepFromSettings,
-    shouldPrefixNamesWithSequence,
-} from "@shared";
+import { shouldPrefixNamesWithSequence } from "@shared";
 
 /**
  * The name that has to be stored in the file for a copied item. All names of files and folders are without file extension.
@@ -26,11 +23,7 @@ export function getStoredNameForCopiedItem(
     }
 
     const hasPrefix =
-        removeSequencePrefix(name, {
-            sequence,
-            storedName,
-            sequenceStep: getSequenceStepFromSettings(),
-        }) != name;
+        removeSequencePrefix(name, { sequence, storedName }) != name;
 
     return hasPrefix
         ? (parseSequencePrefix(copiedItemName)?.nameWithoutPrefix ??

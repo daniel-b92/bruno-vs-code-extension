@@ -1,10 +1,11 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
+import { readdir, readFile, rename } from "fs/promises";
 import { window, workspace, WorkspaceEdit } from "vscode";
 import { BrunoRequestFile, CollectionFormat } from "@global_shared";
 import {
     createCollectionWithItems,
+    runRequestBlock,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
@@ -315,6 +316,172 @@ describe("renameFileOrFolder", () => {
                 .replacements,
         ).toEqual([]);
     });
+
+    it("only executes the remaining renames if updating the paths fails after items were renamed", async () => {
+        const directory = await createTemporaryDirectory({
+            "a.bru": "",
+            "caller.bru": runRequestBlock("a"),
+        });
+        const applyEdit = jest
+            .spyOn(workspace, "applyEdit")
+            .mockImplementationOnce(async (edit) => {
+                await applyWorkspaceEdit(withoutReplacements(edit));
+                return false;
+            });
+
+        const result = await renameFileOrFolder(
+            createItemProviderFor(directory, ["a.bru", "caller.bru"]),
+            join(directory, "a.bru"),
+            join(directory, "b.bru"),
+            true,
+        );
+
+        expect(result).toBe(true);
+        expect(applyEdit).toHaveBeenCalledTimes(1);
+        expect(await readdir(directory)).toEqual(["b.bru", "caller.bru"]);
+    });
+
+    describe("if one of several workspace edits fails", () => {
+        const swap = (directory: string) => [
+            {
+                sourcePath: join(directory, "001_login.bru"),
+                targetPath: join(directory, "002_login.bru"),
+                isFile: true,
+            },
+            {
+                sourcePath: join(directory, "002_login.bru"),
+                targetPath: join(directory, "001_login.bru"),
+                isFile: true,
+            },
+        ];
+
+        it("rolls back the renames that were already executed", async () => {
+            const directory = await createTemporaryDirectory({
+                "001_login.bru": "first",
+                "002_login.bru": "second",
+            });
+            const showErrorMessage = jest
+                .spyOn(window, "showErrorMessage")
+                .mockResolvedValue(undefined);
+            failOnEdits([3]);
+
+            const result = await renameFilesAndFolders(
+                createItemProviderFor(directory),
+                swap(directory),
+            );
+
+            expect(result).toBe(false);
+            expect(await readdir(directory)).toEqual([
+                "001_login.bru",
+                "002_login.bru",
+            ]);
+            expect(
+                await readFile(join(directory, "001_login.bru"), "utf-8"),
+            ).toBe("first");
+            expect(showErrorMessage.mock.calls).toEqual([
+                ["Renaming / Moving 2 items failed unexpectedly."],
+            ]);
+        });
+
+        it("rolls back nested items and their folder", async () => {
+            const directory = await createTemporaryDirectory({
+                "users/a.bru": "",
+                "c.bru": "",
+                "d.bru": "",
+            });
+            jest.spyOn(window, "showErrorMessage").mockResolvedValue(undefined);
+            // The target of the last rename is taken.
+            jest.spyOn(workspace, "applyEdit").mockImplementation(
+                applyWorkspaceEdit,
+            );
+
+            const result = await renameFilesAndFolders(
+                createItemProviderFor(directory),
+                [
+                    {
+                        sourcePath: join(directory, "users", "a.bru"),
+                        targetPath: join(directory, "users", "b.bru"),
+                        isFile: true,
+                    },
+                    {
+                        sourcePath: join(directory, "users"),
+                        targetPath: join(directory, "0020_users"),
+                        isFile: false,
+                    },
+                    {
+                        sourcePath: join(directory, "c.bru"),
+                        targetPath: join(directory, "d.bru"),
+                        isFile: true,
+                    },
+                ],
+            );
+
+            expect(result).toBe(false);
+            expect(await readdir(directory)).toEqual([
+                "c.bru",
+                "d.bru",
+                "users",
+            ]);
+            expect(await readdir(join(directory, "users"))).toEqual(["a.bru"]);
+        });
+
+        it("rolls back renames of the failed edit that were executed", async () => {
+            const directory = await createTemporaryDirectory({
+                "a.bru": "",
+                "c.bru": "",
+            });
+            jest.spyOn(window, "showErrorMessage").mockResolvedValue(undefined);
+            jest.spyOn(workspace, "applyEdit")
+                .mockImplementationOnce(async () => {
+                    await rename(
+                        join(directory, "a.bru"),
+                        join(directory, "b.bru"),
+                    );
+                    return false;
+                })
+                .mockImplementation(applyWorkspaceEdit);
+
+            const result = await renameFilesAndFolders(
+                createItemProviderFor(directory),
+                [
+                    {
+                        sourcePath: join(directory, "a.bru"),
+                        targetPath: join(directory, "b.bru"),
+                        isFile: true,
+                    },
+                    {
+                        sourcePath: join(directory, "c.bru"),
+                        targetPath: join(directory, "d.bru"),
+                        isFile: true,
+                    },
+                ],
+            );
+
+            expect(result).toBe(false);
+            expect(await readdir(directory)).toEqual(["a.bru", "c.bru"]);
+        });
+
+        it("informs the user if rolling back fails as well", async () => {
+            const directory = await createTemporaryDirectory({
+                "001_login.bru": "first",
+                "002_login.bru": "second",
+            });
+            const showErrorMessage = jest
+                .spyOn(window, "showErrorMessage")
+                .mockResolvedValue(undefined);
+            failOnEdits([3, 4]);
+
+            const result = await renameFilesAndFolders(
+                createItemProviderFor(directory),
+                swap(directory),
+            );
+
+            expect(result).toBe(false);
+            expect(showErrorMessage.mock.calls[0][0]).toContain(
+                "could not be renamed back",
+            );
+        });
+    });
 });
 
 function createItemProvider() {
@@ -329,9 +496,30 @@ function createItemProvider() {
     ).itemProvider;
 }
 
-function createItemProviderFor(directory: string) {
+/** All edits are applied, except for the ones with the given numbers (starting at 1). */
+function failOnEdits(failingEdits: number[]) {
+    let count = 0;
+
+    jest.spyOn(workspace, "applyEdit").mockImplementation(async (edit) => {
+        count++;
+        return (
+            !failingEdits.includes(count) && (await applyWorkspaceEdit(edit))
+        );
+    });
+}
+
+function withoutReplacements(edit: WorkspaceEdit) {
+    return { ...edit, replacements: [] };
+}
+
+function createItemProviderFor(
+    directory: string,
+    requestFileNames: string[] = [],
+) {
     return createCollectionWithItems<TypedCollectionItemProvider>(
-        [],
+        requestFileNames.map(
+            (name) => new BrunoRequestFile(join(directory, name)),
+        ),
         CollectionFormat.Bru,
         [],
         directory,

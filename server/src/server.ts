@@ -39,6 +39,7 @@ import {
     TextDocumentHelper,
     getFileExtensionForFormat,
     CollectionFormat,
+    parseSequenceStep,
 } from "@global_shared";
 import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
 import { handleCompletionRequest as handleCompletionRequestForYamlFile } from "./yamlFiles/completions/handleCompletionRequest";
@@ -656,12 +657,7 @@ async function getSequencePrefixDiagnostics(
         filePath,
         content: text,
         fileType,
-        sequenceStep:
-            typeof configuredStep == "number" &&
-            Number.isInteger(configuredStep) &&
-            configuredStep > 0
-                ? configuredStep
-                : 1,
+        sequenceStep: parseSequenceStep(configuredStep),
     });
 
     return diagnostic ? [diagnostic] : [];

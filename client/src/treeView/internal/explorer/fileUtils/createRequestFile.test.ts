@@ -3,12 +3,15 @@ import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import { commands, window, workspace } from "vscode";
 import {
+    BrunoRequestFile,
     CollectionFormat,
     RequestFileBlockName,
     RequestType,
 } from "@global_shared";
 import {
+    createCollectionWithItems,
     createItemProviderStub,
+    requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import {
@@ -16,6 +19,7 @@ import {
     FileSystemCacheSyncingHelper,
     TypedCollectionItemProvider,
 } from "@shared";
+import { mockVsCodeSettings } from "../../../../_testingUtils";
 import { createRequestFile } from "./createRequestFile";
 
 describe("createRequestFile", () => {
@@ -378,6 +382,50 @@ describe("createRequestFile", () => {
         expect(await validateInput("other")).toBeUndefined();
     });
 
+    it.each(["", "  "])("rejects the empty name '%s'", async (name) => {
+        const validateInput = await getNameValidator(
+            await createTemporaryDirectory(),
+            CollectionFormat.Bru,
+        );
+
+        expect(await validateInput(name)).toBe("The name must not be empty");
+    });
+
+    it.each([
+        [true, "already exists"],
+        [false, undefined],
+    ])(
+        "only rejects names that differ from existing ones in the prefix if names are prefixed with sequences (%s)",
+        async (prefixNames, expectedError) => {
+            mockVsCodeSettings({
+                "bru-as-code.prefixNamesWithSequence": prefixNames,
+            });
+            const directory = await createTemporaryDirectory({
+                "001_login.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "login",
+                    1,
+                ),
+            });
+
+            const validateInput = await getNameValidator(
+                directory,
+                CollectionFormat.Bru,
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [new BrunoRequestFile(join(directory, "001_login.bru"), 1)],
+                    CollectionFormat.Bru,
+                    [],
+                    directory,
+                ).itemProvider,
+            );
+
+            expect(await validateInput("login")).toEqual(
+                expectedError && expect.stringContaining(expectedError),
+            );
+            expect(await validateInput("logout")).toBeUndefined();
+        },
+    );
+
     it("does not create a file when no collection can be determined", async () => {
         const directory = await createTemporaryDirectory();
         const showErrorMessage = jest
@@ -439,7 +487,14 @@ async function runCreateRequestFile(
     return { quickPick };
 }
 
-async function getNameValidator(directory: string, format: CollectionFormat) {
+async function getNameValidator(
+    directory: string,
+    format: CollectionFormat,
+    itemProvider = createItemProviderStub<TypedCollectionItemProvider>(
+        directory,
+        format,
+    ),
+) {
     const showInputBox = jest
         .spyOn(window, "showInputBox")
         .mockResolvedValue(undefined);
@@ -448,7 +503,7 @@ async function getNameValidator(directory: string, format: CollectionFormat) {
     );
 
     await createRequestFile(
-        createItemProviderStub<TypedCollectionItemProvider>(directory, format),
+        itemProvider,
         {} as FileSystemCacheSyncingHelper,
         { getPath: () => directory } as BrunoTreeItem,
     );

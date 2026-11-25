@@ -14,9 +14,12 @@ import {
     CollectionDirectory,
     CollectionFormat,
     checkIfPathExistsAsync,
+    normalizePath,
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    requestContent,
+    runRequestBlock,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
@@ -140,10 +143,13 @@ describe("syncSequencePrefixes", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "first.yml": yamlRequestContent("first", 10),
+            "first.yml": requestContent(CollectionFormat.Yaml, "first", 10),
             "users/folder.yml":
                 "info:\n  name: users\n  type: folder\n  seq: 20\n",
-            "no-sequence.yml": yamlRequestContent("no-sequence"),
+            "no-sequence.yml": requestContent(
+                CollectionFormat.Yaml,
+                "no-sequence",
+            ),
         });
         const itemProvider = createItemProvider(
             directory,
@@ -178,9 +184,21 @@ describe("syncSequencePrefixes", () => {
 
         it("renames items that were shifted by an insertion even if they have the same name", async () => {
             const directory = await createTemporaryDirectory({
-                "0005_login.bru": requestContent("login", 10),
-                "0010_login.bru": requestContent("login", 20),
-                "0020_login.bru": requestContent("login", 30),
+                "0005_login.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "login",
+                    10,
+                ),
+                "0010_login.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "login",
+                    20,
+                ),
+                "0020_login.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "login",
+                    30,
+                ),
             });
             const itemProvider = createItemProvider(directory, [
                 new BrunoRequestFile(join(directory, "0005_login.bru"), 10),
@@ -202,8 +220,16 @@ describe("syncSequencePrefixes", () => {
 
         it("swaps the names of items", async () => {
             const directory = await createTemporaryDirectory({
-                "0010_login.bru": requestContent("login", 20),
-                "0020_login.bru": requestContent("login", 10),
+                "0010_login.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "login",
+                    20,
+                ),
+                "0020_login.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "login",
+                    10,
+                ),
             });
             const itemProvider = createItemProvider(directory, [
                 new BrunoRequestFile(join(directory, "0010_login.bru"), 20),
@@ -225,7 +251,11 @@ describe("syncSequencePrefixes", () => {
             const directory = await createTemporaryDirectory({
                 "0010_users/folder.bru":
                     "meta {\n  name: users\n  seq: 20\n}\n",
-                "0010_users/first.bru": requestContent("first", 10),
+                "0010_users/first.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "first",
+                    10,
+                ),
             });
             const itemProvider = createItemProvider(directory, [
                 new CollectionDirectory(
@@ -260,8 +290,8 @@ describe("syncSequencePrefixes", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "a.bru": requestContent("a", 200),
-            "b.bru": requestContent("b", 1000),
+            "a.bru": requestContent(CollectionFormat.Bru, "a", 200),
+            "b.bru": requestContent(CollectionFormat.Bru, "b", 1000),
         });
         const itemProvider = createItemProvider(directory, [
             new BrunoRequestFile(join(directory, "a.bru"), 200),
@@ -285,7 +315,11 @@ describe("syncSequencePrefixes", () => {
         );
         const directory = await createTemporaryDirectory({
             "users/folder.bru": "meta {\n  name: users\n  seq: 10\n}\n",
-            "users/login.bru": requestContent("login", 10),
+            "users/login.bru": requestContent(
+                CollectionFormat.Bru,
+                "login",
+                10,
+            ),
         });
         const itemProvider = createItemProvider(directory, [
             new CollectionDirectory(
@@ -320,8 +354,16 @@ describe("syncSequencePrefixes", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "2024_reports.bru": requestContent("2024_reports", 2),
-            "404_error.bru": requestContent("404_error", 3),
+            "2024_reports.bru": requestContent(
+                CollectionFormat.Bru,
+                "2024_reports",
+                2,
+            ),
+            "404_error.bru": requestContent(
+                CollectionFormat.Bru,
+                "404_error",
+                3,
+            ),
             "500_error/folder.bru": "meta {\n  name: 500_error\n  seq: 4\n}\n",
         });
         const itemProvider = createItemProvider(directory, []);
@@ -347,7 +389,7 @@ describe("syncSequencePrefixes", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "1000_login.yml": yamlRequestContent("login", 3),
+            "1000_login.yml": requestContent(CollectionFormat.Yaml, "login", 3),
             "2000_users/folder.yml":
                 "info:\n  name: users\n  type: folder\n  seq: 4\n",
         });
@@ -365,12 +407,103 @@ describe("syncSequencePrefixes", () => {
         ]);
     });
 
+    it.each([
+        [
+            "keeps digits that do not match the previous sequence",
+            2,
+            "404_error",
+        ],
+        ["replaces digits that match the previous sequence", 404, "error"],
+        [
+            "keeps digits if no previous sequence is known",
+            undefined,
+            "404_error",
+        ],
+    ])(
+        "%s if the stored name is a different one",
+        async (_, previousSequence, expectedName) => {
+            mockVsCodeSettings({
+                "bru-as-code.prefixNamesWithSequence": true,
+                "bru-as-code.sequenceStep": 1,
+            });
+            jest.spyOn(workspace, "applyEdit").mockImplementation(
+                applyWorkspaceEdit,
+            );
+            const directory = await createTemporaryDirectory({
+                "404_error.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "Error 404",
+                    3,
+                ),
+            });
+
+            await syncSequencePrefixes(
+                createItemProvider(directory, []),
+                [directory],
+                {
+                    previousSequences:
+                        previousSequence === undefined
+                            ? undefined
+                            : new Map([
+                                  [
+                                      normalizePath(
+                                          join(directory, "404_error.bru"),
+                                      ),
+                                      previousSequence,
+                                  ],
+                              ]),
+                },
+            );
+
+            expect(await readdir(directory)).toEqual([
+                `003_${expectedName}.bru`,
+            ]);
+        },
+    );
+
+    it("finds the previous sequence of an item that was moved before", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 1,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "b/100_login.bru": requestContent(
+                CollectionFormat.Bru,
+                "Something else",
+                1,
+            ),
+        });
+        const sourcePath = join(directory, "a", "100_login.bru");
+
+        await syncSequencePrefixes(
+            createItemProvider(directory, [
+                new CollectionDirectory(join(directory, "b")),
+            ]),
+            [join(directory, "b")],
+            {
+                previousSequences: new Map([[normalizePath(sourcePath), 100]]),
+                previousRenames: [
+                    {
+                        sourcePath,
+                        targetPath: join(directory, "b", "100_login.bru"),
+                        isFile: true,
+                    },
+                ],
+            },
+        );
+
+        expect(await readdir(join(directory, "b"))).toEqual(["001_login.bru"]);
+    });
+
     it("keeps the names of items whose sequence cannot be used as a prefix", async () => {
         mockVsCodeSettings(prefixSettings);
         const applyEdit = jest.spyOn(workspace, "applyEdit");
         const directory = await createTemporaryDirectory({
-            "a.bru": requestContent("a", 1.5),
-            "b.bru": requestContent("b", -1),
+            "a.bru": requestContent(CollectionFormat.Bru, "a", 1.5),
+            "b.bru": requestContent(CollectionFormat.Bru, "b", -1),
         });
 
         await syncSequencePrefixes(createItemProvider(directory, []), [
@@ -390,8 +523,18 @@ describe("syncSequencePrefixes", () => {
 
         it("are updated in requests that are renamed themselves", async () => {
             const directory = await createTemporaryDirectory({
-                "first.bru": requestContent("first", 10, callOf("second")),
-                "second.bru": requestContent("second", 20, callOf("first")),
+                "first.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "first",
+                    10,
+                    runRequestBlock("second"),
+                ),
+                "second.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "second",
+                    20,
+                    runRequestBlock("first"),
+                ),
             });
             const itemProvider = createItemProvider(directory, [
                 new BrunoRequestFile(join(directory, "first.bru"), 10),
@@ -410,9 +553,14 @@ describe("syncSequencePrefixes", () => {
 
         it("are updated for requests within renamed folders", async () => {
             const directory = await createTemporaryDirectory({
-                "caller.bru": requestContent("caller", 10, callOf("users/a")),
+                "caller.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "caller",
+                    10,
+                    runRequestBlock("users/a"),
+                ),
                 "users/folder.bru": "meta {\n  name: users\n  seq: 20\n}\n",
-                "users/a.bru": requestContent("a", 5),
+                "users/a.bru": requestContent(CollectionFormat.Bru, "a", 5),
             });
             const itemProvider = createItemProvider(directory, [
                 new BrunoRequestFile(join(directory, "caller.bru"), 10),
@@ -436,9 +584,14 @@ describe("syncSequencePrefixes", () => {
 
         it("are updated for a request that was moved and is renamed afterwards, before the collection data knows its new location", async () => {
             const directory = await createTemporaryDirectory({
-                "caller.bru": requestContent("caller", 10, callOf("b/0010_x")),
-                "b/0010_y.bru": requestContent("y", 10),
-                "b/0010_x.bru": requestContent("x", 20),
+                "caller.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "caller",
+                    10,
+                    runRequestBlock("b/0010_x"),
+                ),
+                "b/0010_y.bru": requestContent(CollectionFormat.Bru, "y", 10),
+                "b/0010_x.bru": requestContent(CollectionFormat.Bru, "x", 20),
             });
             const itemProvider = createItemProvider(directory, [
                 new BrunoRequestFile(join(directory, "caller.bru"), 10),
@@ -470,11 +623,12 @@ describe("syncSequencePrefixes", () => {
         it("are updated in a request that was moved before, if it references a renamed request", async () => {
             const directory = await createTemporaryDirectory({
                 "b/0010_caller.bru": requestContent(
+                    CollectionFormat.Bru,
                     "caller",
                     10,
-                    callOf("b/0010_x"),
+                    runRequestBlock("b/0010_x"),
                 ),
-                "b/0010_x.bru": requestContent("x", 20),
+                "b/0010_x.bru": requestContent(CollectionFormat.Bru, "x", 20),
             });
             const itemProvider = createItemProvider(directory, [
                 new CollectionDirectory(join(directory, "b")),
@@ -519,8 +673,8 @@ async function setUpCollection(
 ) {
     const firstFileName = options.first ?? "first.bru";
     const directory = await createTemporaryDirectory({
-        [firstFileName]: requestContent("first", 10),
-        "second.bru": requestContent("second", 25),
+        [firstFileName]: requestContent(CollectionFormat.Bru, "first", 10),
+        "second.bru": requestContent(CollectionFormat.Bru, "second", 25),
         "no-sequence.bru": "meta {\n  name: no-sequence\n  type: http\n}\n",
         "users/folder.bru": "meta {\n  name: users\n  seq: 20\n}\n",
         ...Object.fromEntries(
@@ -553,16 +707,4 @@ function createItemProvider(
         [],
         directory,
     ).itemProvider;
-}
-
-function requestContent(name: string, sequence: number, script = "") {
-    return `meta {\n  name: ${name}\n  type: http\n  seq: ${sequence}\n}\n${script}`;
-}
-
-function callOf(path: string) {
-    return `\nscript:pre-request {\n  await bru.runRequest("${path}");\n}\n`;
-}
-
-function yamlRequestContent(name: string, sequence?: number) {
-    return `info:\n  name: ${name}\n  type: http\n${sequence === undefined ? "" : `  seq: ${sequence}\n`}http:\n  method: GET\n  url: ""\n`;
 }

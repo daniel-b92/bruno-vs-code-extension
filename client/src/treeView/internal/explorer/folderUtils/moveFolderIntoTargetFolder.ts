@@ -5,6 +5,7 @@ import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
+import { getSequencesBeforeChange } from "../sequencePrefixUtils/getSequencesBeforeChange";
 import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
 import { PathRename } from "../runRequestPaths/getEditsForRunRequestPaths";
 
@@ -16,6 +17,16 @@ export async function moveFolderIntoTargetFolder(
     originalItemSequence?: number,
     logger?: Logger,
 ) {
+    const affectedFolders = [
+        insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
+            ? targetItem.getPath()
+            : dirname(targetItem.getPath()),
+        dirname(sourcePath),
+    ];
+    const previousSequences = await getSequencesBeforeChange(
+        itemProvider,
+        affectedFolders,
+    );
     const move = await moveFolderIfNecessary(
         itemProvider,
         sourcePath,
@@ -40,21 +51,12 @@ export async function moveFolderIntoTargetFolder(
         );
     }
 
-    await syncSequencePrefixes(
-        itemProvider,
-        [
-            insertionOption ==
-            FolderDropInsertionOption.MoveIntoTargetAsSubfolder
-                ? targetItem.getPath()
-                : dirname(targetItem.getPath()),
-            dirname(sourcePath),
-        ],
-        {
-            logger,
-            // The collection data may not know the items of the moved folder at their new locations yet.
-            previousRenames: move.rename ? [move.rename] : undefined,
-        },
-    );
+    await syncSequencePrefixes(itemProvider, affectedFolders, {
+        logger,
+        previousSequences,
+        // The collection data may not know the items of the moved folder at their new locations yet.
+        previousRenames: move.rename ? [move.rename] : undefined,
+    });
 }
 
 async function moveFolderIfNecessary(

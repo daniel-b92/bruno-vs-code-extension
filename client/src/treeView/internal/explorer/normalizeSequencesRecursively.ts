@@ -8,6 +8,7 @@ import {
 } from "@global_shared";
 import { TypedCollection, TypedCollectionItemProvider } from "../../../shared";
 import { replaceSequenceForFile } from "./fileUtils/replaceSequenceForFile";
+import { getSequencesBeforeChange } from "./sequencePrefixUtils/getSequencesBeforeChange";
 import { syncSequencePrefixes } from "./sequencePrefixUtils/syncSequencePrefixes";
 
 type SequenceEntry = {
@@ -64,15 +65,22 @@ export async function normalizeSequencesRecursively(
         }
     }
 
+    const affectedFolders = Array.from(
+        new Set([...requestGroups.keys(), ...folderGroups.keys()]),
+    );
+    const previousSequences = await getSequencesBeforeChange(
+        itemProvider,
+        affectedFolders,
+    );
+
     await normalizeGroups(requestGroups, sequenceStep);
     await normalizeGroups(folderGroups, sequenceStep);
 
     // Also covers folders where only the names are outdated (e.g. because the sequences already were normalized).
-    await syncSequencePrefixes(
-        itemProvider,
-        Array.from(new Set([...requestGroups.keys(), ...folderGroups.keys()])),
-        { sequenceStep },
-    );
+    await syncSequencePrefixes(itemProvider, affectedFolders, {
+        sequenceStep,
+        previousSequences,
+    });
 }
 
 function addToGroup(

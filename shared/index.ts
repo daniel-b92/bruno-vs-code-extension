@@ -113,6 +113,10 @@ export * from "./logging/interfaces";
 export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 export * from "./vsCodeSettings/testEnvironmentsSettingGetter";
 export * from "./vsCodeSettings/interfaces";
+export * from "./vsCodeSettings/parseSequenceStep";
+
+// commands
+export * from "./commands/renameItemToMatchSequenceCommand";
 
 // language utils
 export * from "./languageUtils/bruFormat/blockInterfaces";

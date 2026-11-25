@@ -1,5 +1,11 @@
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
-import { Logger, getFileContent, normalizePath } from "@global_shared";
+import {
+    checkIfPathExistsAsync,
+    filterAsync,
+    Logger,
+    getFileContent,
+    normalizePath,
+} from "@global_shared";
 import {
     TypedCollection,
     TypedCollectionItemProvider,
@@ -42,6 +48,8 @@ export async function renameFileOrFolder(
  * so the names of items can be shifted or swapped. This can take several workspace edits, since the renames of an edit must not depend on each other (see `splitStepsIntoGroupsWithoutDependencies`).
  * The updates of `bru.runRequest` paths are part of the last one. The target paths must be distinct. Renames of an item to its own path are ignored.
  *
+ * If one of the edits fails, the renames that were already executed are rolled back, so that either all or none of the items are renamed.
+ *
  * @returns Whether all items were renamed.
  */
 export async function renameFilesAndFolders(
@@ -79,56 +87,103 @@ export async function renameFilesAndFolders(
             })),
         ),
     );
-    const lastGroup = groups.pop() as RenameStep[];
     // Documents with unsaved changes keep them. The others are saved after the edit, so that later writes to the files do not conflict with their buffers.
     const dirtyFilePathsAfterRename = workspace.textDocuments
         .filter(({ isDirty }) => isDirty)
         .map(({ uri }) => getPathAfterRenames(uri.fsPath, renames));
 
-    let renamedSuccessfully = true;
+    const executedSteps: RenameStep[] = [];
 
-    for (const group of groups) {
-        renamedSuccessfully = await workspace.applyEdit(
-            createWorkspaceEdit(group, [], overwrite),
+    for (const [index, group] of groups.entries()) {
+        const groupEdits = index == groups.length - 1 ? pathEdits : [];
+        let wasSuccessful = await workspace.applyEdit(
+            createWorkspaceEdit(group, groupEdits, overwrite),
             { isRefactoring: true },
         );
 
-        if (!renamedSuccessfully) {
-            break;
-        }
-    }
-
-    if (renamedSuccessfully) {
-        renamedSuccessfully = await workspace.applyEdit(
-            createWorkspaceEdit(lastGroup, pathEdits, overwrite),
-            { isRefactoring: true },
-        );
-
-        if (!renamedSuccessfully && pathEdits.length > 0) {
+        if (wasSuccessful) {
+            await saveEditedFiles(
+                groupEdits,
+                dirtyFilePathsAfterRename,
+                logger,
+            );
+        } else if (groupEdits.length > 0) {
             logger?.warn(
                 `Renaming ${describeRenames(renames)} together with the updates of 'bru.runRequest' paths failed. Renaming without these updates.`,
             );
-            renamedSuccessfully = await workspace.applyEdit(
-                createWorkspaceEdit(lastGroup, [], overwrite),
+            const remainingSteps = await filterAsync(
+                group,
+                async (step) => !(await isStepExecuted(step)),
             );
-        } else if (renamedSuccessfully) {
-            await saveEditedFiles(pathEdits, dirtyFilePathsAfterRename, logger);
+            wasSuccessful =
+                remainingSteps.length == 0 ||
+                (await workspace.applyEdit(
+                    createWorkspaceEdit(remainingSteps, [], overwrite),
+                ));
+        }
+
+        if (!wasSuccessful) {
+            // Some of the steps may have been executed before the edit failed.
+            executedSteps.push(...(await filterAsync(group, isStepExecuted)));
+            showErrorForFailedRenames(
+                renames,
+                await rollBackSteps(executedSteps, logger),
+            );
+
+            return false;
+        }
+
+        executedSteps.push(...group);
+    }
+
+    return true;
+}
+
+/** @returns Whether all items have their original names again. */
+async function rollBackSteps(executedSteps: RenameStep[], logger?: Logger) {
+    const groups = splitStepsIntoGroupsWithoutDependencies(
+        executedSteps.map(({ from, to }) => ({ from: to, to: from })).reverse(),
+    );
+
+    for (const group of groups) {
+        if (
+            !(await workspace.applyEdit(createWorkspaceEdit(group, [], false), {
+                isRefactoring: true,
+            }))
+        ) {
+            logger?.error(
+                `Could not undo the renames that were executed before a rename failed: ${executedSteps.map(({ from, to }) => `'${from}' to '${to}'`).join(", ")}`,
+            );
+            return false;
         }
     }
 
-    if (renamedSuccessfully) {
-        return true;
-    } else {
-        window.showErrorMessage(
-            renames.length == 1
-                ? `Renaming / Moving ${
-                      renames[0].isFile ? "file" : "folder"
-                  } '${renames[0].sourcePath}' failed unexpectedly.`
-                : `Renaming / Moving ${renames.length} items failed unexpectedly.`,
-        );
+    return true;
+}
 
-        return false;
-    }
+async function isStepExecuted({ from, to }: RenameStep) {
+    return (
+        !(await checkIfPathExistsAsync(from)) &&
+        (await checkIfPathExistsAsync(to))
+    );
+}
+
+function showErrorForFailedRenames(
+    renames: PathRename[],
+    wasRolledBack: boolean,
+) {
+    const message =
+        renames.length == 1
+            ? `Renaming / Moving ${
+                  renames[0].isFile ? "file" : "folder"
+              } '${renames[0].sourcePath}' failed unexpectedly.`
+            : `Renaming / Moving ${renames.length} items failed unexpectedly.`;
+
+    window.showErrorMessage(
+        wasRolledBack
+            ? message
+            : `${message} Some of the items could not be renamed back to their original names.`,
+    );
 }
 
 function describeRenames(renames: PathRename[]) {

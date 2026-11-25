@@ -1,22 +1,11 @@
-import { basename, dirname, extname, resolve } from "path";
-import {
-    BrunoFileType,
-    CollectionDirectory,
-    isCollectionItemWithSequence,
-    isPathEqualOrDescendant,
-    Logger,
-    normalizePath,
-    removeSequencePrefix,
-} from "@global_shared";
-import {
-    getSequenceStepFromSettings,
-    TypedCollection,
-    TypedCollectionItemProvider,
-} from "@shared";
+import { basename, dirname, resolve } from "path";
+import { isPathEqualOrDescendant, Logger, normalizePath } from "@global_shared";
+import { TypedCollection, TypedCollectionItemProvider } from "@shared";
 import { renameFilesAndFolders } from "../renameFileOrFolder";
 import { PathRename } from "../runRequestPaths/getEditsForRunRequestPaths";
 import { excludeConflictingRenames } from "../excludeConflictingRenames";
-import { getStoredNameOfItem } from "./getStoredNameOfItem";
+import { canNameHaveSequencePrefix } from "./canNameHaveSequencePrefix";
+import { getNameWithoutSequencePrefix } from "./getNameWithoutSequencePrefix";
 
 export interface RemovalOfSequencePrefixesResult {
     renamedCount: number;
@@ -40,48 +29,25 @@ export async function removeSequencePrefixesRecursively(
     logger?: Logger,
 ): Promise<RemovalOfSequencePrefixesResult> {
     const plannedRenames: PathRename[] = [];
-    const sequenceStep = getSequenceStepFromSettings();
 
     for (const { item } of collection.getAllStoredDataForCollection()) {
         const itemPath = item.getPath();
-        const itemType = item.getItemType();
 
         if (
             normalizePath(itemPath) == normalizePath(folderPath) ||
-            !isPathEqualOrDescendant(itemPath, folderPath)
+            !isPathEqualOrDescendant(itemPath, folderPath) ||
+            !canNameHaveSequencePrefix(item)
         ) {
             continue;
         }
 
-        const isFile =
-            itemType == BrunoFileType.RequestFile ||
-            itemType == BrunoFileType.AppFile;
-        const isFolderWithSettings =
-            item instanceof CollectionDirectory &&
-            item.getSettingsFilePath() !== undefined;
+        const nameWithoutPrefix = await getNameWithoutSequencePrefix(item);
 
-        if (!isFile && !isFolderWithSettings) {
-            continue;
-        }
-
-        const extension = isFile ? extname(itemPath) : "";
-        const name = basename(itemPath, extension);
-        const nameWithoutPrefix = removeSequencePrefix(name, {
-            sequence: isCollectionItemWithSequence(item)
-                ? item.getSequence()
-                : undefined,
-            sequenceStep,
-            storedName: await getStoredNameOfItem(item),
-        });
-
-        if (nameWithoutPrefix != name) {
+        if (nameWithoutPrefix != basename(itemPath)) {
             plannedRenames.push({
                 sourcePath: itemPath,
-                targetPath: resolve(
-                    dirname(itemPath),
-                    `${nameWithoutPrefix}${extension}`,
-                ),
-                isFile,
+                targetPath: resolve(dirname(itemPath), nameWithoutPrefix),
+                isFile: item.isFile(),
             });
         }
     }

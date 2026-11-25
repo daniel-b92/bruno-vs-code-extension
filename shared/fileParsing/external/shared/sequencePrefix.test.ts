@@ -70,34 +70,34 @@ describe("sequencePrefix", () => {
 
     describe("removeSequencePrefix", () => {
         it.each([
-            ["a padded prefix", "010_get-token", { sequenceStep: 10 }],
+            ["a padded prefix", "010_get-token", {}],
             [
-                "a prefix with the digits for the step",
+                "a prefix matching the previous sequence",
                 "100_get-token",
-                { sequenceStep: 1 },
+                { sequence: 3, previousSequence: 100 },
             ],
             [
                 "a prefix matching the sequence",
                 "10_get-token",
-                { sequence: 10, sequenceStep: 1 },
+                { sequence: 10 },
             ],
         ])("removes %s", (_, name, expected) => {
             expect(removeSequencePrefix(name, expected)).toBe("get-token");
         });
 
         it("keeps names without a prefix", () => {
-            expect(removeSequencePrefix("get-token", { sequenceStep: 1 })).toBe(
+            expect(removeSequencePrefix("get-token", { sequence: 1 })).toBe(
                 "get-token",
             );
         });
 
-        it.each(["2024_reports", "10_get-token"])(
-            "keeps '%s', since its digits do not look like a generated prefix",
+        it.each(["2024_reports", "10_get-token", "100_login"])(
+            "keeps '%s', since its digits match neither the sequence nor the previous one",
             (name) => {
                 expect(
                     removeSequencePrefix(name, {
                         sequence: 3,
-                        sequenceStep: 1,
+                        previousSequence: 4,
                     }),
                 ).toBe(name);
             },
@@ -113,7 +113,6 @@ describe("sequencePrefix", () => {
                 expect(
                     removeSequencePrefix(name, {
                         sequence: 3,
-                        sequenceStep: 1,
                         storedName,
                     }),
                 ).toBe(name);
@@ -130,7 +129,6 @@ describe("sequencePrefix", () => {
                 expect(
                     removeSequencePrefix(name, {
                         sequence: 3,
-                        sequenceStep: 1,
                         storedName,
                     }),
                 ).toBe(name.substring(name.indexOf("_") + 1));
@@ -146,7 +144,6 @@ describe("sequencePrefix", () => {
                 expect(
                     removeSequencePrefix(name, {
                         sequence,
-                        sequenceStep: 1,
                         storedName: name,
                     }),
                 ).toBe("login");
@@ -154,16 +151,18 @@ describe("sequencePrefix", () => {
         );
 
         it.each([
-            ["100_login", "login"],
-            ["1000_login", "1000_login"],
+            ["404_error", 404, "error"],
+            ["404_error", 2, "404_error"],
+            ["1000_error", 1000, "error"],
+            ["404_error", undefined, "404_error"],
         ])(
-            "considers the number of digits of '%s' if the stored name is a different one",
-            (name, expected) => {
+            "only removes the digits of '%s' with the previous sequence %p if they match it, when the stored name is a different one",
+            (name, previousSequence, expected) => {
                 expect(
                     removeSequencePrefix(name, {
                         sequence: 3,
-                        sequenceStep: 1,
-                        storedName: "Something else",
+                        previousSequence,
+                        storedName: "Error 404",
                     }),
                 ).toBe(expected);
             },
@@ -172,16 +171,20 @@ describe("sequencePrefix", () => {
         it("does not treat names without any letters or digits as the same", () => {
             expect(
                 removeSequencePrefix("1000_--", {
-                    sequenceStep: 1,
+                    sequence: 1,
                     storedName: "++",
                 }),
             ).toBe("1000_--");
         });
 
-        it("does not consider the number of digits without a step", () => {
-            expect(removeSequencePrefix("404_not-found", { sequence: 3 })).toBe(
-                "404_not-found",
-            );
+        it("keeps digits matching the previous sequence if they are part of the stored name", () => {
+            expect(
+                removeSequencePrefix("404_error", {
+                    sequence: 3,
+                    previousSequence: 404,
+                    storedName: "404_error",
+                }),
+            ).toBe("404_error");
         });
     });
 
@@ -204,10 +207,11 @@ describe("sequencePrefix", () => {
             ).toBe("0020_get-token");
         });
 
-        it("replaces an outdated prefix with the digits for the step", () => {
+        it("replaces an outdated prefix that matches the previous sequence", () => {
             expect(
                 addSequencePrefix("100_login", {
                     sequence: 101,
+                    previousSequence: 100,
                     sequenceStep: 1,
                 }),
             ).toBe("101_login");

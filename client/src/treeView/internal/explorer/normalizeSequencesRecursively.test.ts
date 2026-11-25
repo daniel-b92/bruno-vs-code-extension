@@ -10,6 +10,7 @@ import {
 import {
     createCollectionWithEnvironments,
     createItemProviderStub,
+    requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "../../../shared";
@@ -132,34 +133,6 @@ describe("normalizeSequencesRecursively", () => {
         },
     );
 });
-
-function requestContent(
-    format: CollectionFormat,
-    name: string,
-    sequence: number,
-) {
-    if (format === CollectionFormat.Bru) {
-        return [
-            "meta {",
-            "  name: " + name,
-            "  type: http",
-            "  seq: " + sequence,
-            "}",
-            "",
-        ].join("\n");
-    }
-
-    return [
-        "info:",
-        "  name: " + name,
-        "  type: http",
-        "  seq: " + sequence,
-        "",
-        "http:",
-        "  method: GET",
-        "",
-    ].join("\n");
-}
 
 function folderContent(
     format: CollectionFormat,

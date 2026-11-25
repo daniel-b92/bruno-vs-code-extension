@@ -29,6 +29,11 @@ import {
     shouldPrefixNamesWithSequence,
 } from "@shared";
 import { commands, Uri, window } from "vscode";
+import { getSiblingNamesWithoutSequencePrefix } from "../sequencePrefixUtils/getSiblingNamesWithoutSequencePrefix";
+import {
+    validateNameIsNotEmpty,
+    validateNameIsNotUsedBySibling,
+} from "../validateEnteredName";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
@@ -54,14 +59,26 @@ export async function createRequestFile(
     const format = collection.getFormat();
     const fileExtension = getFileExtensionForFormat(format);
 
+    const siblingNamesWithoutPrefix = shouldPrefixNamesWithSequence()
+        ? await getSiblingNamesWithoutSequencePrefix(
+              collection,
+              parentFolderPath,
+              { isFile: true },
+          )
+        : [];
+
     const requestName = await window.showInputBox({
         title: `Create request file in '${basename(parentFolderPath)}'`,
         value: "request_name",
-        validateInput: (newFileName: string) => {
-            return validateNewItemNameIsUnique(
+        validateInput: async (newFileName: string) =>
+            validateNameIsNotEmpty(newFileName) ??
+            (await validateNewItemNameIsUnique(
                 resolve(parentFolderPath, `${newFileName}${fileExtension}`),
-            );
-        },
+            )) ??
+            validateNameIsNotUsedBySibling(
+                `${newFileName}${fileExtension}`,
+                siblingNamesWithoutPrefix,
+            ),
     });
 
     if (requestName == undefined) {

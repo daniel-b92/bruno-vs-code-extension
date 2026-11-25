@@ -6,6 +6,7 @@ import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFail
 import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { dirname } from "path";
 import { RequestFileInsertionPositionType } from "./interfaces";
+import { getSequencesBeforeChange } from "../sequencePrefixUtils/getSequencesBeforeChange";
 import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
 
 export async function moveFileIntoFolder(
@@ -17,6 +18,14 @@ export async function moveFileIntoFolder(
     fileType: ItemType,
     logger?: Logger,
 ) {
+    // Other files have no sequence, so moving them does not affect any names.
+    const shouldSyncSequencePrefixes =
+        fileType == BrunoFileType.RequestFile ||
+        fileType == BrunoFileType.AppFile;
+    const affectedFolders = [dirname(newPath), dirname(sourcePath)];
+    const previousSequences = shouldSyncSequencePrefixes
+        ? await getSequencesBeforeChange(itemProvider, affectedFolders)
+        : undefined;
     const wasSuccessful = await renameFileOrFolder(
         itemProvider,
         sourcePath,
@@ -48,15 +57,14 @@ export async function moveFileIntoFolder(
         );
     }
 
-    await syncSequencePrefixes(
-        itemProvider,
-        [dirname(newPath), dirname(sourcePath)],
-        {
+    if (shouldSyncSequencePrefixes) {
+        await syncSequencePrefixes(itemProvider, affectedFolders, {
             logger,
+            previousSequences,
             // The collection data may not know the moved file at its new location yet.
             previousRenames: [
                 { sourcePath, targetPath: newPath, isFile: true },
             ],
-        },
-    );
+        });
+    }
 }

@@ -11,6 +11,7 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
@@ -29,12 +30,20 @@ describe("removeSequencePrefixesRecursively", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "010_a.bru": requestContent(10),
+            "010_a.bru": requestContent(CollectionFormat.Bru, "request", 10),
             "020_users/folder.bru": "meta {\n  name: users\n  seq: 20\n}\n",
-            "020_users/005_b.bru": requestContent(5),
+            "020_users/005_b.bru": requestContent(
+                CollectionFormat.Bru,
+                "request",
+                5,
+            ),
             "020_users/030_nested/folder.bru":
                 "meta {\n  name: nested\n  seq: 30\n}\n",
-            "020_users/030_nested/001_c.bru": requestContent(1),
+            "020_users/030_nested/001_c.bru": requestContent(
+                CollectionFormat.Bru,
+                "request",
+                1,
+            ),
         });
         const { collection, itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
@@ -94,7 +103,7 @@ describe("removeSequencePrefixesRecursively", () => {
             .spyOn(workspace, "applyEdit")
             .mockImplementation(applyWorkspaceEdit);
         const directory = await createTemporaryDirectory({
-            "010_a.bru": requestContent(10),
+            "010_a.bru": requestContent(CollectionFormat.Bru, "request", 10),
             "a.bru": "other",
         });
         const { collection, itemProvider } =
@@ -195,9 +204,9 @@ describe("removeSequencePrefixesRecursively", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "010_a.bru": requestContent(10),
-            "020_a.bru": requestContent(20),
-            "030_b.bru": requestContent(30),
+            "010_a.bru": requestContent(CollectionFormat.Bru, "request", 10),
+            "020_a.bru": requestContent(CollectionFormat.Bru, "request", 20),
+            "030_b.bru": requestContent(CollectionFormat.Bru, "request", 30),
         });
         const { collection, itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
@@ -233,7 +242,7 @@ describe("removeSequencePrefixesRecursively", () => {
         jest.spyOn(workspace, "applyEdit").mockResolvedValue(false);
         jest.spyOn(window, "showErrorMessage").mockResolvedValue(undefined);
         const directory = await createTemporaryDirectory({
-            "010_a.bru": requestContent(10),
+            "010_a.bru": requestContent(CollectionFormat.Bru, "request", 10),
         });
         const { collection, itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
@@ -259,7 +268,11 @@ describe("removeSequencePrefixesRecursively", () => {
         const directory = await createTemporaryDirectory({
             "0010_users/folder.yml":
                 "info:\n  name: users\n  type: folder\n  seq: 10\n",
-            "0010_users/0020_a.yml": yamlRequestContent(20),
+            "0010_users/0020_a.yml": requestContent(
+                CollectionFormat.Yaml,
+                "request",
+                20,
+            ),
         });
         const { collection, itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
@@ -292,11 +305,3 @@ describe("removeSequencePrefixesRecursively", () => {
         ]);
     });
 });
-
-function requestContent(sequence: number) {
-    return `meta {\n  name: request\n  type: http\n  seq: ${sequence}\n}\n`;
-}
-
-function yamlRequestContent(sequence: number) {
-    return `info:\n  name: request\n  type: http\n  seq: ${sequence}\nhttp:\n  method: GET\n  url: ""\n`;
-}

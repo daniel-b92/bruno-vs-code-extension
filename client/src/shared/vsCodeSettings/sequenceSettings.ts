@@ -1,22 +1,16 @@
 import { workspace } from "vscode";
+import { parseSequenceStep } from "@global_shared";
 
 const sequenceStepSettingKey = "bru-as-code.sequenceStep";
 const renumberSequencesSettingKey =
     "bru-as-code.renumberSequencesAutomatically";
 const prefixNamesWithSequenceSettingKey = "bru-as-code.prefixNamesWithSequence";
-const defaultSequenceStep = 1;
 
 /** The step between the sequences of consecutive items, that is used when new items are appended or sequences are renumbered. */
 export function getSequenceStepFromSettings() {
-    const configured = workspace
-        .getConfiguration()
-        .get<unknown>(sequenceStepSettingKey);
-
-    return typeof configured == "number" &&
-        Number.isInteger(configured) &&
-        configured > 0
-        ? configured
-        : defaultSequenceStep;
+    return parseSequenceStep(
+        workspace.getConfiguration().get<unknown>(sequenceStepSettingKey),
+    );
 }
 
 /**

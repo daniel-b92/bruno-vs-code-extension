@@ -45,10 +45,10 @@ export function parseSequencePrefix(name: string) {
 /** What is known about an item, for determining whether the digits at the start of its name are a sequence prefix. */
 export interface KnownItemData {
     sequence?: number;
+    /** The sequence before a change that the name may not have been adjusted to yet. */
+    previousSequence?: number;
     /** The name that is stored in the file, which never contains the prefix. Without it, only the digits themselves are checked. */
     storedName?: string;
-    /** If it is missing, the number of digits is not considered. */
-    sequenceStep?: number;
 }
 
 /**
@@ -56,7 +56,7 @@ export interface KnownItemData {
  * Names can also start with digits and an underscore without having a prefix (e.g. `404_not-found`). The digits are treated as a prefix, if one of the following is true:
  * - They match the sequence or are padded with zeros.
  * - The stored name is the same as the name without them.
- * - The stored name is neither the same as the name with them nor as the one without them, but they have the number of digits that prefixes have for the step.
+ * - They match the previous sequence, and the stored name is not the same as the name with them.
  *
  * Don't use it for names that were entered by the user, since they must not be changed.
  */
@@ -71,7 +71,7 @@ export function removeSequencePrefix(name: string, itemData: KnownItemData) {
 /** Sets the prefix for the given sequence. An already existing prefix is replaced (see {@link removeSequencePrefix}). */
 export function addSequencePrefix(
     name: string,
-    itemData: { sequence: number; sequenceStep: number; storedName?: string },
+    itemData: KnownItemData & { sequence: number; sequenceStep: number },
 ) {
     const { sequence, sequenceStep } = itemData;
 
@@ -96,7 +96,7 @@ function isSequencePrefix(
         sequence: sequenceInName,
         nameWithoutPrefix,
     }: { digits: string; sequence: number; nameWithoutPrefix: string },
-    { sequence, storedName, sequenceStep }: KnownItemData,
+    { sequence, previousSequence, storedName }: KnownItemData,
 ) {
     if (sequenceInName === sequence || digits.startsWith("0")) {
         return true;
@@ -111,10 +111,7 @@ function isSequencePrefix(
         }
     }
 
-    return (
-        sequenceStep !== undefined &&
-        digits.length == getMinimumDigitsForSequencePrefix(sequenceStep)
-    );
+    return sequenceInName === previousSequence;
 }
 
 /** Names of files and folders often only differ in case and separators from the stored name (e.g. `get-token` and `Get token`). */
