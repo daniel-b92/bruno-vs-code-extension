@@ -32,7 +32,7 @@ export function isSequencePrefixDiagnosticData(
 }
 
 /**
- * Checks whether the name of a request file, app file or folder starts with the sequence of the item, e.g. `010_` for sequence 10.
+ * Checks whether the name of a request file, app file or folder starts with the sequence of the item, e.g. `00010_` for sequence 10.
  * Works for both collection formats. The sequence is read from the given file content.
  * For folders, the given path and content are the ones of the folder settings file.
  */
@@ -40,9 +40,8 @@ export function getSequencePrefixDiagnostic(data: {
     filePath: string;
     content: string;
     fileType: BrunoFileType;
-    sequenceStep: number;
 }): DiagnosticWithCode | undefined {
-    const { filePath, content, fileType, sequenceStep } = data;
+    const { filePath, content, fileType } = data;
     const isFolder = fileType == BrunoFileType.FolderSettingsFile;
 
     if (
@@ -77,7 +76,6 @@ export function getSequencePrefixDiagnostic(data: {
 
     const newName = `${addSequencePrefix(itemName, {
         sequence,
-        sequenceStep,
         storedName: getStoredItemNameFromFileContent(filePath, content),
     })}${isFolder ? "" : extname(itemPath)}`;
     const diagnosticData: SequencePrefixDiagnosticData = {

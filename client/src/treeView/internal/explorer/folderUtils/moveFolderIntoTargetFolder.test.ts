@@ -9,6 +9,7 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    folderSettingsContent,
     requestContent,
     runRequestBlock,
     useTemporaryDirectories,
@@ -37,19 +38,27 @@ describe("moveFolderIntoTargetFolder", () => {
             applyWorkspaceEdit,
         );
         const directory = await createTemporaryDirectory({
-            "a/0010_users/folder.bru": folderSettings("users", 10),
-            "a/0010_users/0010_get.bru": requestContent(
+            "a/00010_users/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "users",
+                10,
+            ),
+            "a/00010_users/00010_get.bru": requestContent(
                 CollectionFormat.Bru,
                 "get",
                 10,
-                runRequestBlock("a/0010_users/0020_other"),
+                runRequestBlock("a/00010_users/00020_other"),
             ),
-            "a/0010_users/0020_other.bru": requestContent(
+            "a/00010_users/00020_other.bru": requestContent(
                 CollectionFormat.Bru,
                 "other",
                 20,
             ),
-            "b/0010_existing/folder.bru": folderSettings("existing", 10),
+            "b/00010_existing/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "existing",
+                10,
+            ),
         });
         const itemProvider =
             createCollectionWithItems<TypedCollectionItemProvider>(
@@ -57,21 +66,21 @@ describe("moveFolderIntoTargetFolder", () => {
                     new CollectionDirectory(join(directory, "a")),
                     new CollectionDirectory(join(directory, "b")),
                     new CollectionDirectory(
-                        join(directory, "a", "0010_users"),
-                        join(directory, "a", "0010_users", "folder.bru"),
+                        join(directory, "a", "00010_users"),
+                        join(directory, "a", "00010_users", "folder.bru"),
                         10,
                     ),
                     new BrunoRequestFile(
-                        join(directory, "a", "0010_users", "0010_get.bru"),
+                        join(directory, "a", "00010_users", "00010_get.bru"),
                         10,
                     ),
                     new BrunoRequestFile(
-                        join(directory, "a", "0010_users", "0020_other.bru"),
+                        join(directory, "a", "00010_users", "00020_other.bru"),
                         20,
                     ),
                     new CollectionDirectory(
-                        join(directory, "b", "0010_existing"),
-                        join(directory, "b", "0010_existing", "folder.bru"),
+                        join(directory, "b", "00010_existing"),
+                        join(directory, "b", "00010_existing", "folder.bru"),
                         10,
                     ),
                 ],
@@ -82,7 +91,7 @@ describe("moveFolderIntoTargetFolder", () => {
 
         await moveFolderIntoTargetFolder(
             itemProvider,
-            join(directory, "a", "0010_users"),
+            join(directory, "a", "00010_users"),
             new BrunoTreeItem(join(directory, "b"), false, false),
             FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
             10,
@@ -90,25 +99,21 @@ describe("moveFolderIntoTargetFolder", () => {
 
         expect(await readdir(join(directory, "a"))).toEqual([]);
         expect((await readdir(join(directory, "b"))).sort()).toEqual([
-            "0010_existing",
-            "0020_users",
+            "00010_existing",
+            "00020_users",
         ]);
         expect(
             await readFile(
-                join(directory, "b", "0020_users", "folder.bru"),
+                join(directory, "b", "00020_users", "folder.bru"),
                 "utf-8",
             ),
         ).toContain("seq: 20");
         // The request within the moved folder was found by its new location and refers to the final locations.
         expect(
             await readFile(
-                join(directory, "b", "0020_users", "0010_get.bru"),
+                join(directory, "b", "00020_users", "00010_get.bru"),
                 "utf-8",
             ),
-        ).toContain('runRequest("b/0020_users/0020_other")');
+        ).toContain('runRequest("b/00020_users/00020_other")');
     });
 });
-
-function folderSettings(name: string, sequence: number) {
-    return `meta {\n  name: ${name}\n  seq: ${sequence}\n}\n`;
-}

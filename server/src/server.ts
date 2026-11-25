@@ -39,7 +39,6 @@ import {
     TextDocumentHelper,
     getFileExtensionForFormat,
     CollectionFormat,
-    parseSequenceStep,
 } from "@global_shared";
 import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
 import { handleCompletionRequest as handleCompletionRequestForYamlFile } from "./yamlFiles/completions/handleCompletionRequest";
@@ -650,14 +649,10 @@ async function getSequencePrefixDiagnostics(
         return [];
     }
 
-    const configuredStep = await connection.workspace.getConfiguration(
-        "bru-as-code.sequenceStep",
-    );
     const diagnostic = getSequencePrefixDiagnostic({
         filePath,
         content: text,
         fileType,
-        sequenceStep: parseSequenceStep(configuredStep),
     });
 
     return diagnostic ? [diagnostic] : [];

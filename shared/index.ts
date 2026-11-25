@@ -16,6 +16,7 @@ export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/isPathEqualOrDescendant";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
+export * from "./fileSystem/util/isReservedPath";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getItemType";
@@ -113,7 +114,6 @@ export * from "./logging/interfaces";
 export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 export * from "./vsCodeSettings/testEnvironmentsSettingGetter";
 export * from "./vsCodeSettings/interfaces";
-export * from "./vsCodeSettings/parseSequenceStep";
 
 // commands
 export * from "./commands/renameItemToMatchSequenceCommand";

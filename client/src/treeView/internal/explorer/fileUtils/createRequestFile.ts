@@ -148,16 +148,15 @@ export async function createRequestFile(
             );
         }
 
-        const sequenceStep = getSequenceStepFromSettings();
         const requestSequence =
             ((await getMaxSequenceForRequestsAndAppFiles(
                 itemProvider,
                 parentFolderPath,
-            )) ?? 0) + sequenceStep;
+            )) ?? 0) + getSequenceStepFromSettings();
         const fileName =
             shouldPrefixNamesWithSequence() &&
             canSequenceBeUsedAsPrefix(requestSequence)
-                ? `${getSequencePrefix(requestSequence, sequenceStep)}${requestName}`
+                ? `${getSequencePrefix(requestSequence)}${requestName}`
                 : requestName;
         const filePath = resolve(
             parentFolderPath,

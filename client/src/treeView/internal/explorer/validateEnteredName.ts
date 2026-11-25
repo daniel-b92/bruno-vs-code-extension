@@ -11,6 +11,10 @@ export function validateNameIsNotUsedBySibling(
     siblingNamesWithoutPrefix: string[],
 ) {
     return siblingNamesWithoutPrefix.includes(name)
-        ? `An item with the name '${name}' already exists (apart from the sequence prefix)`
+        ? getMessageForNameUsedBySibling(name)
         : undefined;
+}
+
+export function getMessageForNameUsedBySibling(name: string) {
+    return `An item with the name '${name}' already exists (apart from the sequence prefix)`;
 }

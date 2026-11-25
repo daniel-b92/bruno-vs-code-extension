@@ -6,6 +6,7 @@ import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFail
 import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { dirname } from "path";
 import { RequestFileInsertionPositionType } from "./interfaces";
+import { getFoldersAffectedByFileInsertion } from "../sequencePrefixUtils/getFoldersAffectedByFileInsertion";
 import { getSequencesBeforeChange } from "../sequencePrefixUtils/getSequencesBeforeChange";
 import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
 
@@ -18,14 +19,15 @@ export async function moveFileIntoFolder(
     fileType: ItemType,
     logger?: Logger,
 ) {
-    // Other files have no sequence, so moving them does not affect any names.
-    const shouldSyncSequencePrefixes =
-        fileType == BrunoFileType.RequestFile ||
-        fileType == BrunoFileType.AppFile;
-    const affectedFolders = [dirname(newPath), dirname(sourcePath)];
-    const previousSequences = shouldSyncSequencePrefixes
-        ? await getSequencesBeforeChange(itemProvider, affectedFolders)
-        : undefined;
+    const affectedFolders = getFoldersAffectedByFileInsertion(
+        itemProvider,
+        { sourcePath, newPath },
+        fileType,
+    );
+    const previousSequences = await getSequencesBeforeChange(
+        itemProvider,
+        affectedFolders,
+    );
     const wasSuccessful = await renameFileOrFolder(
         itemProvider,
         sourcePath,
@@ -57,14 +59,10 @@ export async function moveFileIntoFolder(
         );
     }
 
-    if (shouldSyncSequencePrefixes) {
-        await syncSequencePrefixes(itemProvider, affectedFolders, {
-            logger,
-            previousSequences,
-            // The collection data may not know the moved file at its new location yet.
-            previousRenames: [
-                { sourcePath, targetPath: newPath, isFile: true },
-            ],
-        });
-    }
+    await syncSequencePrefixes(itemProvider, affectedFolders, {
+        logger,
+        previousSequences,
+        // The collection data may not know the moved file at its new location yet.
+        previousRenames: [{ sourcePath, targetPath: newPath, isFile: true }],
+    });
 }

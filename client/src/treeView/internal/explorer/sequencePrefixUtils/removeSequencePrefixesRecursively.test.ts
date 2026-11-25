@@ -11,6 +11,7 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    folderSettingsContent,
     requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
@@ -237,6 +238,89 @@ describe("removeSequencePrefixesRecursively", () => {
             "b.bru",
         ]);
     });
+
+    it.each([
+        [CollectionFormat.Bru, "sub/010_folder.bru"],
+        [CollectionFormat.Bru, "010_collection.bru"],
+        [CollectionFormat.Yaml, "sub/010_folder.yml"],
+        [CollectionFormat.Yaml, "010_opencollection.yml"],
+    ])(
+        "keeps the prefix of a request in a %s collection if the name without it is reserved ('%s')",
+        async (format, path) => {
+            const applyEdit = jest
+                .spyOn(workspace, "applyEdit")
+                .mockImplementation(applyWorkspaceEdit);
+            const directory = await createTemporaryDirectory({
+                [path]: requestContent(format, "request", 10),
+            });
+            const { collection, itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [new BrunoRequestFile(join(directory, path), 10)],
+                    format,
+                    [],
+                    directory,
+                );
+
+            expect(
+                await removeSequencePrefixesRecursively(
+                    itemProvider,
+                    collection,
+                    directory,
+                ),
+            ).toEqual({ renamedCount: 0, skippedCount: 1, failed: false });
+            expect(applyEdit).not.toHaveBeenCalled();
+        },
+    );
+
+    it.each([
+        [CollectionFormat.Bru, "folder.bru"],
+        [CollectionFormat.Yaml, "folder.yml"],
+    ])(
+        "only keeps the prefix of an environments folder in the root of a %s collection",
+        async (format, settingsFileName) => {
+            jest.spyOn(workspace, "applyEdit").mockImplementation(
+                applyWorkspaceEdit,
+            );
+            const folders = ["010_environments", "sub/010_environments"];
+            const directory = await createTemporaryDirectory(
+                Object.fromEntries(
+                    folders.map((folder) => [
+                        `${folder}/${settingsFileName}`,
+                        folderSettingsContent(format, "environments", 10),
+                    ]),
+                ),
+            );
+            const { collection, itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    folders.map(
+                        (folder) =>
+                            new CollectionDirectory(
+                                join(directory, folder),
+                                join(directory, folder, settingsFileName),
+                                10,
+                            ),
+                    ),
+                    format,
+                    [],
+                    directory,
+                );
+
+            expect(
+                await removeSequencePrefixesRecursively(
+                    itemProvider,
+                    collection,
+                    directory,
+                ),
+            ).toEqual({ renamedCount: 1, skippedCount: 1, failed: false });
+            expect((await readdir(directory)).sort()).toEqual([
+                "010_environments",
+                "sub",
+            ]);
+            expect(await readdir(join(directory, "sub"))).toEqual([
+                "environments",
+            ]);
+        },
+    );
 
     it("reports a failure of renaming the items", async () => {
         jest.spyOn(workspace, "applyEdit").mockResolvedValue(false);

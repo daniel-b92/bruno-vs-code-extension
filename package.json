@@ -171,7 +171,7 @@
                 "bru-as-code.prefixNamesWithSequence": {
                     "type": "boolean",
                     "default": false,
-                    "markdownDescription": "Prefix the file names of requests and the folder names with their sequence (`seq`), padded with zeros (e.g. `010_get-token.bru`), so that they are listed in execution order in the file explorer and in diffs. The number of digits depends on `#bru-as-code.sequenceStep#`. The prefix is not part of the request name in the file. The collection explorer keeps the prefixes in sync when items are created, duplicated, pasted, moved, renamed or normalized, and a warning is shown for files whose name does not match their sequence."
+                    "markdownDescription": "Prefix the file names of requests and the folder names with their sequence (`seq`), padded with zeros to 5 digits (e.g. `00010_get-token.bru`), so that they are listed in execution order in the file explorer and in diffs. The prefix is not part of the request name in the file. The collection explorer keeps the prefixes in sync when items are created, duplicated, pasted, moved, renamed or normalized, and a warning is shown for files whose name does not match their sequence."
                 }
             }
         },

@@ -145,7 +145,7 @@ describe("createRequestFile", () => {
 
         it("prefixes the file name, but not the stored name (bru)", async () => {
             const directory = await createTemporaryDirectory({
-                "0010_existing.bru":
+                "00010_existing.bru":
                     "meta {\n  name: existing\n  type: http\n  seq: 10\n}\n",
             });
 
@@ -156,7 +156,7 @@ describe("createRequestFile", () => {
             });
 
             const content = await readFile(
-                join(directory, "0020_my_request.bru"),
+                join(directory, "00020_my_request.bru"),
                 "utf-8",
             );
             expect(content).toContain("name: my_request");
@@ -173,7 +173,7 @@ describe("createRequestFile", () => {
             });
 
             const content = await readFile(
-                join(directory, "0010_404_not-found.bru"),
+                join(directory, "00010_404_not-found.bru"),
                 "utf-8",
             );
             expect(content).toContain("name: 404_not-found\n");
@@ -207,7 +207,7 @@ describe("createRequestFile", () => {
             });
 
             const content = await readFile(
-                join(directory, "0010_my_request.yml"),
+                join(directory, "00010_my_request.yml"),
                 "utf-8",
             );
             expect(content).toContain("name: my_request");
@@ -216,7 +216,7 @@ describe("createRequestFile", () => {
 
         it("does not overwrite an existing file that has the prefixed name", async () => {
             const directory = await createTemporaryDirectory({
-                "0010_my_request.bru": "existing",
+                "00010_my_request.bru": "existing",
             });
             const showErrorMessage = jest
                 .spyOn(window, "showErrorMessage")
@@ -230,9 +230,12 @@ describe("createRequestFile", () => {
 
             expect(showErrorMessage).toHaveBeenCalledTimes(1);
             expect(
-                await readFile(join(directory, "0010_my_request.bru"), "utf-8"),
+                await readFile(
+                    join(directory, "00010_my_request.bru"),
+                    "utf-8",
+                ),
             ).toBe("existing");
-            expect(await readdir(directory)).toEqual(["0010_my_request.bru"]);
+            expect(await readdir(directory)).toEqual(["00010_my_request.bru"]);
         });
     });
 
@@ -401,7 +404,7 @@ describe("createRequestFile", () => {
                 "bru-as-code.prefixNamesWithSequence": prefixNames,
             });
             const directory = await createTemporaryDirectory({
-                "001_login.bru": requestContent(
+                "00001_login.bru": requestContent(
                     CollectionFormat.Bru,
                     "login",
                     1,
@@ -412,7 +415,12 @@ describe("createRequestFile", () => {
                 directory,
                 CollectionFormat.Bru,
                 createCollectionWithItems<TypedCollectionItemProvider>(
-                    [new BrunoRequestFile(join(directory, "001_login.bru"), 1)],
+                    [
+                        new BrunoRequestFile(
+                            join(directory, "00001_login.bru"),
+                            1,
+                        ),
+                    ],
                     CollectionFormat.Bru,
                     [],
                     directory,

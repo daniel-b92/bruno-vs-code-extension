@@ -78,7 +78,6 @@ export async function normalizeSequencesRecursively(
 
     // Also covers folders where only the names are outdated (e.g. because the sequences already were normalized).
     await syncSequencePrefixes(itemProvider, affectedFolders, {
-        sequenceStep,
         previousSequences,
     });
 }

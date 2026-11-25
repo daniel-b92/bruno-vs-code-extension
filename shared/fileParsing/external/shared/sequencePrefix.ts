@@ -1,17 +1,12 @@
 const sequencePrefixSeparator = "_";
-/** The number of items per folder that should fit into the prefix without needing additional digits. */
-const itemsPerFolderWithoutAdditionalDigits = 999;
+/**
+ * The number of digits that sequence prefixes have at least. With the largest offered sequence step (100), 999 items per folder fit.
+ * It intentionally neither depends on the configured step nor on the items in the folder, so that names only change if their sequence does.
+ */
+const minimumDigits = 5;
 const sequencePrefixRegex = new RegExp(
     `^(\\d+)${sequencePrefixSeparator}(.+)$`,
 );
-
-/**
- * The number of digits that sequence prefixes have at least, depending on the sequence step.
- * It is chosen so that up to 999 items per folder fit (step 1: 3 digits, step 5 and 10: 4 digits, step 100: 5 digits).
- */
-export function getMinimumDigitsForSequencePrefix(sequenceStep: number) {
-    return `${itemsPerFolderWithoutAdditionalDigits * sequenceStep}`.length;
-}
 
 /** Other numbers (e.g. in hand-edited files) could not be recognized as a prefix afterwards. */
 export function canSequenceBeUsedAsPrefix(sequence: number) {
@@ -19,14 +14,11 @@ export function canSequenceBeUsedAsPrefix(sequence: number) {
 }
 
 /**
- * The prefix for the name of an item with the given sequence (see {@link canSequenceBeUsedAsPrefix}), e.g. `0010_` for sequence 10 and step 10 (4 digits).
+ * The prefix for the name of an item with the given sequence (see {@link canSequenceBeUsedAsPrefix}), e.g. `00010_` for sequence 10.
  * If the sequence does not fit into the minimum number of digits, more digits are used.
  */
-export function getSequencePrefix(sequence: number, sequenceStep: number) {
-    return `${`${sequence}`.padStart(
-        getMinimumDigitsForSequencePrefix(sequenceStep),
-        "0",
-    )}${sequencePrefixSeparator}`;
+export function getSequencePrefix(sequence: number) {
+    return `${`${sequence}`.padStart(minimumDigits, "0")}${sequencePrefixSeparator}`;
 }
 
 /** Splits a leading `<digits>_` off the name. Returns `undefined` if the name has no such prefix (or consists only of it). */
@@ -71,11 +63,9 @@ export function removeSequencePrefix(name: string, itemData: KnownItemData) {
 /** Sets the prefix for the given sequence. An already existing prefix is replaced (see {@link removeSequencePrefix}). */
 export function addSequencePrefix(
     name: string,
-    itemData: KnownItemData & { sequence: number; sequenceStep: number },
+    itemData: KnownItemData & { sequence: number },
 ) {
-    const { sequence, sequenceStep } = itemData;
-
-    return `${getSequencePrefix(sequence, sequenceStep)}${removeSequencePrefix(name, itemData)}`;
+    return `${getSequencePrefix(itemData.sequence)}${removeSequencePrefix(name, itemData)}`;
 }
 
 /**
