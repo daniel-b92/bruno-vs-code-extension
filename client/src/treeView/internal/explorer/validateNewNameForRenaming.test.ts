@@ -67,6 +67,22 @@ describe("validateNewNameForRenaming", () => {
         ).toContain("already exists");
     });
 
+    it("rejects a name that only differs in the prefix and the case from the one of a sibling", async () => {
+        const directory = await createTemporaryDirectory({
+            "0010_a.bru": "",
+            "0020_B.bru": "",
+        });
+
+        expect(
+            await validateNewNameForRenaming(
+                "b.bru",
+                join(directory, "0010_a.bru"),
+                withPrefix,
+                ["B.bru"],
+            ),
+        ).toContain("'B.bru' already exists");
+    });
+
     it("accepts the unchanged name even if a sibling only differs in the prefix", async () => {
         const directory = await createTemporaryDirectory({
             "0010_a.bru": "",

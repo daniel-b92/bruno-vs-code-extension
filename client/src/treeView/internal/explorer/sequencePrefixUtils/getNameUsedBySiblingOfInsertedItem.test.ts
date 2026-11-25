@@ -80,6 +80,14 @@ describe("getNameUsedBySiblingOfInsertedItem", () => {
                 ).toBe("users");
             });
 
+            it("returns the name of the sibling if it only differs in the prefix and the case", async () => {
+                expect(
+                    await getUsedName(format, source, [
+                        createRequest(targetFolder, "0020_Login", 20),
+                    ]),
+                ).toBe(`Login${extension}`);
+            });
+
             it("ignores items with other names, of another kind or in other folders", async () => {
                 expect(
                     await getUsedName(format, source, [

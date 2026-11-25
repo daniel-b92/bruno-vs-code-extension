@@ -1,3 +1,5 @@
+import { findNameUsedBySibling } from "./sequencePrefixUtils/findNameUsedBySibling";
+
 /** Without a name, only the extension (and the sequence prefix, if names are prefixed with sequences) would remain. */
 export function validateNameIsNotEmpty(enteredName: string, extension = "") {
     return ["", extension].includes(enteredName.trim())
@@ -5,14 +7,16 @@ export function validateNameIsNotEmpty(enteredName: string, extension = "") {
         : undefined;
 }
 
-/** See `getSiblingNamesWithoutSequencePrefix`. */
+/** See `findNameUsedBySibling`. */
 export function validateNameIsNotUsedBySibling(
     name: string,
     siblingNamesWithoutPrefix: string[],
 ) {
-    return siblingNamesWithoutPrefix.includes(name)
-        ? getMessageForNameUsedBySibling(name)
-        : undefined;
+    const usedName = findNameUsedBySibling(name, siblingNamesWithoutPrefix);
+
+    return usedName === undefined
+        ? undefined
+        : getMessageForNameUsedBySibling(usedName);
 }
 
 export function getMessageForNameUsedBySibling(name: string) {

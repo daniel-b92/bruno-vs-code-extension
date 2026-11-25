@@ -60,6 +60,17 @@ describe("getPathForDuplicatedItem", () => {
         },
     );
 
+    it.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
+        "does not use names of files that only differ in the prefix and the case (%s)",
+        async (format) => {
+            mockPrefixSetting(true);
+
+            expect(await duplicateFile(format, ["0010_a", "0015_A_copy"])).toBe(
+                `0010_a_Copy1${getFileExtensionForFormat(format)}`,
+            );
+        },
+    );
+
     it("ignores prefixes if the setting is disabled", async () => {
         mockPrefixSetting(false);
 

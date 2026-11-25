@@ -1,11 +1,12 @@
 import { basename, dirname } from "path";
 import { CollectionItem } from "@global_shared";
 import { shouldPrefixNamesWithSequence, TypedCollection } from "@shared";
+import { findNameUsedBySibling } from "./findNameUsedBySibling";
 import { getNameWithoutSequencePrefix } from "./getNameWithoutSequencePrefix";
 import { getSiblingNamesWithoutSequencePrefix } from "./getSiblingNamesWithoutSequencePrefix";
 
 /**
- * Returns a function that checks whether the name for a duplicate of the item only differs in the sequence prefix from the one of a sibling.
+ * Returns a function that checks whether the name for a duplicate of the item only differs in the sequence prefix (and the case) from the one of a sibling.
  * The checked names must start with the prefix of the original item (if it has one), which is replaced after duplicating.
  * Returns `undefined` if prefixing names with the sequence is not enabled in the settings.
  */
@@ -28,5 +29,6 @@ export async function getCheckForNamesOfDuplicatedItem(
     );
 
     return (name: string) =>
-        siblingNames.includes(name.substring(prefixLength));
+        findNameUsedBySibling(name.substring(prefixLength), siblingNames) !==
+        undefined;
 }

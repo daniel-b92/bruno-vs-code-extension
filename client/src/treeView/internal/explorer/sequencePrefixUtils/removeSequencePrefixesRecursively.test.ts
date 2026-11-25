@@ -240,6 +240,52 @@ describe("removeSequencePrefixesRecursively", () => {
     });
 
     it.each([
+        [CollectionFormat.Bru, ".bru"],
+        [CollectionFormat.Yaml, ".yml"],
+    ])(
+        "only skips the second of two items in a %s collection whose names without the prefix only differ in their case",
+        async (format, extension) => {
+            jest.spyOn(workspace, "applyEdit").mockImplementation(
+                applyWorkspaceEdit,
+            );
+            const names = [`001_Foo${extension}`, `002_foo${extension}`];
+            const directory = await createTemporaryDirectory(
+                Object.fromEntries(
+                    names.map((name, index) => [
+                        name,
+                        requestContent(format, "request", index + 1),
+                    ]),
+                ),
+            );
+            const { collection, itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    names.map(
+                        (name, index) =>
+                            new BrunoRequestFile(
+                                join(directory, name),
+                                index + 1,
+                            ),
+                    ),
+                    format,
+                    [],
+                    directory,
+                );
+
+            expect(
+                await removeSequencePrefixesRecursively(
+                    itemProvider,
+                    collection,
+                    directory,
+                ),
+            ).toEqual({ renamedCount: 1, skippedCount: 1, failed: false });
+            expect((await readdir(directory)).sort()).toEqual([
+                `002_foo${extension}`,
+                `Foo${extension}`,
+            ]);
+        },
+    );
+
+    it.each([
         [CollectionFormat.Bru, "sub/010_folder.bru"],
         [CollectionFormat.Bru, "010_collection.bru"],
         [CollectionFormat.Yaml, "sub/010_folder.yml"],

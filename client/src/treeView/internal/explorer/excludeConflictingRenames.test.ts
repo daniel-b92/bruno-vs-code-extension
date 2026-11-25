@@ -69,6 +69,21 @@ describe("excludeConflictingRenames", () => {
         ).toEqual([first]);
     });
 
+    it("only keeps the first of several renames to names that only differ in their case", async () => {
+        const directory = await createTemporaryDirectory({
+            "001_Foo.bru": "",
+            "002_foo.bru": "",
+        });
+        const first = rename(directory, "001_Foo.bru", "Foo.bru");
+
+        expect(
+            await excludeConflictingRenames([
+                first,
+                rename(directory, "002_foo.bru", "foo.bru"),
+            ]),
+        ).toEqual([first]);
+    });
+
     it("ignores renames to the same path", async () => {
         const directory = await createTemporaryDirectory({ "a.bru": "" });
 
