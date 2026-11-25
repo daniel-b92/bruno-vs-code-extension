@@ -139,6 +139,49 @@ describe("inbuilt runtime definitions", () => {
         ).toEqual([2_345]); // Argument of type 'number' is not assignable to parameter of type 'string'.
     });
 
+    it("accepts all documented ways of calling functions with overloads, optional parameters or nested result objects", () => {
+        const scriptFile = "/collection/scripts/script.js";
+        const code = [
+            "// @ts-check",
+            'req.headerList.has("a");',
+            'req.headerList.has({ key: "a" });',
+            'res.headerList.has("a", "b");',
+            "const jar = bru.cookies.jar();",
+            'jar.setCookie("https://a.b", "name", "value").then(() => {});',
+            'jar.clear().then(() => {});',
+            'jar.setCookie("https://a.b", { key: "name", value: "value" });',
+            'jar.hasCookie("https://a.b", "name");',
+            'jar.hasCookie("https://a.b", "name", (err, exists) => {});',
+            'bru.cookies.has("a", "b");',
+            'bru.runner.iterationData.get("a");',
+            "bru.runner.iterationData.get();",
+            'bru.runner.iterationData.has("a");',
+            'res("data.items[0].id").toString();',
+            'res("items[?].id", (item) => item.id > 1);',
+            'res("a[?].b[?]", { id: 1 }, (item) => item.id);',
+            "res.status.toFixed();",
+            "const size = res.getSize().header;",
+            "async function check() {",
+            "    const testResults = await bru.getTestResults();",
+            "    const assertionResults = await bru.getAssertionResults();",
+            "    return [testResults.summary.failed, testResults.results[0].description, assertionResults.results[0].lhsExpr];",
+            "}",
+            'req.getExecutionMode() === "cli";',
+            "// Not part of the results:",
+            "res.getSize().headers;",
+        ];
+
+        expect(
+            getSemanticDiagnosticCodes(
+                {
+                    "/collection/bruno.json": '{ "type": "collection" }',
+                    [scriptFile]: code.join("\n"),
+                },
+                scriptFile,
+            ),
+        ).toEqual([2_551]); // Property 'headers' does not exist on type '{ header: number; body: number; total: number; }'. Did you mean 'header'?
+    });
+
     it("resolves `chai` and `mocha` from the `node_modules` of the collection", () => {
         const scriptFile = "/collection/scripts/script.js";
 
