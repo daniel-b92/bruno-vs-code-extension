@@ -24,7 +24,12 @@ export async function insertFileAndSyncSequencePrefixes(
     const { newPath } = target;
     const affectedFolders = getFoldersAffectedByFileInsertion(
         itemProvider,
-        { sourcePath: sourceItem.getPath(), newPath },
+        {
+            sourcePath: sourceItem.getPath(),
+            newPath,
+            // The source item is copied, so its folder is not changed.
+            isMoved: false,
+        },
         sourceItem.getItemType(),
     );
     const previousSequences = addSequenceOfCopiedItem(

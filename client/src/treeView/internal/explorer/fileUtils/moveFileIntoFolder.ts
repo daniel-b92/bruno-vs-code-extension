@@ -21,7 +21,7 @@ export async function moveFileIntoFolder(
 ) {
     const affectedFolders = getFoldersAffectedByFileInsertion(
         itemProvider,
-        { sourcePath, newPath },
+        { sourcePath, newPath, isMoved: true },
         fileType,
     );
     const previousSequences = await getSequencesBeforeChange(

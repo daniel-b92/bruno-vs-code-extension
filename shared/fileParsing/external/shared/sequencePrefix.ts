@@ -69,14 +69,20 @@ export function addSequencePrefix(
 }
 
 /**
- * Whether the name starts with a prefix for the given sequence.
- * Only the numeric value is compared, so the number of leading zeros does not matter.
+ * Whether the name starts with exactly the prefix for the given sequence (see {@link getSequencePrefix}).
+ * Other numbers of leading zeros do not match (e.g. `10_a` for sequence 10), since the collection explorer would replace them with the expected prefix (see {@link addSequencePrefix}).
  */
 export function doesNameHaveSequencePrefixMatching(
     name: string,
     sequence: number,
 ) {
-    return parseSequencePrefix(name)?.sequence === sequence;
+    const parsed = parseSequencePrefix(name);
+
+    return (
+        parsed !== undefined &&
+        `${parsed.digits}${sequencePrefixSeparator}` ==
+            getSequencePrefix(sequence)
+    );
 }
 
 function isSequencePrefix(

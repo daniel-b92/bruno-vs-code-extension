@@ -253,10 +253,12 @@ describe("setSequenceForFolder", () => {
                     : "request:\n  headers: []\n";
 
             it.each([
-                ["0010_foo", "foo"],
+                // Digits that were entered by the user are kept, even if they are padded with zeros.
+                ["007_bond", "007_bond"],
                 ["2024_reports", "2024_reports"],
                 // Matches the new sequence.
                 ["15_foo", "foo"],
+                ["00015_foo", "foo"],
             ])(
                 "stores the name of the folder '%s' as '%s', if the setting is enabled",
                 async (folderName, expectedName) => {
@@ -293,8 +295,9 @@ describe("setSequenceForFolder", () => {
             });
 
             it.each([
-                ["0010_foo", "00015_foo"],
+                ["007_bond", "00015_007_bond"],
                 ["2024_reports", "00015_2024_reports"],
+                ["15_foo", "00015_foo"],
             ])(
                 "makes the same decision about the prefix of '%s' as the sync afterwards",
                 async (folderName, expectedFolderName) => {

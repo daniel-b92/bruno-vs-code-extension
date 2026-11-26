@@ -3,9 +3,6 @@ import { join } from "path";
 import { getPathAfterRenames } from "./getEditsForRunRequestPaths";
 import { getPathDepth } from "./applyRenamesToPath";
 
-const root = join("/", "collection");
-const p = (path: string) => join(root, path);
-
 describe("getPathAfterRenames", () => {
     it("returns the path if it is not affected", () => {
         expect(
@@ -65,3 +62,8 @@ describe("getPathDepth", () => {
         expect(getPathDepth("C:\\a\\b")).toBe(3);
     });
 });
+
+/** The given path within a collection root. */
+function p(path: string) {
+    return join("/", "collection", path);
+}

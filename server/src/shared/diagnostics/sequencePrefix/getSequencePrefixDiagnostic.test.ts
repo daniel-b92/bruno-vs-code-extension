@@ -18,22 +18,28 @@ describe("getSequencePrefixDiagnostic", () => {
         it("returns no diagnostic if the prefix matches the sequence", () => {
             expect(
                 getSequencePrefixDiagnostic({
-                    filePath: resolve(folder, "010_get-token.bru"),
+                    filePath: resolve(folder, "00010_get-token.bru"),
                     content: getContent("10"),
                     fileType: BrunoFileType.RequestFile,
                 }),
             ).toBeUndefined();
         });
 
-        it("ignores the number of leading zeros", () => {
-            expect(
-                getSequencePrefixDiagnostic({
-                    filePath: resolve(folder, "10_get-token.bru"),
+        it.each(["10_get-token.bru", "010_get-token.bru"])(
+            "returns a warning for the prefix of '%s' with a different number of leading zeros",
+            (fileName) => {
+                const diagnostic = getSequencePrefixDiagnostic({
+                    filePath: resolve(folder, fileName),
                     content: getContent("10"),
                     fileType: BrunoFileType.RequestFile,
-                }),
-            ).toBeUndefined();
-        });
+                });
+
+                expect(
+                    (diagnostic?.data as SequencePrefixDiagnosticData)
+                        .targetPath,
+                ).toBe(resolve(folder, "00010_get-token.bru"));
+            },
+        );
 
         it("returns a warning on the sequence value for a different prefix", () => {
             const diagnostic = getSequencePrefixDiagnostic({

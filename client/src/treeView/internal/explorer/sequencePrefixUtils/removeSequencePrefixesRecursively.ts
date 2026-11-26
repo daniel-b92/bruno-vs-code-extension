@@ -23,6 +23,7 @@ export interface RemovalOfSequencePrefixesResult {
 /**
  * Removes the sequence prefixes (e.g. `00010_`) from the names of all requests, app files and folders (with a settings file) below the given folder.
  * Items that have no sequence (any more) are included, since the prefix cannot match their sequence.
+ * Folders without a settings file are not included (e.g. if it was deleted), since their leading digits cannot be told apart from ones entered by the user (e.g. `007_bond`), see `canNameHaveSequencePrefix`.
  * Digits that belong to the actual name are kept (e.g. `2024_reports`, see `removeSequencePrefix`).
  * The given folder itself keeps its name. All renames are executed together. Items are never overwritten. If the name without prefix is already taken or reserved (e.g. for settings files), the item keeps its name.
  * Does not depend on the setting for prefixing names with their sequence.

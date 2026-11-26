@@ -269,9 +269,29 @@ describe("sequencePrefix", () => {
     });
 
     describe("doesNameHaveSequencePrefixMatching", () => {
-        it("ignores leading zeros", () => {
-            expect(doesNameHaveSequencePrefixMatching("10_a", 10)).toBe(true);
-            expect(doesNameHaveSequencePrefixMatching("0010_a", 10)).toBe(true);
+        it("matches the prefix for the sequence", () => {
+            expect(doesNameHaveSequencePrefixMatching("00010_a", 10)).toBe(
+                true,
+            );
+            expect(doesNameHaveSequencePrefixMatching("123456_a", 123456)).toBe(
+                true,
+            );
+        });
+
+        it("does not match a different number of leading zeros", () => {
+            expect(doesNameHaveSequencePrefixMatching("10_a", 10)).toBe(false);
+            expect(doesNameHaveSequencePrefixMatching("0010_a", 10)).toBe(
+                false,
+            );
+            expect(doesNameHaveSequencePrefixMatching("000010_a", 10)).toBe(
+                false,
+            );
+        });
+
+        it("does not match a name that consists only of the prefix", () => {
+            expect(doesNameHaveSequencePrefixMatching("00010_", 10)).toBe(
+                false,
+            );
         });
 
         it("does not match a different sequence or a missing prefix", () => {

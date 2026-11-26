@@ -4,13 +4,16 @@ import { join } from "path";
 import { window, workspace } from "vscode";
 import {
     BrunoFolderSettingsFile,
+    BrunoRequestFile,
     CollectionDirectory,
     CollectionFormat,
+    getFileExtensionForFormat,
     getFolderSettingsFileName,
 } from "@global_shared";
 import {
     createCollectionWithItems,
     folderSettingsContent,
+    requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
@@ -60,14 +63,51 @@ describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
             expect((await readdir(directory)).sort()).toEqual(["00010_a", "b"]);
         });
 
-        async function insertSettingsFile(targetFolder: string) {
-            mockVsCodeSettings({
-                "bru-as-code.prefixNamesWithSequence": true,
-                "bru-as-code.sequenceStep": 10,
+        it("does not rename items in the source folder when copying a request", async () => {
+            mockPrefixSettings();
+            const extension = getFileExtensionForFormat(format);
+            const directory = await createTemporaryDirectory({
+                [`a/00010_x${extension}`]: requestContent(format, "x", 10),
+                // Does not match its sequence, but is not affected by copying the other request.
+                [`a/00030_y${extension}`]: requestContent(format, "y", 20),
+                "b/script.js": "",
             });
-            jest.spyOn(workspace, "applyEdit").mockImplementation(
-                applyWorkspaceEdit,
-            );
+            const sourcePath = join(directory, "a", `00010_x${extension}`);
+            const { itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [
+                        new CollectionDirectory(join(directory, "a")),
+                        new CollectionDirectory(join(directory, "b")),
+                        new BrunoRequestFile(sourcePath, 10),
+                        new BrunoRequestFile(
+                            join(directory, "a", `00030_y${extension}`),
+                            20,
+                        ),
+                    ],
+                    format,
+                    [],
+                    directory,
+                );
+
+            expect(
+                await insertFileAndSyncSequencePrefixes(
+                    itemProvider,
+                    new BrunoRequestFile(sourcePath, 10),
+                    {
+                        newPath: join(directory, "b", `00010_x${extension}`),
+                        insertionPosition:
+                            RequestFileInsertionPositionType.Folder,
+                    },
+                ),
+            ).toBeDefined();
+            expect((await readdir(join(directory, "a"))).sort()).toEqual([
+                `00010_x${extension}`,
+                `00030_y${extension}`,
+            ]);
+        });
+
+        async function insertSettingsFile(targetFolder: string) {
+            mockPrefixSettings();
             const directory = await createTemporaryDirectory({
                 [`00010_a/${settingsFile}`]: folderSettingsContent(
                     format,
@@ -101,6 +141,16 @@ describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
                     },
                 ),
             };
+        }
+
+        function mockPrefixSettings() {
+            mockVsCodeSettings({
+                "bru-as-code.prefixNamesWithSequence": true,
+                "bru-as-code.sequenceStep": 10,
+            });
+            jest.spyOn(workspace, "applyEdit").mockImplementation(
+                applyWorkspaceEdit,
+            );
         }
     },
 );

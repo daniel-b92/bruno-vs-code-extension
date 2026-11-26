@@ -7,7 +7,7 @@
     - The collection explorer keeps the prefixes in sync when items are created, moved, renamed, deleted or their sequences are normalized.
     - Names that only differ from another item in the same folder by their prefix are rejected.
     - Show a warning with a quick fix on the `seq` value of files whose name does not match their sequence.
-    - Add the action "Remove sequence prefixes" to the context menu of collections and folders.
+    - Add the action "Remove sequence prefixes" to the context menu of collections and folders. Folders without a `folder.bru` or `folder.yml` keep their names.
 
 ### Fixes / Maintenance
 
