@@ -12,7 +12,7 @@ let content: string | undefined;
  * There are also no types for it, so the types for the objects that are provided at runtime are defined here (as Javascript with JSDoc types).
  *
  * Official javascript API reference:
- * https://docs.usebruno.com/scripting/javascript-reference
+ * https://docs.usebruno.com/testing/script/javascript-reference
  *
  * The file must not be a module (no `require`, `import` or `export`), so that all declarations in it are global.
  * `chai` and `mocha` are resolved from the `node_modules` of the collection, so the file needs to be located within the collection.

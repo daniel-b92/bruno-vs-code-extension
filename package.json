@@ -135,7 +135,7 @@
                 "bru-as-code.sandboxDeveloperMode": {
                     "type": "boolean",
                     "default": false,
-                    "markdownDescription": "Use the 'developer' Javascript sandbox for running tests via Bruno CLI. See option `--sandbox` in the [Bruno_docs](https://docs.usebruno.com/bru-cli/commandOptions) for further infos."
+                    "markdownDescription": "Use the 'developer' Javascript sandbox for running tests via Bruno CLI. See option `--sandbox` in the [Bruno_docs](https://docs.usebruno.com/bru-cli/run/options) for further infos."
                 },
                 "bru-as-code.suggestCreatingTsConfigsForCollections": {
                     "type": "boolean",

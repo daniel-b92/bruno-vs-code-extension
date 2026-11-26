@@ -2,16 +2,16 @@
 
 ### Features
 
-- Show the folders configured in `additionalContextRoots` (in `bruno.json` or `opencollection.yml`) as top-level nodes in the collection explorer. Their files and folders support the generic file actions (create, rename, duplicate, copy/paste, drag and drop, delete), but not Bruno specific ones like creating requests or starting test runs.
-- Add the setting `bru-as-code.prefixNamesWithSequence` (disabled by default) for prefixing file and folder names with their sequence (e.g. `00010_get-token.bru`), so that they are listed in execution order in the file explorer and in diffs.
+- Show the folders configured in `additionalContextRoots` (in `bruno.json` or `opencollection.yml`) as top-level nodes in the collection explorer, with support for generic file actions.
+- Add the setting `bru-as-code.prefixNamesWithSequence` (disabled by default) for prefixing file and folder names with their sequence (e.g. `00010_get-token.bru`), so that they are listed in execution order.
     - The collection explorer keeps the prefixes in sync when items are created, moved, renamed, deleted or their sequences are normalized.
-    - Names that only differ from another item in the same folder by their prefix are rejected.
     - Show a warning with a quick fix on the `seq` value of files whose name does not match their sequence.
-    - Add the action "Remove sequence prefixes" to the context menu of collections and folders. Folders without a `folder.bru` or `folder.yml` keep their names.
+    - Add the action "Remove sequence prefixes" to the context menu of collections and folders.
 
 ### Fixes / Maintenance
 
 - Reject empty names for requests and names with a path separator for any item when creating or renaming them in the collection explorer.
+- Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls (e.g. `headerList.has`, the cookie jar, `bru.runner.iterationData` and response queries).
 - Show an info message (once per session, can be disabled via `bru-as-code.informAboutTypescript7`) when the Typescript 7 language server is used, since it does not support Javascript intellisense in Bruno files yet.
 - Insert the flow-specific keys of an `oauth2` auth in Yaml files when selecting a completion for its `flow`.
 - Show a warning with a quick fix for keys of an `oauth2` auth in Yaml files that Bruno ignores for the selected `flow`.

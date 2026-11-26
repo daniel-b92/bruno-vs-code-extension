@@ -1,9 +1,16 @@
 export function getDefinitionsForResObject() {
     return `/**
- * Object representing the response returned from a server
- * @see {@link https://docs.usebruno.com/scripting/javascript-reference#response} Documentation
+ * @callback ResponseQuery Query the response body with a path expression.
+ * @param {string} path Path to the value, e.g. \`"data.items[0].id"\`. \`..\` searches at any depth, \`[0]\` picks one element of an array and \`[?]\` filters or maps an array with the next one of the given filters.
+ * @param {...(object | ((item: any) => any))} filters One filter for each \`[?]\` in the path: a function that filters or maps the elements, or an object with the property values that the elements must have.
+ * @returns {any} The value at the path. Undefined if there is none.
  */
-var res = {
+/**
+ * Object representing the response returned from a server.
+ * Can also be called as a function to query the response body, e.g. \`res("data.items[0].id")\` (see the {@link https://docs.usebruno.com/testing/script/response/response-query documentation for response queries}).
+ * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#response} Documentation
+ */
+var res = Object.assign(/** @type {ResponseQuery} */ ((path, ...filters) => {}), {
 	/**
 	 * HTTP Status code number
 	 * @type {readonly number}
@@ -85,8 +92,8 @@ var res = {
 	getResponseTime: () => {},
 	/**
 	 * Get the response size in bytes.
-	 * @returns {{body: number, headers: number, total: number}}
+	 * @returns {{header: number, body: number, total: number}}
 	 */
 	getSize: () => {},
-};`;
+});`;
 }

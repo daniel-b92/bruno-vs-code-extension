@@ -9,7 +9,7 @@ export function getDefinitionsForReqObject() {
  */
 /**
  * Object representing a request made by Bruno.
- * @see {@link https://docs.usebruno.com/scripting/javascript-reference#request} Documentation
+ * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#request} Documentation
  */
 var req = {
 	/**
@@ -100,20 +100,21 @@ var req = {
 	 */
 	getTags: () => {},
 	/**
-	 * Returns the value of a header. The header name is case insensitive. Returns undefined if the header does not exist.
+	 * Returns the value of a header. The name must match the case the header was set with, use \`req.headerList.get\` for a case insensitive lookup.
+	 * Returns undefined if the header does not exist.
 	 * @param {string} name
 	 * @returns {string | undefined}
 	 */
 	getHeader: (name) => {},
 	/**
 	 * Returns all active headers. This includes headers from collection and folder level.
-	 * The header name is case insensitive.
+	 * The names keep the case they were set with.
 	 * @returns {Record<string, string>}
 	 */
 	getHeaders: () => {},
 	/**
 	 * Updates the value of one header. Will create a new header, if no header with the name exists.
-	 * The header name is case insensitive.
+	 * The name is used exactly as given, so a header whose name only differs in case is kept alongside. Use \`req.headerList.upsert\` to replace it instead.
 	 * @param {string} name
 	 * @param {string} value
 	 * @returns {void}
@@ -209,7 +210,8 @@ var req = {
 	 * Returns info about how the request is executed.
 	 * "standalone" if the Request was called from the normal request tab.
 	 * "runner" if the request was called within a runner execution.
-	 * @returns {"standalone" | "runner"}
+	 * "cli" if the request was run via the Bruno CLI.
+	 * @returns {"standalone" | "runner" | "cli"}
 	 */
 	getExecutionMode: () => {},
 	/**
