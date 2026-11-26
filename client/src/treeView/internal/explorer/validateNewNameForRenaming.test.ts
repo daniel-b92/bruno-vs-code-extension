@@ -58,7 +58,7 @@ describe("validateNewNameForRenaming", () => {
                     join(directory, "0010_a.bru"),
                     prefix,
                 ),
-            ).toContain("The prefix '0010_' must be kept");
+            ).toContain("must start with the prefix '0010_'");
         },
     );
 

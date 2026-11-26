@@ -9,6 +9,7 @@ import { validateNewItemNameIsUnique } from "./validateNewItemNameIsUnique";
 
 /**
  * Validates the name that the user entered for renaming a file or folder.
+ * For items without a sequence prefix, the entered name is compared with the sibling names as it is, since leading digits that the user entered are part of the name (e.g. `007_bond`, see `setSequenceForFolder`).
  *
  * @param sequencePrefix The prefix that the name of the item has to start with, if names are prefixed with sequences (e.g. `00010_`).
  * It cannot be changed when renaming, since it has to match the sequence of the item.
@@ -65,5 +66,5 @@ function validateSequencePrefixIsKept(
     return sequencePrefix === undefined ||
         enteredName.startsWith(sequencePrefix)
         ? undefined
-        : `The prefix '${sequencePrefix}' must be kept, since it matches the sequence. Change the sequence to reorder the item.`;
+        : `The name must start with the prefix '${sequencePrefix}' for its sequence. Change the sequence to reorder the item.`;
 }

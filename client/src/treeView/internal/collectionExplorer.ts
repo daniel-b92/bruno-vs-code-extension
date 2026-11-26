@@ -16,6 +16,7 @@ import {
     canSequenceBeUsedAsPrefix,
     getSequencePrefix,
     renameItemToMatchSequenceCommand,
+    isReservedPath,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -73,6 +74,7 @@ import { deleteItemOutsideCollections } from "./explorer/contextRootUtils/delete
 import { showErrorMessageForFailedDragAndDrop } from "./explorer/showErrorMessageForFailedDragAndDrop";
 import { syncSequencePrefixes } from "./explorer/sequencePrefixUtils/syncSequencePrefixes";
 import { getNameWithoutSequencePrefix } from "./explorer/sequencePrefixUtils/getNameWithoutSequencePrefix";
+import { canNameHaveSequencePrefix } from "./explorer/sequencePrefixUtils/canNameHaveSequencePrefix";
 import {
     addSequenceOfCopiedItem,
     getSequencesBeforeChange,
@@ -737,13 +739,22 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
 
                 // If names are prefixed with their sequence, the full name is shown, but the prefix cannot be changed.
-                const registeredItem =
+                // Only the items that `syncSequencePrefixes` adds a prefix to have one (e.g. not the collection root folder).
+                const registeredData =
                     this.itemProvider.getRegisteredItemAndCollection(
                         originalPath,
-                    )?.data.item;
+                    );
+                const registeredItem = registeredData?.data.item;
                 const registeredSequence =
                     registeredItem &&
-                    isCollectionItemWithSequence(registeredItem)
+                    isCollectionItemWithSequence(registeredItem) &&
+                    canNameHaveSequencePrefix(registeredItem) &&
+                    !registeredData.collection.isRootDirectory(originalPath) &&
+                    !isReservedPath(
+                        registeredData.collection,
+                        originalPath,
+                        isFile,
+                    )
                         ? registeredItem.getSequence()
                         : undefined;
                 const sequencePrefix =

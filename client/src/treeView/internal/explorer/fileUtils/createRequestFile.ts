@@ -71,6 +71,9 @@ export async function createRequestFile(
     const requestName = await window.showInputBox({
         title: `Create request file in '${basename(parentFolderPath)}'`,
         value: "request_name",
+        prompt: shouldPrefixNamesWithSequence()
+            ? "Enter the name without the sequence prefix. The prefix is added automatically."
+            : undefined,
         validateInput: async (newFileName: string) =>
             validateNameIsNotEmpty(newFileName) ??
             validateNameHasNoPathSeparator(newFileName) ??
