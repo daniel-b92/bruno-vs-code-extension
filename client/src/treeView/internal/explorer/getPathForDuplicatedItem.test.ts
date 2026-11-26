@@ -9,6 +9,7 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    folderSettingsContent,
     requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
@@ -126,20 +127,24 @@ describe("getPathForDuplicatedItem", () => {
 
         return await getNameForDuplicate(
             format,
-            names.map((name) => ({
-                contentPath: `${name}/folder${extension}`,
-                content: folderSettingsContent(
-                    format,
-                    getStoredName(name),
-                    getSequence(name),
-                ),
-                createItem: (directory) =>
-                    new CollectionDirectory(
-                        join(directory, name),
-                        join(directory, name, `folder${extension}`),
-                        getSequence(name),
+            names.map((name) => {
+                const sequence = getSequenceOfFolder(name);
+
+                return {
+                    contentPath: `${name}/folder${extension}`,
+                    content: folderSettingsContent(
+                        format,
+                        getStoredName(name),
+                        sequence,
                     ),
-            })),
+                    createItem: (directory) =>
+                        new CollectionDirectory(
+                            join(directory, name),
+                            join(directory, name, `folder${extension}`),
+                            sequence,
+                        ),
+                };
+            }),
         );
     }
 
@@ -189,12 +194,13 @@ function getStoredName(name: string) {
     return name.replace(/^\d+_/, "");
 }
 
-function folderSettingsContent(
-    format: CollectionFormat,
-    name: string,
-    sequence?: number,
-) {
-    return format == CollectionFormat.Bru
-        ? `meta {\n  name: ${name}\n  seq: ${sequence}\n}\n`
-        : `info:\n  name: ${name}\n  type: folder\n  seq: ${sequence}\n`;
+/** The folders in these tests always have a sequence, since their settings files are created with one. */
+function getSequenceOfFolder(name: string) {
+    const sequence = getSequence(name);
+
+    if (sequence === undefined) {
+        throw new Error(`Folder name '${name}' has no sequence prefix.`);
+    }
+
+    return sequence;
 }

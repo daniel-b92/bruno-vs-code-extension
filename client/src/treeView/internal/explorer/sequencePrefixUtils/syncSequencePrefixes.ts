@@ -31,6 +31,7 @@ import { SequencesByPath } from "./getSequencesBeforeChange";
  * @param options.previousSequences The sequences before the change that made the sync necessary (see `getSequencesBeforeChange`), by the paths before the `previousRenames`.
  * If the stored name does not tell whether the digits at the start of a name are a prefix, they are only replaced if they match the previous sequence. Items that are not included are treated as if their sequence did not change.
  * @param options.previousRenames Renames that were executed shortly before and are not reflected in the collection data yet (e.g. when moving an item), so that `bru.runRequest` paths are updated correctly.
+ * @param options.uncachedItemPaths Items that were created shortly before and may not be in the collection data yet (e.g. a duplicated request), so that `bru.runRequest` paths within them are updated as well.
  * @returns The renames that were executed. Use `getPathAfterRenames` to get the new location of an item, which can also be affected by the rename of an ancestor folder.
  */
 export async function syncSequencePrefixes(
@@ -40,6 +41,7 @@ export async function syncSequencePrefixes(
         logger?: Logger;
         previousSequences?: SequencesByPath;
         previousRenames?: PathRename[];
+        uncachedItemPaths?: string[];
     } = {},
 ): Promise<PathRename[]> {
     if (!shouldPrefixNamesWithSequence()) {
@@ -50,6 +52,7 @@ export async function syncSequencePrefixes(
         logger,
         previousSequences = new Map(),
         previousRenames = [],
+        uncachedItemPaths,
     } = options;
     const previousSequencesByCurrentPath = new Map(
         Array.from(previousSequences).map(([path, sequence]) => [
@@ -91,6 +94,7 @@ export async function syncSequencePrefixes(
     return (await renameFilesAndFolders(itemProvider, renames, {
         logger,
         previousRenames,
+        uncachedItemPaths,
     }))
         ? renames
         : [];

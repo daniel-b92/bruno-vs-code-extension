@@ -341,6 +341,51 @@ describe("renameFileOrFolder", () => {
         expect(await readdir(directory)).toEqual(["b.bru", "caller.bru"]);
     });
 
+    it("does not move an unrelated item at the target if the source was missing before", async () => {
+        const directory = await createTemporaryDirectory({
+            "00001_b.bru": "unrelated",
+        });
+        jest.spyOn(window, "showErrorMessage").mockResolvedValue(undefined);
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+
+        const result = await renameFileOrFolder(
+            createItemProviderFor(directory),
+            join(directory, "00002_b.bru"),
+            join(directory, "00001_b.bru"),
+            true,
+        );
+
+        expect(result).toBe(false);
+        expect(await readdir(directory)).toEqual(["00001_b.bru"]);
+        expect(await readFile(join(directory, "00001_b.bru"), "utf-8")).toBe(
+            "unrelated",
+        );
+    });
+
+    it("does not count the rename as successful if the source was missing before and updating the paths fails", async () => {
+        const directory = await createTemporaryDirectory({
+            "00001_b.bru": "unrelated",
+            "caller.bru": runRequestBlock("00002_b"),
+        });
+        jest.spyOn(window, "showErrorMessage").mockResolvedValue(undefined);
+        const applyEdit = jest
+            .spyOn(workspace, "applyEdit")
+            .mockImplementation(applyWorkspaceEdit);
+
+        const result = await renameFileOrFolder(
+            createItemProviderFor(directory, ["00002_b.bru", "caller.bru"]),
+            join(directory, "00002_b.bru"),
+            join(directory, "00001_b.bru"),
+            true,
+        );
+
+        expect(result).toBe(false);
+        expect(applyEdit).toHaveBeenCalledTimes(2);
+        expect(await readdir(directory)).toEqual(["00001_b.bru", "caller.bru"]);
+    });
+
     describe("if one of several workspace edits fails", () => {
         const swap = (directory: string) => [
             {

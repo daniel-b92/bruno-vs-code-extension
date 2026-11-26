@@ -32,7 +32,11 @@ import {
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
-import { getMessageForNameUsedBySibling } from "./explorer/validateEnteredName";
+import {
+    getMessageForNameUsedBySibling,
+    validateNameHasNoPathSeparator,
+    validateNameIsNotUsedBySibling,
+} from "./explorer/validateEnteredName";
 import { validateNewNameForRenaming } from "./explorer/validateNewNameForRenaming";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
 import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
@@ -624,14 +628,23 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 `${this.treeViewId}.createEmptyFile`,
                 async (item: BrunoTreeItem) => {
                     const parentFolderPath = item.getPath();
+                    const siblingNamesWithoutPrefix =
+                        await this.getSiblingNamesForValidatingNewName(
+                            parentFolderPath,
+                            { isFile: true },
+                        );
 
                     const fileName = await vscode.window.showInputBox({
                         title: `Create file in '${basename(parentFolderPath)}'`,
-                        validateInput: (newFileName: string) => {
-                            return validateNewItemNameIsUnique(
+                        validateInput: async (newFileName: string) =>
+                            validateNameHasNoPathSeparator(newFileName) ??
+                            (await validateNewItemNameIsUnique(
                                 resolve(parentFolderPath, newFileName),
-                            );
-                        },
+                            )) ??
+                            validateNameIsNotUsedBySibling(
+                                newFileName,
+                                siblingNamesWithoutPrefix,
+                            ),
                     });
 
                     if (fileName == undefined) {
@@ -649,14 +662,23 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 `${this.treeViewId}.createFolder`,
                 async (item: BrunoTreeItem) => {
                     const parentFolderPath = item.getPath();
+                    const siblingNamesWithoutPrefix =
+                        await this.getSiblingNamesForValidatingNewName(
+                            parentFolderPath,
+                            { isFile: false },
+                        );
 
                     const folderName = await vscode.window.showInputBox({
                         title: `Create folder in '${basename(parentFolderPath)}'`,
-                        validateInput: (newFolderName: string) => {
-                            return validateNewItemNameIsUnique(
+                        validateInput: async (newFolderName: string) =>
+                            validateNameHasNoPathSeparator(newFolderName) ??
+                            (await validateNewItemNameIsUnique(
                                 resolve(parentFolderPath, newFolderName),
-                            );
-                        },
+                            )) ??
+                            validateNameIsNotUsedBySibling(
+                                newFolderName,
+                                siblingNamesWithoutPrefix,
+                            ),
                     });
 
                     if (folderName == undefined) {
@@ -674,6 +696,26 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             ),
         );
         return result;
+    }
+
+    /**
+     * The names that a new or renamed item must not use, because they could not be distinguished from its siblings in the collection explorer (see `getSiblingNamesWithoutSequencePrefix`).
+     * Empty if names are not prefixed with sequences.
+     */
+    private async getSiblingNamesForValidatingNewName(
+        parentFolderPath: string,
+        options: { isFile: boolean; excludedPath?: string },
+    ) {
+        const collection =
+            this.itemProvider.getAncestorCollectionForPath(parentFolderPath);
+
+        return shouldPrefixNamesWithSequence() && collection !== undefined
+            ? await getSiblingNamesWithoutSequencePrefix(
+                  collection,
+                  parentFolderPath,
+                  options,
+              )
+            : [];
     }
 
     private registerCommandForRenamingItem() {
@@ -713,24 +755,17 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     sequenceForPrefix === undefined
                         ? enteredName
                         : `${getSequencePrefix(sequenceForPrefix)}${enteredName}`;
-                const parentCollection =
-                    this.itemProvider.getAncestorCollectionForPath(
-                        dirname(originalPath),
-                    );
                 const displayedName =
                     registeredItem === undefined ||
                     sequenceForPrefix === undefined
                         ? basename(originalPath)
                         : await getNameWithoutSequencePrefix(registeredItem);
+                // Also needed for items without a prefix, since they could get the same label as a sibling with a prefix.
                 const siblingNamesWithoutPrefix =
-                    parentCollection === undefined ||
-                    sequenceForPrefix === undefined
-                        ? []
-                        : await getSiblingNamesWithoutSequencePrefix(
-                              parentCollection,
-                              dirname(originalPath),
-                              { isFile, excludedPath: originalPath },
-                          );
+                    await this.getSiblingNamesForValidatingNewName(
+                        dirname(originalPath),
+                        { isFile, excludedPath: originalPath },
+                    );
 
                 const originalName =
                     isFile && extname(originalPath) != ""
@@ -944,6 +979,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             originalPath,
                             newFolderPath,
                         ),
+                        // The files of the duplicated folder are usually not cached yet, but may call requests that are renamed by the sync.
+                        uncachedItemPaths: [newFolderPath],
                     },
                 );
             },
@@ -1373,6 +1410,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             collection,
                             selectedPath,
                             sequenceStep,
+                            this.logger,
                         ),
                 );
             },

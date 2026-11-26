@@ -49,6 +49,8 @@ export async function insertFileAndSyncSequencePrefixes(
         await syncSequencePrefixes(itemProvider, affectedFolders, {
             logger,
             previousSequences,
+            // The inserted file is usually not cached yet, but may call requests that are renamed by the sync.
+            uncachedItemPaths: [newPath],
         }),
     );
 }

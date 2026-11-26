@@ -31,6 +31,7 @@ import {
 import { commands, Uri, window } from "vscode";
 import { getSiblingNamesWithoutSequencePrefix } from "../sequencePrefixUtils/getSiblingNamesWithoutSequencePrefix";
 import {
+    validateNameHasNoPathSeparator,
     validateNameIsNotEmpty,
     validateNameIsNotUsedBySibling,
 } from "../validateEnteredName";
@@ -72,6 +73,7 @@ export async function createRequestFile(
         value: "request_name",
         validateInput: async (newFileName: string) =>
             validateNameIsNotEmpty(newFileName) ??
+            validateNameHasNoPathSeparator(newFileName) ??
             (await validateNewItemNameIsUnique(
                 resolve(parentFolderPath, `${newFileName}${fileExtension}`),
             )) ??

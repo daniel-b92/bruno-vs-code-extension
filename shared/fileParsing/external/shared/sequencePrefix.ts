@@ -46,9 +46,9 @@ export interface KnownItemData {
 /**
  * Removes a leading sequence prefix from the name (without file extension, if a stored name is given) of an existing item.
  * Names can also start with digits and an underscore without having a prefix (e.g. `404_not-found`). The digits are treated as a prefix, if one of the following is true:
- * - They match the sequence or are padded with zeros.
+ * - They match the sequence.
+ * - The stored name is not the same as the name with them, and they are padded with zeros or match the previous sequence.
  * - The stored name is the same as the name without them.
- * - They match the previous sequence, and the stored name is not the same as the name with them.
  *
  * Don't use it for names that were entered by the user, since they must not be changed.
  */
@@ -88,20 +88,21 @@ function isSequencePrefix(
     }: { digits: string; sequence: number; nameWithoutPrefix: string },
     { sequence, previousSequence, storedName }: KnownItemData,
 ) {
-    if (sequenceInName === sequence || digits.startsWith("0")) {
+    if (sequenceInName === sequence) {
         return true;
     }
 
-    if (storedName !== undefined) {
-        if (areNamesEquivalent(storedName, name)) {
-            return false;
-        }
-        if (areNamesEquivalent(storedName, nameWithoutPrefix)) {
-            return true;
-        }
+    // An equal stored name wins over padded digits as well, since names like `007_bond` must not lose their digits.
+    if (storedName !== undefined && areNamesEquivalent(storedName, name)) {
+        return false;
     }
 
-    return sequenceInName === previousSequence;
+    return (
+        digits.startsWith("0") ||
+        (storedName !== undefined &&
+            areNamesEquivalent(storedName, nameWithoutPrefix)) ||
+        sequenceInName === previousSequence
+    );
 }
 
 /** Names of files and folders often only differ in case and separators from the stored name (e.g. `get-token` and `Get token`). */

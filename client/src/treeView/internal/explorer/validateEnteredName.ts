@@ -7,6 +7,16 @@ export function validateNameIsNotEmpty(enteredName: string, extension = "") {
         : undefined;
 }
 
+/**
+ * Names are not interpreted as paths, so that an item can only be created or renamed within its folder.
+ * Both separators are rejected on all platforms, since collections are often shared between them.
+ */
+export function validateNameHasNoPathSeparator(enteredName: string) {
+    return /[/\\]/.test(enteredName)
+        ? "The name must not contain '/' or '\\'"
+        : undefined;
+}
+
 /** See `findNameUsedBySibling`. */
 export function validateNameIsNotUsedBySibling(
     name: string,

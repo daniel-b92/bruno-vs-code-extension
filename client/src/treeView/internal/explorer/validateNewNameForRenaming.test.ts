@@ -24,6 +24,24 @@ describe("validateNewNameForRenaming", () => {
         },
     );
 
+    it.each(["sub/b.bru", "sub\\b.bru", "../b.bru"])(
+        "rejects the name '%s' with a path separator",
+        async (name) => {
+            const directory = await createTemporaryDirectory({
+                "0010_a.bru": "",
+                "sub/c.bru": "",
+            });
+
+            expect(
+                await validateNewNameForRenaming(
+                    name,
+                    join(directory, "0010_a.bru"),
+                    withPrefix,
+                ),
+            ).toBe("The name must not contain '/' or '\\'");
+        },
+    );
+
     it("accepts a free name", async () => {
         const directory = await createTemporaryDirectory({ "0010_a.bru": "" });
 

@@ -4,6 +4,7 @@ import {
     CollectionDirectory,
     isCollectionItemWithSequence,
     isPathEqualOrDescendant,
+    Logger,
     NonBrunoSpecificItemType,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionItemProvider } from "../../../shared";
@@ -22,6 +23,8 @@ export async function normalizeSequencesRecursively(
     collection: TypedCollection,
     folderPath: string,
     sequenceStep: number,
+    /** For logging the names that could not be adjusted to the new sequences (e.g. because of conflicts). */
+    logger?: Logger,
 ) {
     const requestGroups = new Map<string, SequenceEntry[]>();
     const folderGroups = new Map<string, SequenceEntry[]>();
@@ -79,6 +82,7 @@ export async function normalizeSequencesRecursively(
     // Also covers folders where only the names are outdated (e.g. because the sequences already were normalized).
     await syncSequencePrefixes(itemProvider, affectedFolders, {
         previousSequences,
+        logger,
     });
 }
 

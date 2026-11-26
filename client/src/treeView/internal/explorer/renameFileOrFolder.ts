@@ -61,9 +61,16 @@ export async function renameFilesAndFolders(
         overwrite?: boolean;
         /** Renames that were executed before, which are not reflected in the collection data yet (see `getEditsForRunRequestPaths`). */
         previousRenames?: PathRename[];
+        /** Items that were created shortly before and may not be in the collection data yet (see `getEditsForRunRequestPaths`). */
+        uncachedItemPaths?: string[];
     } = {},
 ) {
-    const { logger, overwrite = false, previousRenames } = options;
+    const {
+        logger,
+        overwrite = false,
+        previousRenames,
+        uncachedItemPaths,
+    } = options;
     const renames = allRenames.filter(
         ({ sourcePath, targetPath }) =>
             normalizePath(sourcePath) != normalizePath(targetPath),
@@ -76,7 +83,7 @@ export async function renameFilesAndFolders(
     const pathEdits = await getRunRequestPathEditsSafely(
         itemProvider,
         renames,
-        previousRenames,
+        { previousRenames, uncachedItemPaths },
         logger,
     );
     const groups = splitStepsIntoGroupsWithoutDependencies(
@@ -96,6 +103,10 @@ export async function renameFilesAndFolders(
 
     for (const [index, group] of groups.entries()) {
         const groupEdits = index == groups.length - 1 ? pathEdits : [];
+        // Without this, a step whose source was missing before the edit would count as executed if its target exists.
+        const existingSources = await getExistingSources(group);
+        const isExecuted = (step: RenameStep) =>
+            isStepExecuted(step, existingSources);
         let wasSuccessful = await workspace.applyEdit(
             createWorkspaceEdit(group, groupEdits, overwrite),
             { isRefactoring: true },
@@ -113,7 +124,7 @@ export async function renameFilesAndFolders(
             );
             const remainingSteps = await filterAsync(
                 group,
-                async (step) => !(await isStepExecuted(step)),
+                async (step) => !(await isExecuted(step)),
             );
             wasSuccessful =
                 remainingSteps.length == 0 ||
@@ -124,7 +135,7 @@ export async function renameFilesAndFolders(
 
         if (!wasSuccessful) {
             // Some of the steps may have been executed before the edit failed.
-            executedSteps.push(...(await filterAsync(group, isStepExecuted)));
+            executedSteps.push(...(await filterAsync(group, isExecuted)));
             showErrorForFailedRenames(
                 renames,
                 await rollBackSteps(executedSteps, logger),
@@ -161,8 +172,24 @@ async function rollBackSteps(executedSteps: RenameStep[], logger?: Logger) {
     return true;
 }
 
-async function isStepExecuted({ from, to }: RenameStep) {
+async function getExistingSources(steps: RenameStep[]) {
+    return new Set(
+        (
+            await filterAsync(steps, ({ from }) => checkIfPathExistsAsync(from))
+        ).map(({ from }) => from),
+    );
+}
+
+/**
+ * The steps of a group do not depend on each other, so a step was executed by the edit if its source existed before and was moved to its target.
+ * @param existingSources The sources that existed before the edit (see `getExistingSources`).
+ */
+async function isStepExecuted(
+    { from, to }: RenameStep,
+    existingSources: Set<string>,
+) {
     return (
+        existingSources.has(from) &&
         !(await checkIfPathExistsAsync(from)) &&
         (await checkIfPathExistsAsync(to))
     );
@@ -195,7 +222,7 @@ function describeRenames(renames: PathRename[]) {
 async function getRunRequestPathEditsSafely(
     itemProvider: TypedCollectionItemProvider,
     renames: PathRename[],
-    previousRenames: PathRename[] | undefined,
+    options: { previousRenames?: PathRename[]; uncachedItemPaths?: string[] },
     logger?: Logger,
 ): Promise<RunRequestPathEdit[]> {
     const renamesByCollection = new Map<TypedCollection, PathRename[]>();
@@ -223,7 +250,7 @@ async function getRunRequestPathEditsSafely(
                     collectionRenames,
                     getCurrentFileContent,
                     logger,
-                    previousRenames,
+                    options,
                 )),
             );
         } catch (error) {

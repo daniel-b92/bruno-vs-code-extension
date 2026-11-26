@@ -628,6 +628,64 @@ describe("syncSequencePrefixes", () => {
             ).toContain('runRequest("00020_users/00005_a")');
         });
 
+        it("are updated in a created file that the collection data does not know yet", async () => {
+            const directory = await createTemporaryDirectory({
+                "00010_a.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "a",
+                    10,
+                    runRequestBlock("00020_b"),
+                ),
+                "00020_a_Copy.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "a_Copy",
+                    20,
+                    runRequestBlock("00020_b"),
+                ),
+                "00020_b.bru": requestContent(CollectionFormat.Bru, "b", 30),
+            });
+            const itemProvider = createItemProvider(directory, [
+                new BrunoRequestFile(join(directory, "00010_a.bru"), 10),
+                new BrunoRequestFile(join(directory, "00020_b.bru"), 30),
+            ]);
+
+            await syncSequencePrefixes(itemProvider, [directory], {
+                uncachedItemPaths: [join(directory, "00020_a_Copy.bru")],
+            });
+
+            for (const name of ["00010_a.bru", "00020_a_Copy.bru"]) {
+                expect(
+                    await readFile(join(directory, name), "utf-8"),
+                ).toContain('runRequest("00030_b")');
+            }
+        });
+
+        it("are updated in the files of a created folder that the collection data does not know yet", async () => {
+            const directory = await createTemporaryDirectory({
+                "00010_b.bru": requestContent(CollectionFormat.Bru, "b", 20),
+                "users_Copy/caller.bru": requestContent(
+                    CollectionFormat.Bru,
+                    "caller",
+                    undefined,
+                    runRequestBlock("00010_b"),
+                ),
+            });
+            const itemProvider = createItemProvider(directory, [
+                new BrunoRequestFile(join(directory, "00010_b.bru"), 20),
+            ]);
+
+            await syncSequencePrefixes(itemProvider, [directory], {
+                uncachedItemPaths: [join(directory, "users_Copy")],
+            });
+
+            expect(
+                await readFile(
+                    join(directory, "users_Copy", "caller.bru"),
+                    "utf-8",
+                ),
+            ).toContain('runRequest("00020_b")');
+        });
+
         it("are updated for a request that was moved and is renamed afterwards, before the collection data knows its new location", async () => {
             const directory = await createTemporaryDirectory({
                 "caller.bru": requestContent(

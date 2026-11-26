@@ -401,7 +401,7 @@ runtime:
                         ? requestFile(format, call("b/b"))
                         : undefined,
                 undefined,
-                [renameOf("a", "b", false)],
+                { previousRenames: [renameOf("a", "b", false)] },
             );
 
             expect(summarize(edits)).toEqual([["b/caller.bru", "b/0010_b"]]);
@@ -481,7 +481,7 @@ async function getEdits(
         renames,
         async (path) => filesByRelativePath[relative(root, path)],
         log ? ({ info: log } as never) : undefined,
-        previousRenames,
+        { previousRenames },
     );
 }
 

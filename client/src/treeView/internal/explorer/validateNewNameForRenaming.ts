@@ -1,6 +1,7 @@
 import { resolve, dirname, extname } from "path";
 import { normalizePath } from "@global_shared";
 import {
+    validateNameHasNoPathSeparator,
     validateNameIsNotEmpty,
     validateNameIsNotUsedBySibling,
 } from "./validateEnteredName";
@@ -22,17 +23,13 @@ export async function validateNewNameForRenaming(
         dirname(originalPath),
         getFullItemName(enteredName),
     );
-    const emptyNameError = validateNameIsNotEmpty(
-        enteredName,
-        extname(originalPath),
-    );
+    const syntaxError =
+        validateNameIsNotEmpty(enteredName, extname(originalPath)) ??
+        validateNameHasNoPathSeparator(enteredName);
 
     // The name of an existing item can always be kept, even if a sibling only differs in the prefix.
-    if (
-        emptyNameError ||
-        normalizePath(newPath) == normalizePath(originalPath)
-    ) {
-        return emptyNameError;
+    if (syntaxError || normalizePath(newPath) == normalizePath(originalPath)) {
+        return syntaxError;
     }
 
     return (

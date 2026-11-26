@@ -80,6 +80,26 @@ describe("getNameUsedBySiblingOfInsertedItem", () => {
                 ).toBe("users");
             });
 
+            it("returns the name if a folder without settings file only differs in the prefix from a sibling", async () => {
+                expect(
+                    await getUsedName(
+                        format,
+                        new CollectionDirectory(join(sourceFolder, "users")),
+                        [createFolder(targetFolder, "0020_users", 20)],
+                    ),
+                ).toBe("users");
+            });
+
+            it("returns the name if a sibling folder without settings file only differs in the prefix", async () => {
+                expect(
+                    await getUsedName(
+                        format,
+                        createFolder(sourceFolder, "0010_users", 10),
+                        [new CollectionDirectory(join(targetFolder, "users"))],
+                    ),
+                ).toBe("users");
+            });
+
             it("returns the name of the sibling if it only differs in the prefix and the case", async () => {
                 expect(
                     await getUsedName(format, source, [

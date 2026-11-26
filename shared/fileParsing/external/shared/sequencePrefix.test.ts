@@ -125,18 +125,27 @@ describe("sequencePrefix", () => {
             },
         );
 
+        it("removes digits matching the sequence even if they are part of the stored name", () => {
+            expect(
+                removeSequencePrefix("100_login", {
+                    sequence: 100,
+                    storedName: "100_login",
+                }),
+            ).toBe("login");
+        });
+
         it.each([
-            ["matching the sequence", "100_login", 100],
-            ["padded with zeros", "001_login", 3],
+            ["007_bond", "007_bond"],
+            ["007_bond", "007 Bond"],
         ])(
-            "removes digits %s even if they are part of the stored name",
-            (_, name, sequence) => {
+            "keeps the digits of '%s' that are padded with zeros if they are part of the stored name '%s'",
+            (name, storedName) => {
                 expect(
                     removeSequencePrefix(name, {
-                        sequence,
-                        storedName: name,
+                        sequence: 10,
+                        storedName,
                     }),
-                ).toBe("login");
+                ).toBe(name);
             },
         );
 
@@ -238,6 +247,24 @@ describe("sequencePrefix", () => {
 
             expect(withPrefix).toBe("00001_404_error");
             expect(addSequencePrefix(withPrefix, data)).toBe(withPrefix);
+        });
+
+        it("keeps digits padded with zeros that are part of the stored name", () => {
+            const data = {
+                sequence: 10,
+                storedName: "007_bond",
+            };
+            const withPrefix = addSequencePrefix("007_bond", data);
+
+            expect(withPrefix).toBe("00010_007_bond");
+            expect(addSequencePrefix(withPrefix, data)).toBe(withPrefix);
+            expect(
+                addSequencePrefix(withPrefix, {
+                    ...data,
+                    sequence: 20,
+                    previousSequence: 10,
+                }),
+            ).toBe("00020_007_bond");
         });
     });
 

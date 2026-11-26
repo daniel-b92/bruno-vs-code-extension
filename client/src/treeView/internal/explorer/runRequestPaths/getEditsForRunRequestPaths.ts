@@ -1,4 +1,5 @@
-import { extname, relative, resolve } from "path";
+import { readdir } from "fs/promises";
+import { extname, join, relative, resolve } from "path";
 import {
     BrunoFileType,
     getFileExtensionForFormat,
@@ -37,15 +38,21 @@ export interface RunRequestPathEdit {
  * The collection data must not be updated for the renames yet. The ranges refer to the file content before the renames,
  * the paths of the edits to the file locations after them.
  *
- * @param previousRenames Renames that were executed before, but are not reflected in the collection data yet. They are needed for finding the files that are cached with their old paths.
+ * @param options.previousRenames Renames that were executed before, but are not reflected in the collection data yet. They are needed for finding the files that are cached with their old paths.
+ * @param options.uncachedItemPaths Files and folders that were created shortly before and may not be in the collection data yet (e.g. a duplicated request), by their current paths.
+ * They are searched as well (for folders, all files within them).
  */
 export async function getEditsForRunRequestPaths(
     collection: TypedCollection,
     renames: PathRename[],
     getFileContent: (path: string) => Promise<string | undefined>,
     logger?: Logger,
-    previousRenames: PathRename[] = [],
+    options: {
+        previousRenames?: PathRename[];
+        uncachedItemPaths?: string[];
+    } = {},
 ): Promise<RunRequestPathEdit[]> {
+    const { previousRenames = [], uncachedItemPaths = [] } = options;
     const rootDirectory = collection.getRootDirectory();
     const format = collection.getFormat();
     const extension = getFileExtensionForFormat(format);
@@ -83,15 +90,18 @@ export async function getEditsForRunRequestPaths(
 
     const edits = new Map<string, RunRequestPathEdit>();
 
-    for (const { item } of collection.getAllStoredDataForCollection()) {
-        const itemType = item.getItemType();
-        // Files that were moved by a previous rename may still be cached with their old path.
-        const originalPath = getPathAfterRenames(
-            item.getPath(),
-            previousRenames,
-        );
+    const filesToSearch = [
+        ...collection.getAllStoredDataForCollection().map(({ item }) => ({
+            itemType: item.getItemType() as ItemType | undefined,
+            // Files that were moved by a previous rename may still be cached with their old path.
+            originalPath: getPathAfterRenames(item.getPath(), previousRenames),
+        })),
+        ...(await getUncachedFiles(collection, uncachedItemPaths)),
+    ];
 
+    for (const { itemType, originalPath } of filesToSearch) {
         if (
+            itemType == undefined ||
             // A file that was moved into another collection may still be cached here, but the renames of this collection do not affect it.
             !isPathEqualOrDescendant(originalPath, rootDirectory) ||
             !isFileToSearch(itemType, originalPath)
@@ -170,6 +180,41 @@ async function isRelevantRename(
                 (await getItemType(collection, sourcePath))) ==
                 BrunoFileType.RequestFile)
     );
+}
+
+async function getUncachedFiles(
+    collection: TypedCollection,
+    itemPaths: string[],
+) {
+    const filePaths: string[] = [];
+
+    for (const path of itemPaths) {
+        const descendants = await readdir(path, {
+            recursive: true,
+            withFileTypes: true,
+        }).catch(() => undefined);
+
+        // Reading the directory fails if the path is a file.
+        filePaths.push(
+            ...(descendants == undefined
+                ? [path]
+                : descendants
+                      .filter((entry) => entry.isFile())
+                      .map(({ parentPath, name }) => join(parentPath, name))),
+        );
+    }
+
+    const result: { itemType: ItemType | undefined; originalPath: string }[] =
+        [];
+
+    for (const originalPath of filePaths) {
+        result.push({
+            itemType: await getItemType(collection, originalPath),
+            originalPath,
+        });
+    }
+
+    return result;
 }
 
 function isFileToSearch(itemType: ItemType, path: string) {
