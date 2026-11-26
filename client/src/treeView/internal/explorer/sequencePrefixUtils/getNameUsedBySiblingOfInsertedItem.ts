@@ -11,7 +11,7 @@ import { getSiblingNamesWithoutSequencePrefix } from "./getSiblingNamesWithoutSe
  * Returns `undefined` if there is no conflict or if prefixing names with the sequence is not enabled in the settings.
  *
  * Folders are always checked, even without a settings file, since inserting them before or after another folder creates one with a sequence (and the sync then adds the prefix).
- * Without a prefix, their label would still be the same as the one of a sibling that only differs in the prefix.
+ * Even without a prefix, their name would still conflict with the one of a sibling that only differs in the prefix (see `getSiblingNamesWithoutSequencePrefix`).
  * Files that cannot have a sequence are not checked.
  *
  * @param replacedPath The path of the item that is moved or overwritten. If it is already located in the target folder, no additional item is created there, so there is no conflict.

@@ -1,13 +1,16 @@
 import { describe, it, expect } from "@jest/globals";
 import { join } from "path";
 import { useTemporaryDirectories } from "@global_shared/_testingUtils";
-import { validateNewNameForRenaming } from "./validateNewNameForRenaming";
+import {
+    removeEnteredSequencePrefix,
+    validateNewNameForRenaming,
+} from "./validateNewNameForRenaming";
 
 describe("validateNewNameForRenaming", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
-    const withPrefix = (name: string) => `0010_${name}`;
+    const prefix = "0010_";
 
-    it.each(["", "   ", ".bru"])(
+    it.each(["", "   ", ".bru", "0010_", "0010_.bru"])(
         "rejects the empty name '%s'",
         async (name) => {
             const directory = await createTemporaryDirectory({
@@ -18,27 +21,44 @@ describe("validateNewNameForRenaming", () => {
                 await validateNewNameForRenaming(
                     name,
                     join(directory, "0010_a.bru"),
-                    withPrefix,
+                    prefix,
                 ),
             ).toBe("The name must not be empty");
         },
     );
 
-    it.each(["sub/b.bru", "sub\\b.bru", "../b.bru"])(
+    it.each(["0010_sub/b.bru", "0010_sub\\b.bru", "0010_../b.bru"])(
         "rejects the name '%s' with a path separator",
         async (name) => {
             const directory = await createTemporaryDirectory({
                 "0010_a.bru": "",
-                "sub/c.bru": "",
+                "0010_sub/c.bru": "",
             });
 
             expect(
                 await validateNewNameForRenaming(
                     name,
                     join(directory, "0010_a.bru"),
-                    withPrefix,
+                    prefix,
                 ),
             ).toBe("The name must not contain '/' or '\\'");
+        },
+    );
+
+    it.each(["b.bru", "0020_b.bru", "010_b.bru"])(
+        "rejects the name '%s' without the unchanged prefix",
+        async (name) => {
+            const directory = await createTemporaryDirectory({
+                "0010_a.bru": "",
+            });
+
+            expect(
+                await validateNewNameForRenaming(
+                    name,
+                    join(directory, "0010_a.bru"),
+                    prefix,
+                ),
+            ).toContain("The prefix '0010_' must be kept");
         },
     );
 
@@ -47,14 +67,38 @@ describe("validateNewNameForRenaming", () => {
 
         expect(
             await validateNewNameForRenaming(
-                "b.bru",
+                "0010_b.bru",
                 join(directory, "0010_a.bru"),
-                withPrefix,
+                prefix,
             ),
         ).toBeUndefined();
     });
 
-    it("rejects a name that is taken once the prefix is added", async () => {
+    it("accepts a name that starts with digits after the prefix", async () => {
+        const directory = await createTemporaryDirectory({ "0010_a.bru": "" });
+
+        expect(
+            await validateNewNameForRenaming(
+                "0010_404_not-found.bru",
+                join(directory, "0010_a.bru"),
+                prefix,
+                ["404.bru"],
+            ),
+        ).toBeUndefined();
+    });
+
+    it("accepts any name for items without a prefix", async () => {
+        const directory = await createTemporaryDirectory({ "a.bru": "" });
+
+        expect(
+            await validateNewNameForRenaming(
+                "0020_b.bru",
+                join(directory, "a.bru"),
+            ),
+        ).toBeUndefined();
+    });
+
+    it("rejects a name that is already taken", async () => {
         const directory = await createTemporaryDirectory({
             "0010_a.bru": "",
             "0010_b.bru": "",
@@ -62,9 +106,9 @@ describe("validateNewNameForRenaming", () => {
 
         expect(
             await validateNewNameForRenaming(
-                "b.bru",
+                "0010_b.bru",
                 join(directory, "0010_a.bru"),
-                withPrefix,
+                prefix,
             ),
         ).toBe("File with name '0010_b.bru' already exists");
     });
@@ -77,9 +121,9 @@ describe("validateNewNameForRenaming", () => {
 
         expect(
             await validateNewNameForRenaming(
-                "b.bru",
+                "0010_b.bru",
                 join(directory, "0010_a.bru"),
-                withPrefix,
+                prefix,
                 ["b.bru"],
             ),
         ).toContain("already exists");
@@ -93,9 +137,9 @@ describe("validateNewNameForRenaming", () => {
 
         expect(
             await validateNewNameForRenaming(
-                "b.bru",
+                "0010_b.bru",
                 join(directory, "0010_a.bru"),
-                withPrefix,
+                prefix,
                 ["B.bru"],
             ),
         ).toContain("'B.bru' already exists");
@@ -109,9 +153,9 @@ describe("validateNewNameForRenaming", () => {
 
         expect(
             await validateNewNameForRenaming(
-                "a.bru",
+                "0010_a.bru",
                 join(directory, "0010_a.bru"),
-                withPrefix,
+                prefix,
                 ["a.bru"],
             ),
         ).toBeUndefined();
@@ -122,10 +166,24 @@ describe("validateNewNameForRenaming", () => {
 
         expect(
             await validateNewNameForRenaming(
-                "a.bru",
+                "0010_a.bru",
                 join(directory, "0010_a.bru"),
-                withPrefix,
+                prefix,
             ),
         ).toBeUndefined();
     });
+});
+
+describe("removeEnteredSequencePrefix", () => {
+    it.each([
+        ["0010_b.bru", "0010_", "b.bru"],
+        ["0010_404_not-found.bru", "0010_", "404_not-found.bru"],
+        ["0020_b.bru", "0010_", "0020_b.bru"],
+        ["0010_b.bru", undefined, "0010_b.bru"],
+    ])(
+        "returns the name without the prefix for '%s' and the prefix '%s'",
+        (name, prefix, expected) => {
+            expect(removeEnteredSequencePrefix(name, prefix)).toBe(expected);
+        },
+    );
 });

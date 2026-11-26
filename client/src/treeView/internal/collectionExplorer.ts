@@ -37,7 +37,10 @@ import {
     validateNameHasNoPathSeparator,
     validateNameIsNotUsedBySibling,
 } from "./explorer/validateEnteredName";
-import { validateNewNameForRenaming } from "./explorer/validateNewNameForRenaming";
+import {
+    removeEnteredSequencePrefix,
+    validateNewNameForRenaming,
+} from "./explorer/validateNewNameForRenaming";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
 import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
 import { replaceNameInBrunoJson } from "./explorer/fileUtils/replaceNameInBrunoJson";
@@ -698,7 +701,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     }
 
     /**
-     * The names that a new or renamed item must not use, because they could not be distinguished from its siblings in the collection explorer (see `getSiblingNamesWithoutSequencePrefix`).
+     * The names that a new or renamed item must not use, because they would only differ in the sequence prefix from the ones of its siblings (see `getSiblingNamesWithoutSequencePrefix`).
      * Empty if names are not prefixed with sequences.
      */
     private async getSiblingNamesForValidatingNewName(
@@ -733,7 +736,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     return;
                 }
 
-                // If names are prefixed with their sequence, the prefix is not editable and is added automatically.
+                // If names are prefixed with their sequence, the full name is shown, but the prefix cannot be changed.
                 const registeredItem =
                     this.itemProvider.getRegisteredItemAndCollection(
                         originalPath,
@@ -743,61 +746,61 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     isCollectionItemWithSequence(registeredItem)
                         ? registeredItem.getSequence()
                         : undefined;
-                const sequenceForPrefix =
+                const sequencePrefix =
                     shouldPrefixNamesWithSequence() &&
                     registeredSequence !== undefined &&
                     canSequenceBeUsedAsPrefix(registeredSequence)
-                        ? registeredSequence
+                        ? getSequencePrefix(registeredSequence)
                         : undefined;
-                // The entered name is used as it is, even if it starts with digits and an underscore.
-                const getFullItemName = (enteredName: string) =>
-                    sequenceForPrefix === undefined
-                        ? enteredName
-                        : `${getSequencePrefix(sequenceForPrefix)}${enteredName}`;
-                const displayedName =
-                    registeredItem === undefined ||
-                    sequenceForPrefix === undefined
+                // If the current name does not start with the right prefix yet, it gets it when renaming the item.
+                const displayedNameWithoutPrefix =
+                    registeredItem === undefined || sequencePrefix === undefined
                         ? basename(originalPath)
                         : await getNameWithoutSequencePrefix(registeredItem);
-                // Also needed for items without a prefix, since they could get the same label as a sibling with a prefix.
+                const displayedName = `${sequencePrefix ?? ""}${displayedNameWithoutPrefix}`;
+                // Also needed for items without a prefix, since their name could only differ in the prefix from the one of a sibling with a prefix.
                 const siblingNamesWithoutPrefix =
                     await this.getSiblingNamesForValidatingNewName(
                         dirname(originalPath),
                         { isFile, excludedPath: originalPath },
                     );
 
-                const originalName =
-                    isFile && extname(originalPath) != ""
-                        ? displayedName.substring(
-                              0,
-                              displayedName.indexOf(extname(originalPath)),
-                          )
-                        : displayedName;
+                // Only the actual name is preselected, without the prefix and the file extension.
+                const selectionStart = sequencePrefix?.length ?? 0;
+                const selectedName = isFile
+                    ? basename(
+                          displayedNameWithoutPrefix,
+                          extname(originalPath),
+                      )
+                    : displayedNameWithoutPrefix;
 
-                const enteredItemName = await vscode.window.showInputBox({
+                const newItemName = await vscode.window.showInputBox({
                     title: `Rename ${isFile ? "file" : "folder"} '${basename(
                         originalPath,
                     )}'`,
                     value: displayedName,
-                    prompt:
-                        sequenceForPrefix === undefined
-                            ? undefined
-                            : `The prefix '${getSequencePrefix(sequenceForPrefix)}' is added automatically.`,
-                    validateInput: (newItemName: string) =>
+                    validateInput: (enteredName: string) =>
                         validateNewNameForRenaming(
-                            newItemName,
+                            enteredName,
                             originalPath,
-                            getFullItemName,
+                            sequencePrefix,
                             siblingNamesWithoutPrefix,
                         ),
-                    valueSelection: [0, originalName.length],
+                    valueSelection: [
+                        selectionStart,
+                        selectionStart + selectedName.length,
+                    ],
                 });
 
-                if (enteredItemName == undefined) {
+                if (newItemName == undefined) {
                     return;
                 }
 
-                const newItemName = getFullItemName(enteredItemName);
+                // The name stored in the file never contains the sequence prefix.
+                const newItemNameWithoutPrefix = removeEnteredSequencePrefix(
+                    newItemName,
+                    sequencePrefix,
+                );
                 const newPath = resolve(dirname(originalPath), newItemName);
 
                 const itemDataWithcollection =
@@ -855,8 +858,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         if (isRequestFile) {
                             await replaceItemName(
                                 newPath,
-                                // The name stored in the file never contains the sequence prefix.
-                                enteredItemName.replace(
+                                newItemNameWithoutPrefix.replace(
                                     getFileExtensionForFormat(
                                         oldCollection.getFormat(),
                                     ),
@@ -879,7 +881,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             if (folderSettingsPath) {
                                 await replaceItemName(
                                     folderSettingsPath,
-                                    enteredItemName,
+                                    newItemNameWithoutPrefix,
                                     oldItem.getItemType(),
                                     oldCollection.getFormat(),
                                 );
