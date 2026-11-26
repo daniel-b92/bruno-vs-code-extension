@@ -116,7 +116,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             this.contextRootProvider,
             logger,
         );
-        this.disposables.push(treeDataProvider);
 
         const treeView = vscode.window.createTreeView(this.treeViewId, {
             treeDataProvider,
@@ -780,6 +779,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         originalPath,
                     )}'`,
                     value: displayedName,
+                    prompt:
+                        sequenceForPrefix === undefined
+                            ? undefined
+                            : `The prefix '${getSequencePrefix(sequenceForPrefix)}' is added automatically.`,
                     validateInput: (newItemName: string) =>
                         validateNewNameForRenaming(
                             newItemName,
