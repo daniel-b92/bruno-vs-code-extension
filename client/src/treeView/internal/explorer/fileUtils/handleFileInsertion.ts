@@ -5,6 +5,7 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     getFileExtensionForFormat,
     getFolderSettingsFileName,
+    getStoredItemNameFromFile,
     getCollectionSettingsFileName,
     isCollectionItemWithSequence,
     isBrunoFileType,
@@ -22,6 +23,7 @@ import { window } from "vscode";
 import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { FileInsertionPosition } from "./interfaces";
 import { writeFile } from "fs/promises";
+import { getStoredNameForCopiedItem } from "../sequencePrefixUtils/getStoredNameForCopiedItem";
 
 export async function handleFileInsertion(
     sourceItem: CollectionItem,
@@ -86,7 +88,23 @@ export async function handleFileInsertion(
     if (wasSuccessful && itemType == BrunoFileType.RequestFile) {
         await replaceItemName(
             newPath,
-            basename(newPath).replace(getFileExtensionForFormat(format), ""),
+            getStoredNameForCopiedItem(
+                basename(newPath).replace(
+                    getFileExtensionForFormat(format),
+                    "",
+                ),
+                {
+                    name: basename(
+                        sourceItem.getPath(),
+                        getFileExtensionForFormat(format),
+                    ),
+                    sequence: isCollectionItemWithSequence(sourceItem)
+                        ? sourceItem.getSequence()
+                        : undefined,
+                    // The inserted file still has the content of the source file, which may have been changed since it was copied.
+                    storedName: await getStoredItemNameFromFile(newPath),
+                },
+            ),
             itemType,
             format,
         );

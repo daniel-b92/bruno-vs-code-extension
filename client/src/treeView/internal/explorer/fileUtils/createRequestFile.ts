@@ -1,11 +1,14 @@
 import { basename, resolve } from "path";
 import {
+    canSequenceBeUsedAsPrefix,
+    checkIfPathExistsAsync,
     CollectionFormat,
     getFileExtensionForFormat,
     RequestType,
     RequestFileBlockName,
     MethodBlockBodies,
     getMaxSequenceForRequestsAndAppFiles,
+    getSequencePrefix,
     AuthTypes,
     getPossibleMethodBlocksForRequestType,
     FileInfoType,
@@ -23,8 +26,15 @@ import {
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
     getSequenceStepFromSettings,
+    shouldPrefixNamesWithSequence,
 } from "@shared";
 import { commands, Uri, window } from "vscode";
+import { getSiblingNamesWithoutSequencePrefix } from "../sequencePrefixUtils/getSiblingNamesWithoutSequencePrefix";
+import {
+    validateNameHasNoPathSeparator,
+    validateNameIsNotEmpty,
+    validateNameIsNotUsedBySibling,
+} from "../validateEnteredName";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
@@ -50,14 +60,27 @@ export async function createRequestFile(
     const format = collection.getFormat();
     const fileExtension = getFileExtensionForFormat(format);
 
+    const siblingNamesWithoutPrefix = shouldPrefixNamesWithSequence()
+        ? await getSiblingNamesWithoutSequencePrefix(
+              collection,
+              parentFolderPath,
+              { isFile: true },
+          )
+        : [];
+
     const requestName = await window.showInputBox({
         title: `Create request file in '${basename(parentFolderPath)}'`,
         value: "request_name",
-        validateInput: (newFileName: string) => {
-            return validateNewItemNameIsUnique(
+        validateInput: async (newFileName: string) =>
+            validateNameIsNotEmpty(newFileName) ??
+            validateNameHasNoPathSeparator(newFileName) ??
+            (await validateNewItemNameIsUnique(
                 resolve(parentFolderPath, `${newFileName}${fileExtension}`),
-            );
-        },
+            )) ??
+            validateNameIsNotUsedBySibling(
+                `${newFileName}${fileExtension}`,
+                siblingNamesWithoutPrefix,
+            ),
     });
 
     if (requestName == undefined) {
@@ -117,11 +140,6 @@ export async function createRequestFile(
             );
         }
 
-        const filePath = resolve(
-            parentFolderPath,
-            `${requestName}${fileExtension}`,
-        );
-
         if (pickedLabels.length != 2) {
             throw new Error(
                 `Did not find as many picked items as expected. Expected to get 2. Instead got '${JSON.stringify(
@@ -137,9 +155,26 @@ export async function createRequestFile(
                 itemProvider,
                 parentFolderPath,
             )) ?? 0) + getSequenceStepFromSettings();
+        const fileName =
+            shouldPrefixNamesWithSequence() &&
+            canSequenceBeUsedAsPrefix(requestSequence)
+                ? `${getSequencePrefix(requestSequence)}${requestName}`
+                : requestName;
+        const filePath = resolve(
+            parentFolderPath,
+            `${fileName}${fileExtension}`,
+        );
 
         const requestType = pickedLabels[0] as RequestType;
         const url = sanitizeUrlForNewRequest(presets?.requestUrl ?? "");
+
+        if (await checkIfPathExistsAsync(filePath)) {
+            // Can only happen if the name was changed by the prefix of the sequence.
+            window.showErrorMessage(
+                `A file with the name '${basename(filePath)}' already exists.`,
+            );
+            return;
+        }
 
         const failed = await promisify(writeFile)(
             filePath,

@@ -4,6 +4,7 @@ const sequenceStepSettingKey = "bru-as-code.sequenceStep";
 const renumberSequencesSettingKey =
     "bru-as-code.renumberSequencesAutomatically";
 const defaultSequenceStep = 1;
+const prefixNamesWithSequenceSettingKey = "bru-as-code.prefixNamesWithSequence";
 
 /** The step between the sequences of consecutive items, that is used when new items are appended or sequences are renumbered. */
 export function getSequenceStepFromSettings() {
@@ -27,5 +28,14 @@ export function shouldRenumberSequencesAutomatically() {
         workspace
             .getConfiguration()
             .get<unknown>(renumberSequencesSettingKey) === true
+    );
+}
+
+/** If enabled, the names of items with a sequence start with that sequence (e.g. `00010_get-token.bru`). */
+export function shouldPrefixNamesWithSequence() {
+    return (
+        workspace
+            .getConfiguration()
+            .get<unknown>(prefixNamesWithSequenceSettingKey) === true
     );
 }

@@ -9,8 +9,11 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithEnvironments,
+    createItemProviderStub,
+    requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
+import { TypedCollectionItemProvider } from "../../../shared";
 import { normalizeSequencesRecursively } from "./normalizeSequencesRecursively";
 
 describe("normalizeSequencesRecursively", () => {
@@ -103,6 +106,11 @@ describe("normalizeSequencesRecursively", () => {
                 additionalData: undefined,
             });
             await normalizeSequencesRecursively(
+                createItemProviderStub<TypedCollectionItemProvider>(
+                    directory,
+                    format,
+                    collection,
+                ),
                 collection,
                 join(directory, selectedFolder),
                 5,
@@ -125,34 +133,6 @@ describe("normalizeSequencesRecursively", () => {
         },
     );
 });
-
-function requestContent(
-    format: CollectionFormat,
-    name: string,
-    sequence: number,
-) {
-    if (format === CollectionFormat.Bru) {
-        return [
-            "meta {",
-            "  name: " + name,
-            "  type: http",
-            "  seq: " + sequence,
-            "}",
-            "",
-        ].join("\n");
-    }
-
-    return [
-        "info:",
-        "  name: " + name,
-        "  type: http",
-        "  seq: " + sequence,
-        "",
-        "http:",
-        "  method: GET",
-        "",
-    ].join("\n");
-}
 
 function folderContent(
     format: CollectionFormat,

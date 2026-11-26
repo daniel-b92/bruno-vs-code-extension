@@ -15,6 +15,7 @@ import {
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
+import { mockVsCodeSettings } from "../../../../_testingUtils";
 import { handleFileInsertion } from "./handleFileInsertion";
 import { RequestFileInsertionPositionType } from "./interfaces";
 
@@ -138,6 +139,71 @@ describe("handleFileInsertion", () => {
             "module.exports = {};",
         );
         expect(showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        [true, 10, "copy"],
+        [true, undefined, "0030_copy"],
+        [false, 10, "0030_copy"],
+    ])(
+        "uses the name without the sequence prefix as the name of an inserted request if names are prefixed with sequences and the request has a sequence (setting: %s, sequence: %s)",
+        async (prefixNames, sequence, expectedName) => {
+            mockVsCodeSettings({
+                "bru-as-code.prefixNamesWithSequence": prefixNames,
+            });
+            const directory = await createTemporaryDirectory({
+                "0010_original.bru": `meta {\n  name: original\n  type: http\n${sequence === undefined ? "" : `  seq: ${sequence}\n`}}\n`,
+            });
+            const targetPath = join(directory, "0030_copy.bru");
+
+            const result = await handleFileInsertion(
+                new BrunoRequestFile(
+                    join(directory, "0010_original.bru"),
+                    sequence,
+                ),
+                {
+                    insertionPosition: RequestFileInsertionPositionType.Folder,
+                    newPath: targetPath,
+                },
+                createItemProviderStub<TypedCollectionItemProvider>(
+                    directory,
+                    CollectionFormat.Bru,
+                ),
+            );
+
+            expect(result).toBe(true);
+            expect(await readFile(targetPath, "utf-8")).toContain(
+                `name: ${expectedName}\n`,
+            );
+        },
+    );
+
+    it("keeps digits that are part of the stored name of the original request if names are prefixed with sequences", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 1,
+        });
+        const directory = await createTemporaryDirectory({
+            "404_error.bru":
+                "meta {\n  name: 404_error\n  type: http\n  seq: 5\n}\n",
+        });
+        const targetPath = join(directory, "404_error_Copy.bru");
+
+        await handleFileInsertion(
+            new BrunoRequestFile(join(directory, "404_error.bru"), 5),
+            {
+                insertionPosition: RequestFileInsertionPositionType.Folder,
+                newPath: targetPath,
+            },
+            createItemProviderStub<TypedCollectionItemProvider>(
+                directory,
+                CollectionFormat.Bru,
+            ),
+        );
+
+        expect(await readFile(targetPath, "utf-8")).toContain(
+            "name: 404_error_Copy\n",
+        );
     });
 
     it("rejects a Bruno specific file from outside of any collection", async () => {

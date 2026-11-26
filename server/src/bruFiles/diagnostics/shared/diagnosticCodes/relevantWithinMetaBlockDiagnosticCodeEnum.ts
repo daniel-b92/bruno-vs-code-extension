@@ -9,4 +9,5 @@ export enum RelevantWithinMetaBlockDiagnosticCode {
     FolderSequenceNotUniqueWithinParentFolder = "bru107",
     DuplicateTagsDefined = "bru108",
     SequenceClashesWithAppFileInFolder = "bru109",
+    SequenceNotMatchingItemName = "bru110",
 }

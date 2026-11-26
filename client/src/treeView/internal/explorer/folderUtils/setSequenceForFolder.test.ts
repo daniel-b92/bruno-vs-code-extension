@@ -1,13 +1,32 @@
-import { describe, it, expect } from "@jest/globals";
-import { readFile } from "fs/promises";
+import { describe, it, expect, jest, afterEach } from "@jest/globals";
+import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import { parse } from "yaml";
-import { CollectionFormat } from "@global_shared";
-import { useTemporaryDirectories } from "@global_shared/_testingUtils";
+import { workspace } from "vscode";
+import {
+    CollectionDirectory,
+    CollectionFormat,
+    getFolderSettingsFileName,
+} from "@global_shared";
+import {
+    createCollectionWithItems,
+    folderSettingsContent,
+    useTemporaryDirectories,
+} from "@global_shared/_testingUtils";
+import { TypedCollectionItemProvider } from "@shared";
+import {
+    applyWorkspaceEdit,
+    mockVsCodeSettings,
+} from "../../../../_testingUtils";
+import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
 import { setSequenceForFolder } from "./setSequenceForFolder";
 
 describe("setSequenceForFolder", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
 
     describe("Bru format", () => {
         it("creates a minimal folder settings file, if there is none", async () => {
@@ -224,6 +243,123 @@ describe("setSequenceForFolder", () => {
         });
     });
 
+    describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
+        "names with a sequence prefix (%s)",
+        (format) => {
+            const settingsFileName = getFolderSettingsFileName(format);
+            const contentWithoutMetadata =
+                format == CollectionFormat.Bru
+                    ? "headers {\n  a: b\n}\n"
+                    : "request:\n  headers: []\n";
+
+            it.each([
+                // Digits that were entered by the user are kept, even if they are padded with zeros.
+                ["007_bond", "007_bond"],
+                ["2024_reports", "2024_reports"],
+                // Matches the new sequence.
+                ["15_foo", "foo"],
+                ["00015_foo", "foo"],
+            ])(
+                "stores the name of the folder '%s' as '%s', if the setting is enabled",
+                async (folderName, expectedName) => {
+                    mockPrefixSetting(true);
+
+                    expect(
+                        await getContentAfterSettingSequence(folderName),
+                    ).toBe(folderSettingsContent(format, expectedName, 15));
+                    expect(
+                        await getContentAfterSettingSequence(
+                            folderName,
+                            contentWithoutMetadata,
+                        ),
+                    ).toBe(
+                        `${folderSettingsContent(format, expectedName, 15)}\n${contentWithoutMetadata}`,
+                    );
+                },
+            );
+
+            it("stores the unchanged name of the folder, if the setting is disabled", async () => {
+                mockPrefixSetting(false);
+
+                expect(await getContentAfterSettingSequence("0010_foo")).toBe(
+                    folderSettingsContent(format, "0010_foo", 15),
+                );
+                expect(
+                    await getContentAfterSettingSequence(
+                        "0010_foo",
+                        contentWithoutMetadata,
+                    ),
+                ).toBe(
+                    `${folderSettingsContent(format, "0010_foo", 15)}\n${contentWithoutMetadata}`,
+                );
+            });
+
+            it.each([
+                ["007_bond", "00015_007_bond"],
+                ["2024_reports", "00015_2024_reports"],
+                ["15_foo", "00015_foo"],
+            ])(
+                "makes the same decision about the prefix of '%s' as the sync afterwards",
+                async (folderName, expectedFolderName) => {
+                    mockPrefixSetting(true);
+                    jest.spyOn(workspace, "applyEdit").mockImplementation(
+                        applyWorkspaceEdit,
+                    );
+                    const directory = await createTemporaryDirectory({
+                        [`${folderName}/request.txt`]: "",
+                    });
+                    const folderPath = join(directory, folderName);
+
+                    await setSequenceForFolder(folderPath, 15, format);
+                    await syncSequencePrefixes(
+                        createCollectionWithItems<TypedCollectionItemProvider>(
+                            [
+                                new CollectionDirectory(
+                                    folderPath,
+                                    join(folderPath, settingsFileName),
+                                    15,
+                                ),
+                            ],
+                            format,
+                            [],
+                            directory,
+                        ).itemProvider,
+                        [directory],
+                    );
+
+                    expect(await readdir(directory)).toEqual([
+                        expectedFolderName,
+                    ]);
+                },
+            );
+
+            async function getContentAfterSettingSequence(
+                folderName: string,
+                existingContent?: string,
+            ) {
+                const directory = await createTemporaryDirectory({
+                    [`${folderName}/request.txt`]: "",
+                    ...(existingContent === undefined
+                        ? {}
+                        : {
+                              [`${folderName}/${settingsFileName}`]:
+                                  existingContent,
+                          }),
+                });
+                const folderPath = join(directory, folderName);
+
+                expect(await setSequenceForFolder(folderPath, 15, format)).toBe(
+                    true,
+                );
+
+                return await readFile(
+                    join(folderPath, settingsFileName),
+                    "utf-8",
+                );
+            }
+        },
+    );
+
     async function createFolderWithSettings(fileName: string, content: string) {
         return await createTemporaryDirectory({
             [`my-folder/${fileName}`]: content,
@@ -246,3 +382,7 @@ describe("setSequenceForFolder", () => {
         return await readFile(join(directory, "my-folder", fileName), "utf-8");
     }
 });
+
+function mockPrefixSetting(enabled: boolean) {
+    mockVsCodeSettings({ "bru-as-code.prefixNamesWithSequence": enabled });
+}

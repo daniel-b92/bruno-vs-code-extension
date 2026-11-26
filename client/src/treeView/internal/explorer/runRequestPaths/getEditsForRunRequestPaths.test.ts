@@ -321,6 +321,128 @@ runtime:
             ),
         ).toEqual([]);
     });
+
+    describe("for several renames at once", () => {
+        const format = CollectionFormat.Bru;
+        const call = (path: string) => `await bru.runRequest("${path}");`;
+        const renameOf = (from: string, to: string, isFile = true) => ({
+            sourcePath: join(root, from),
+            targetPath: join(root, to),
+            isFile,
+        });
+
+        it("does not apply a rename to the result of another one", async () => {
+            const edits = await getEdits(
+                format,
+                {
+                    "0010_a.bru": requestFile(format, call("0010_a")),
+                    "0020_a.bru": requestFile(format, call("0020_a")),
+                    "caller.bru": requestFile(
+                        format,
+                        `${call("0010_a")}\n${call("0020_a")}`,
+                    ),
+                },
+                [
+                    renameOf("0010_a.bru", "0020_a.bru"),
+                    renameOf("0020_a.bru", "0030_a.bru"),
+                ],
+            );
+
+            expect(summarize(edits)).toEqual(
+                sortedSummary([
+                    // The files are located at their new paths after all renames.
+                    ["0020_a.bru", "0020_a"],
+                    ["0030_a.bru", "0030_a"],
+                    ["caller.bru", "0020_a"],
+                    ["caller.bru", "0030_a"],
+                ]),
+            );
+        });
+
+        it("updates paths of requests within a renamed folder in which requests are renamed as well", async () => {
+            const edits = await getEdits(
+                format,
+                {
+                    "users/a.bru": requestFile(format, call("users/a")),
+                    "caller.bru": requestFile(format, call("users/a")),
+                },
+                [
+                    renameOf("users/a.bru", "users/0005_a.bru"),
+                    renameOf("users", "0020_users", false),
+                ],
+            );
+
+            expect(summarize(edits)).toEqual(
+                sortedSummary([
+                    ["0020_users/0005_a.bru", "0020_users/0005_a"],
+                    ["caller.bru", "0020_users/0005_a"],
+                ]),
+            );
+        });
+
+        it("finds files that are still registered with their old location after a previous rename", async () => {
+            const { collection } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [
+                        // The caller was moved with the folder, but is still registered with its old location.
+                        new BrunoRequestFile(join(root, "a/caller.bru")),
+                        new BrunoRequestFile(join(root, "b/b.bru")),
+                    ],
+                    format,
+                    [],
+                    root,
+                );
+
+            const edits = await getEditsForRunRequestPaths(
+                collection,
+                [renameOf("b/b.bru", "b/0010_b.bru")],
+                async (path) =>
+                    relative(root, path) == "b/caller.bru"
+                        ? requestFile(format, call("b/b"))
+                        : undefined,
+                undefined,
+                { previousRenames: [renameOf("a", "b", false)] },
+            );
+
+            expect(summarize(edits)).toEqual([["b/caller.bru", "b/0010_b"]]);
+        });
+
+        it("ignores files that were moved into another collection but are still registered here", async () => {
+            const edits = await getEdits(
+                format,
+                {
+                    "a/caller.bru": requestFile(format, call("users/login")),
+                    "users/login.bru": requestFile(format, ""),
+                },
+                [renameOf("users/login.bru", "users/0010_login.bru")],
+                undefined,
+                [
+                    {
+                        sourcePath: join(root, "a"),
+                        targetPath: join("/", "other-collection", "a"),
+                        isFile: false,
+                    },
+                ],
+            );
+
+            expect(edits).toEqual([]);
+        });
+
+        it("only returns one edit per path if files are registered with their old and new location", async () => {
+            const edits = await getEdits(
+                format,
+                {
+                    "a/caller.bru": requestFile(format, call("b/x")),
+                    "b/caller.bru": requestFile(format, call("b/x")),
+                },
+                [renameOf("b/x.bru", "b/0010_x.bru")],
+                undefined,
+                [renameOf("a", "b", false)],
+            );
+
+            expect(summarize(edits)).toEqual([["b/caller.bru", "b/0010_x"]]);
+        });
+    });
 });
 
 async function getEdits(
@@ -328,6 +450,7 @@ async function getEdits(
     filesByRelativePath: Record<string, string>,
     renames: PathRename[],
     log?: (message: string) => void,
+    previousRenames?: PathRename[],
 ) {
     const extension = getFileExtensionForFormat(format);
     const { collection } =
@@ -358,6 +481,7 @@ async function getEdits(
         renames,
         async (path) => filesByRelativePath[relative(root, path)],
         log ? ({ info: log } as never) : undefined,
+        { previousRenames },
     );
 }
 

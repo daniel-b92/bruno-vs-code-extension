@@ -19,6 +19,7 @@ describe("getItemType", () => {
             ["opencollection.yml", BrunoFileType.CollectionSettingsFile],
             ["Folder1/folder.yml", BrunoFileType.FolderSettingsFile],
             ["environments/Dev.yml", BrunoFileType.EnvironmentFile],
+            ["environments/folder.yml", BrunoFileType.EnvironmentFile],
             ["Folder1/http.yml", BrunoFileType.RequestFile],
             ["Folder1/graphql.yml", BrunoFileType.RequestFile],
             ["Folder1/grpc.yml", BrunoFileType.RequestFile],
@@ -134,6 +135,7 @@ describe("getItemType", () => {
             ["collection.bru", BrunoFileType.CollectionSettingsFile],
             ["Folder1/folder.bru", BrunoFileType.FolderSettingsFile],
             ["environments/Dev.bru", BrunoFileType.EnvironmentFile],
+            ["environments/folder.bru", BrunoFileType.EnvironmentFile],
             ["Folder1/request.bru", BrunoFileType.RequestFile],
             // Yaml files are never treated as bru files, regardless of their content.
             ["Folder1/http.yml", NonBrunoSpecificItemType.OtherFileType],
@@ -143,6 +145,8 @@ describe("getItemType", () => {
                 "collection.bru": "auth {\n  mode: none\n}\n",
                 "Folder1/folder.bru": "meta {\n  name: Folder1\n  seq: 1\n}\n",
                 "environments/Dev.bru": "vars {\n  a: 1\n}\n",
+                "environments/folder.bru":
+                    "meta {\n  name: environments\n  seq: 1\n}\n",
                 "Folder1/request.bru":
                     "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
                 "Folder1/http.yml": "info:\n  name: http\n  type: http\n",
@@ -166,6 +170,8 @@ describe("getItemType", () => {
             "Folder1/folder.yml":
                 "info:\n  name: Folder1\n  type: folder\n  seq: 1\n",
             "environments/Dev.yml": "name: Dev\nvariables: []\n",
+            "environments/folder.yml":
+                "info:\n  name: environments\n  type: folder\n  seq: 1\n",
             "Folder1/http.yml": "info:\n  name: http\n  type: http\n  seq: 1\n",
             "Folder1/graphql.yml":
                 "info:\n  name: graphql\n  type: graphql\n  seq: 2\n",

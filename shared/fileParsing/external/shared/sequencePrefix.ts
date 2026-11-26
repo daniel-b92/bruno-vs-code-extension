@@ -1,0 +1,123 @@
+const sequencePrefixSeparator = "_";
+/**
+ * The number of digits that sequence prefixes have at least. With the largest offered sequence step (100), 999 items per folder fit.
+ * It intentionally neither depends on the configured step nor on the items in the folder, so that names only change if their sequence does.
+ */
+const minimumDigits = 5;
+const sequencePrefixRegex = new RegExp(
+    `^(\\d+)${sequencePrefixSeparator}(.+)$`,
+);
+
+/** Other numbers (e.g. in hand-edited files) could not be recognized as a prefix afterwards. */
+export function canSequenceBeUsedAsPrefix(sequence: number) {
+    return Number.isSafeInteger(sequence) && sequence >= 0;
+}
+
+/**
+ * The prefix for the name of an item with the given sequence (see {@link canSequenceBeUsedAsPrefix}), e.g. `00010_` for sequence 10.
+ * If the sequence does not fit into the minimum number of digits, more digits are used.
+ */
+export function getSequencePrefix(sequence: number) {
+    return `${`${sequence}`.padStart(minimumDigits, "0")}${sequencePrefixSeparator}`;
+}
+
+/** Splits a leading `<digits>_` off the name. Returns `undefined` if the name has no such prefix (or consists only of it). */
+export function parseSequencePrefix(name: string) {
+    const match = sequencePrefixRegex.exec(name);
+
+    return match
+        ? {
+              digits: match[1],
+              sequence: Number.parseInt(match[1], 10),
+              nameWithoutPrefix: match[2],
+          }
+        : undefined;
+}
+
+/** What is known about an item, for determining whether the digits at the start of its name are a sequence prefix. */
+export interface KnownItemData {
+    sequence?: number;
+    /** The sequence before a change that the name may not have been adjusted to yet. */
+    previousSequence?: number;
+    /** The name that is stored in the file, which never contains the prefix. Without it, only the digits themselves are checked. */
+    storedName?: string;
+}
+
+/**
+ * Removes a leading sequence prefix from the name (without file extension, if a stored name is given) of an existing item.
+ * Names can also start with digits and an underscore without having a prefix (e.g. `404_not-found`). The digits are treated as a prefix, if one of the following is true:
+ * - They match the sequence.
+ * - The stored name is not the same as the name with them, and they are padded with zeros or match the previous sequence.
+ * - The stored name is the same as the name without them.
+ *
+ * Don't use it for names that were entered by the user, since they must not be changed.
+ */
+export function removeSequencePrefix(name: string, itemData: KnownItemData) {
+    const parsed = parseSequencePrefix(name);
+
+    return parsed && isSequencePrefix(name, parsed, itemData)
+        ? parsed.nameWithoutPrefix
+        : name;
+}
+
+/** Sets the prefix for the given sequence. An already existing prefix is replaced (see {@link removeSequencePrefix}). */
+export function addSequencePrefix(
+    name: string,
+    itemData: KnownItemData & { sequence: number },
+) {
+    return `${getSequencePrefix(itemData.sequence)}${removeSequencePrefix(name, itemData)}`;
+}
+
+/**
+ * Whether the name starts with exactly the prefix for the given sequence (see {@link getSequencePrefix}).
+ * Other numbers of leading zeros do not match (e.g. `10_a` for sequence 10), since the collection explorer would replace them with the expected prefix (see {@link addSequencePrefix}).
+ */
+export function doesNameHaveSequencePrefixMatching(
+    name: string,
+    sequence: number,
+) {
+    const parsed = parseSequencePrefix(name);
+
+    return (
+        parsed !== undefined &&
+        `${parsed.digits}${sequencePrefixSeparator}` ==
+            getSequencePrefix(sequence)
+    );
+}
+
+function isSequencePrefix(
+    name: string,
+    {
+        digits,
+        sequence: sequenceInName,
+        nameWithoutPrefix,
+    }: { digits: string; sequence: number; nameWithoutPrefix: string },
+    { sequence, previousSequence, storedName }: KnownItemData,
+) {
+    if (sequenceInName === sequence) {
+        return true;
+    }
+
+    // An equal stored name wins over padded digits as well, since names like `007_bond` must not lose their digits.
+    if (storedName !== undefined && areNamesEquivalent(storedName, name)) {
+        return false;
+    }
+
+    return (
+        digits.startsWith("0") ||
+        (storedName !== undefined &&
+            areNamesEquivalent(storedName, nameWithoutPrefix)) ||
+        sequenceInName === previousSequence
+    );
+}
+
+/** Names of files and folders often only differ in case and separators from the stored name (e.g. `get-token` and `Get token`). */
+function areNamesEquivalent(first: string, second: string) {
+    const simplify = (name: string) =>
+        name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+    return (
+        first === second ||
+        (simplify(first) != "" && simplify(first) == simplify(second))
+    );
+}

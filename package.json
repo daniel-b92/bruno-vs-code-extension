@@ -167,6 +167,11 @@
                     "type": "boolean",
                     "default": false,
                     "markdownDescription": "Renumber the sequences (`seq`) of all affected folders in the collection explorer after every insert (create, duplicate, paste, drag and drop), move and delete, so that they stay consecutive. If disabled, the sequences of all other items are kept whenever possible: A new or moved item gets a free sequence between its neighbors, and only if there is none, the directly consecutive following items are shifted by 1."
+                },
+                "bru-as-code.prefixNamesWithSequence": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Prefix the file names of requests and the folder names with their sequence (`seq`), padded with zeros to 5 digits (e.g. `00010_get-token.bru`), so that they are listed in execution order in the file explorer and in diffs. The prefix is not part of the request name in the file. The collection explorer keeps the prefixes in sync when items are created, duplicated, pasted, moved, renamed or normalized, and a warning is shown for files whose name does not match their sequence."
                 }
             }
         },
@@ -390,6 +395,12 @@
                 "enablement": "view == brunoCollectionsView"
             },
             {
+                "command": "brunoCollectionsView.removeSequencePrefixes",
+                "title": "Remove sequence prefixes",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
+            },
+            {
                 "command": "bruAsCode.restartLanguageServer",
                 "title": "Restart language server",
                 "category": "Bru-as-Code"
@@ -482,6 +493,11 @@
                     "command": "brunoCollectionsView.normalizeSequences",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
                     "group": "2_organize@1"
+                },
+                {
+                    "command": "brunoCollectionsView.removeSequencePrefixes",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
+                    "group": "2_organize@2"
                 },
                 {
                     "command": "brunoCollectionsView.startTestRun",

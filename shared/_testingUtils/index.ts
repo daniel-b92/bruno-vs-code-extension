@@ -6,3 +6,5 @@ export * from "./yamlRequestFileTestUtils";
 export * from "./waitUntil";
 export * from "./variableReferenceTestUtils";
 export * from "./hoverTestUtils";
+export * from "./requestFileTestUtils";
+export * from "./folderSettingsTestUtils";

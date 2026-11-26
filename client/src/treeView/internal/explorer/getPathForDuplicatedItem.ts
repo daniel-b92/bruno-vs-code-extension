@@ -1,34 +1,40 @@
-import { lstat } from "fs";
+import { lstat } from "fs/promises";
 import { basename, extname } from "path";
-import { promisify } from "util";
 import { checkIfPathExistsAsync } from "@global_shared";
 
-export async function getPathForDuplicatedItem(originalPath: string) {
+/**
+ * @param isNameUsedBySibling For names that cannot be used, even though the path does not exist (see `getCheckForNamesOfDuplicatedItem`).
+ */
+export async function getPathForDuplicatedItem(
+    originalPath: string,
+    isNameUsedBySibling: (name: string) => boolean = () => false,
+) {
     const maxAttempts = 100;
-    const basePath = await getBasePathForNewItem(originalPath, "_Copy");
+    const stats = await lstat(originalPath).catch(() => undefined);
 
-    if (basePath === undefined) {
+    if (stats === undefined) {
         return undefined;
     }
+
+    const isDirectory = stats.isDirectory();
+    const isTaken = async (path: string) =>
+        isNameUsedBySibling(basename(path)) ||
+        (await checkIfPathExistsAsync(path));
+    const basePath = getBasePathForNewItem(originalPath, "_Copy", isDirectory);
 
     let newPath = basePath;
     let attempts = 1;
 
-    while ((await checkIfPathExistsAsync(newPath)) && attempts < maxAttempts) {
-        const maybeNewPath = await getBasePathForNewItem(
+    while ((await isTaken(newPath)) && attempts < maxAttempts) {
+        newPath = getBasePathForNewItem(
             basePath,
             attempts.toString(),
+            isDirectory,
         );
-
-        if (maybeNewPath === undefined) {
-            return undefined;
-        }
-
-        newPath = maybeNewPath;
         attempts++;
     }
 
-    if (await checkIfPathExistsAsync(newPath)) {
+    if (await isTaken(newPath)) {
         throw new Error(
             `Did not manage to find new path for item path '${originalPath}' to duplicate within ${maxAttempts} attempts!`,
         );
@@ -36,15 +42,11 @@ export async function getPathForDuplicatedItem(originalPath: string) {
     return newPath;
 }
 
-async function getBasePathForNewItem(path: string, toAppend: string) {
-    const isDirectory = await promisify(lstat)(path)
-        .then((stats) => stats.isDirectory())
-        .catch(() => undefined);
-
-    if (isDirectory === undefined) {
-        return undefined;
-    }
-
+function getBasePathForNewItem(
+    path: string,
+    toAppend: string,
+    isDirectory: boolean,
+) {
     return isDirectory
         ? `${path}${toAppend}`
         : path.replace(

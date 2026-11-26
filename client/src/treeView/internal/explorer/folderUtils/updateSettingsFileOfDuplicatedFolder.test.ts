@@ -1,4 +1,4 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { CollectionFormat } from "@global_shared";
@@ -7,10 +7,15 @@ import {
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
+import { mockVsCodeSettings } from "../../../../_testingUtils";
 import { updateSettingsFileOfDuplicatedFolder } from "./updateSettingsFileOfDuplicatedFolder";
 
 describe("updateSettingsFileOfDuplicatedFolder", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
 
     it("updates name and sequence for a duplicated bru folder with a sequence", async () => {
         const root = await createTemporaryDirectory({
@@ -51,6 +56,30 @@ describe("updateSettingsFileOfDuplicatedFolder", () => {
         expect(
             await readFile(join(root, "first_copy/folder.yml"), "utf-8"),
         ).toBe(getYamlFolderSettings("first_copy", 2));
+    });
+
+    it("stores the name without the sequence prefix if names are prefixed with sequences", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 1,
+        });
+        const root = await createTemporaryDirectory({
+            "002_second/folder.bru": getBruFolderSettings("second", 2),
+            "002_second_Copy/folder.bru": getBruFolderSettings("second", 2),
+        });
+
+        await updateSettingsFileOfDuplicatedFolder(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                root,
+                CollectionFormat.Bru,
+            ),
+            join(root, "002_second"),
+            join(root, "002_second_Copy"),
+        );
+
+        expect(
+            await readFile(join(root, "002_second_Copy/folder.bru"), "utf-8"),
+        ).toBe(getBruFolderSettings("second_Copy", 3));
     });
 
     it("updates only the name for a duplicated bru folder without a sequence", async () => {
