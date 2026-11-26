@@ -40,10 +40,6 @@ import {
     getPathsToIgnoreForCollections,
     AdditionalCollectionSimpleDataProvider,
     AdditionalCollectionDataProviderType,
-    BrunoFileType,
-    canSequenceBeUsedAsPrefix,
-    isCollectionItemWithSequence,
-    NonBrunoSpecificItemType,
 } from "@global_shared";
 
 let client: LanguageClient;
@@ -264,7 +260,6 @@ function getAdditionalCollectionDataProvider(
                     : undefined,
                 isCollectionItemWithTags(item) ? item.getTags() : undefined,
                 getIconForItem(item, isCollectionRootFile, isCollectionRoot),
-                getSequenceForPrefix(item, isCollectionRoot),
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),
@@ -274,34 +269,10 @@ function getAdditionalCollectionDataProvider(
         ) {
             return (
                 oldTreeItem.description != newTreeItem.description ||
-                oldTreeItem.tooltip != newTreeItem.tooltip ||
-                oldTreeItem.sequenceForPrefix != newTreeItem.sequenceForPrefix
+                oldTreeItem.tooltip != newTreeItem.tooltip
             );
         },
     };
-}
-
-/** Only requests, app files and folders that have a (valid) sequence get a prefix with it in their names. */
-function getSequenceForPrefix(item: CollectionItem, isCollectionRoot: boolean) {
-    const itemType = item.getItemType();
-
-    if (
-        isCollectionRoot ||
-        !(
-            itemType == BrunoFileType.RequestFile ||
-            itemType == BrunoFileType.AppFile ||
-            itemType == NonBrunoSpecificItemType.Directory
-        ) ||
-        !isCollectionItemWithSequence(item)
-    ) {
-        return undefined;
-    }
-
-    const sequence = item.getSequence();
-
-    return sequence !== undefined && canSequenceBeUsedAsPrefix(sequence)
-        ? sequence
-        : undefined;
 }
 
 function getCallbackForRestartingClient() {

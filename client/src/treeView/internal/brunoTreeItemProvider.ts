@@ -12,28 +12,13 @@ import { ContextRootItemProvider } from "./contextRoots/contextRootItemProvider"
 import { ContextRootTreeItem } from "./contextRoots/contextRootTreeItem";
 import { sortTreeItems } from "./sortTreeItems";
 
-export class BrunoTreeItemProvider
-    implements vscode.TreeDataProvider<BrunoTreeItem>, vscode.Disposable
-{
+export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeItem> {
     constructor(
         private workspaceRoot: string,
         private itemProvider: TypedCollectionItemProvider,
         private contextRootProvider: ContextRootItemProvider,
         private logger?: OutputChannelLogger,
     ) {
-        this.disposables.push(
-            // The labels of the items depend on whether names are prefixed with sequences.
-            vscode.workspace.onDidChangeConfiguration((event) => {
-                if (
-                    event.affectsConfiguration(
-                        "bru-as-code.prefixNamesWithSequence",
-                    )
-                ) {
-                    this._onDidChangeTreeData.fire(undefined);
-                }
-            }),
-        );
-
         contextRootProvider.onDidChange((item) =>
             this._onDidChangeTreeData.fire(item),
         );
@@ -125,15 +110,8 @@ export class BrunoTreeItemProvider
     }
 
     private commonIdentifierForLogging = "[TreeItemProvider]";
-    private disposables: vscode.Disposable[] = [];
-
-    public dispose() {
-        this.disposables.forEach((disposable) => disposable.dispose());
-    }
 
     getTreeItem(element: BrunoTreeItem): vscode.TreeItem {
-        element.updateLabel();
-
         return element as unknown as vscode.TreeItem;
     }
 

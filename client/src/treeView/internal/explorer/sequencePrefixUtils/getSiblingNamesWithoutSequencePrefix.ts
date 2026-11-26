@@ -5,7 +5,8 @@ import { getNameWithoutSequencePrefix } from "./getNameWithoutSequencePrefix";
 
 /**
  * The names (without sequence prefixes) of all files or all folders directly within the parent folder.
- * If names are prefixed with sequences, items whose names only differ in the prefix could not be distinguished in the collection explorer.
+ * If names are prefixed with sequences, items whose names only differ in the prefix are not allowed, since their names would be the same without the prefixes,
+ * e.g. in Bruno (the prefix is not part of the request name in the file) or after removing the prefixes (see `removeSequencePrefixesRecursively`).
  */
 export async function getSiblingNamesWithoutSequencePrefix(
     collection: TypedCollection,
