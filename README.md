@@ -59,7 +59,7 @@ The collection explorer uses such gaps automatically and keeps the sequences of 
     }
     ```
 
-    The second setting is optional. It prefixes the names of requests and folders with their sequence (e.g. `0010_login.bru`), so that they are listed in execution order in the file explorer and in diffs. The collection explorer keeps the prefixes in sync.
+    The second setting is optional. It prefixes the names of requests and folders with their sequence (e.g. `00010_login.bru`), so that they are listed in execution order in the file explorer and in diffs. The collection explorer keeps the prefixes in sync.
 
 2. Select _Normalize sequences_ in the context menu of a collection in the collection explorer and choose the same step (`10`). If the prefixes are enabled, this also renames the files and folders.
 3. Commit the result separately, since this changes many files once.
