@@ -5,6 +5,9 @@ import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
+import { getSequencesBeforeChange } from "../sequencePrefixUtils/getSequencesBeforeChange";
+import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
+import { PathRename } from "../runRequestPaths/getEditsForRunRequestPaths";
 
 export async function moveFolderIntoTargetFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -14,7 +17,17 @@ export async function moveFolderIntoTargetFolder(
     originalItemSequence?: number,
     logger?: Logger,
 ) {
-    const movedSuccessfully = await moveFolderIfNecessary(
+    const affectedFolders = [
+        insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
+            ? targetItem.getPath()
+            : dirname(targetItem.getPath()),
+        dirname(sourcePath),
+    ];
+    const previousSequences = await getSequencesBeforeChange(
+        itemProvider,
+        affectedFolders,
+    );
+    const move = await moveFolderIfNecessary(
         itemProvider,
         sourcePath,
         targetItem,
@@ -22,7 +35,7 @@ export async function moveFolderIntoTargetFolder(
         logger,
     );
 
-    if (!movedSuccessfully) {
+    if (!move.wasSuccessful) {
         return;
     }
 
@@ -37,6 +50,13 @@ export async function moveFolderIntoTargetFolder(
             insertionOption,
         );
     }
+
+    await syncSequencePrefixes(itemProvider, affectedFolders, {
+        logger,
+        previousSequences,
+        // The collection data may not know the items of the moved folder at their new locations yet.
+        previousRenames: move.rename ? [move.rename] : undefined,
+    });
 }
 
 async function moveFolderIfNecessary(
@@ -45,7 +65,7 @@ async function moveFolderIfNecessary(
     targetItem: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,
     logger?: Logger,
-) {
+): Promise<{ wasSuccessful: boolean; rename?: PathRename }> {
     if (
         (insertionOption ==
             FolderDropInsertionOption.MoveIntoTargetAsSubfolder &&
@@ -56,15 +76,17 @@ async function moveFolderIfNecessary(
             normalizePath(dirname(targetItem.getPath())) ==
                 normalizePath(dirname(sourcePath)))
     ) {
-        return true;
+        return { wasSuccessful: true };
     }
 
+    const targetPath =
+        insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
+            ? resolve(targetItem.getPath(), basename(sourcePath))
+            : resolve(dirname(targetItem.getPath()), basename(sourcePath));
     const wasSuccessful = await renameFileOrFolder(
         itemProvider,
         sourcePath,
-        insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
-            ? resolve(targetItem.getPath(), basename(sourcePath))
-            : resolve(dirname(targetItem.getPath()), basename(sourcePath)),
+        targetPath,
         false,
         logger,
     );
@@ -73,5 +95,10 @@ async function moveFolderIfNecessary(
         showErrorMessageForFailedDragAndDrop(sourcePath);
     }
 
-    return wasSuccessful;
+    return {
+        wasSuccessful,
+        rename: wasSuccessful
+            ? { sourcePath, targetPath, isFile: false }
+            : undefined,
+    };
 }

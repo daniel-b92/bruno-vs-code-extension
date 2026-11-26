@@ -1,6 +1,10 @@
-import { getConfiguredEnvironmentName } from "@global_shared";
+import {
+    getConfiguredEnvironmentName,
+    removeSequencePrefix,
+} from "@global_shared";
 import { basename } from "path";
 import * as vscode from "vscode";
+import { shouldPrefixNamesWithSequence } from "../vsCodeSettings/sequenceSettings";
 
 export class BrunoTreeItem extends vscode.TreeItem {
     constructor(
@@ -10,6 +14,8 @@ export class BrunoTreeItem extends vscode.TreeItem {
         private sequence?: number,
         private tags?: string[],
         icon?: vscode.ThemeIcon,
+        /** The sequence that the name of the item starts with if names are prefixed with sequences (see `shouldPrefixNamesWithSequence`). The prefix is then not shown in the label. */
+        public readonly sequenceForPrefix?: number,
     ) {
         super(
             basename(path),
@@ -50,6 +56,24 @@ export class BrunoTreeItem extends vscode.TreeItem {
 
     public getPath() {
         return this.path;
+    }
+
+    /**
+     * Hides the sequence prefix of the name if names are prefixed with sequences.
+     * The name that is stored in the file is not known here, so digits that could also belong to the actual name are shown (e.g. `404_not-found`).
+     * Depends on the setting, so it has to be called whenever the item is displayed.
+     */
+    public updateLabel() {
+        if (this.sequenceForPrefix === undefined) {
+            return;
+        }
+
+        const name = basename(this.path);
+
+        this.label = shouldPrefixNamesWithSequence()
+            ? removeSequencePrefix(name, { sequence: this.sequenceForPrefix })
+            : name;
+        this.tooltip = this.getTooltip();
     }
 
     public getSequence() {

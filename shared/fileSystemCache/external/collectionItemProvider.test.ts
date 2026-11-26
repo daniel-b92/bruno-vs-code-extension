@@ -323,15 +323,17 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         });
         const provider = createProvider(workspace);
         await provider.refreshCache();
-        const [colA, colB, colC] = getCollectionsByName(provider, [
-            "colA",
-            "colB",
-            "colC",
-        ]);
+        // The roots are assigned in registration order, since the order in which the collections are found is not deterministic.
+        const [first, second, third] = getCollectionsByName(
+            provider,
+            provider
+                .getRegisteredCollections()
+                .map((collection) => basename(collection.getRootDirectory())),
+        );
         const shared = join(workspace, "shared");
-        colA.setAdditionalContextRoots([shared, join(workspace, "other")]);
-        colB.setAdditionalContextRoots([`${shared}/`]);
-        colC.setAdditionalContextRoots([shared]);
+        first.setAdditionalContextRoots([shared, join(workspace, "other")]);
+        second.setAdditionalContextRoots([`${shared}/`]);
+        third.setAdditionalContextRoots([shared]);
 
         expect(provider.getUniqueAdditionalContextRoots()).toEqual([
             shared,

@@ -2,15 +2,20 @@
 
 ### Features
 
-- Show the folders configured in `additionalContextRoots` (in `bruno.json` or `opencollection.yml`) as top-level nodes in the collection explorer, after the collections. Collection roots and context roots have distinct icons, and the tooltip of a context root lists the collections that use it. Their files and folders can be created, renamed, duplicated, copied, pasted, moved via drag and drop (also from and to collections) and deleted, and opened in a new tab group. Bruno specific actions (e.g. creating requests, starting test runs or normalizing sequences) are not offered for them. Roots that do not exist yet are shown as soon as their folder is created. Roots inside a collection or nested in another root are not shown separately, and neither are `node_modules` folders and collections within a context root.
+- Show the folders configured in `additionalContextRoots` (in `bruno.json` or `opencollection.yml`) as top-level nodes in the collection explorer, with support for generic file actions.
+- Add the setting `bru-as-code.prefixNamesWithSequence` (disabled by default) for prefixing file and folder names with their sequence (e.g. `00010_get-token.bru`), so that they are listed in execution order.
+    - The collection explorer keeps the prefixes in sync when items are created, moved, renamed, deleted or their sequences are normalized.
+    - Show a warning with a quick fix on the `seq` value of files whose name does not match their sequence.
+    - Add the action "Remove sequence prefixes" to the context menu of collections and folders.
 
 ### Fixes / Maintenance
 
-- Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls: `req.headerList.has` / `res.headerList.has` with a header name or object, `bru.cookies.jar().setCookie` and `hasCookie` with all documented argument variants (the write methods of the cookie jar now return a `Promise`), `bru.runner.iterationData` (e.g. `.get()`) and response queries (e.g. `res("data.items[0].id")`). `bru.getTestResults()` and `bru.getAssertionResults()` now return an object with `summary` and `results`, `res.getSize()` returns `header` instead of `headers`, `bru.getEnvName()` returns `undefined` (not `null`) without a selected environment, and `req.getExecutionMode()` can also be `"cli"`. The descriptions of `req.getHeader`, `req.getHeaders` and `req.setHeader` no longer claim that the header names are case insensitive. Also update the links to the Bruno documentation, which moved.
-- Show an info message (once per session) when the Typescript 7 language server is used, since Javascript intellisense in Bruno files is not available with it yet. The message can be disabled permanently via the new setting `bru-as-code.informAboutTypescript7`, and is always written to the output channel. The limitation is now documented in the README.
-- Insert the flow-specific keys of an `oauth2` auth in Yaml files (e.g. `accessTokenUrl`, `credentials`, `scope`) when selecting a completion for its `flow`. Keys that are already defined are kept as they are.
-- Show a warning for keys of an `oauth2` auth in Yaml files that Bruno ignores for the selected `flow` (e.g. `authorizationUrl` for `client_credentials`), with a quick fix that removes the key. This works for request files, `folder.yml` and `opencollection.yml`.
-- Fix an issue that caused a false error about a duplicate sequence to be shown for a request after renaming or moving it, until the file was changed and saved again. The diagnostics for duplicate sequences are now also updated when requests, app files or folders with a sequence are created, moved or deleted.
+- Reject empty names for requests and names with a path separator for any item when creating or renaming them in the collection explorer.
+- Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls (e.g. `headerList.has`, the cookie jar, `bru.runner.iterationData` and response queries).
+- Show an info message (once per session, can be disabled via `bru-as-code.informAboutTypescript7`) when the Typescript 7 language server is used, since it does not support Javascript intellisense in Bruno files yet.
+- Insert the flow-specific keys of an `oauth2` auth in Yaml files when selecting a completion for its `flow`.
+- Show a warning with a quick fix for keys of an `oauth2` auth in Yaml files that Bruno ignores for the selected `flow`.
+- Fix false errors about duplicate sequences after renaming, moving, creating or deleting requests and folders.
 
 ## [2.2.0] (2026-11-19)
 

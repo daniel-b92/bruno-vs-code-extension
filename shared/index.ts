@@ -16,6 +16,7 @@ export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/isPathEqualOrDescendant";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
+export * from "./fileSystem/util/isReservedPath";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getItemType";
@@ -36,6 +37,7 @@ export * from "./fileSystemCache/external/interfaces";
 // file parsing - bru format
 export * from "./fileParsing/external/bruFormat/parseBruFile";
 export * from "./fileParsing/external/shared/getSequenceForFile";
+export * from "./fileParsing/external/bruFormat/getFieldFromMetaBlock";
 export * from "./fileParsing/external/bruFormat/getSequenceFieldFromMetaBlock";
 export * from "./fileParsing/external/bruFormat/parseSequenceFromMetaBlock";
 export * from "./fileParsing/external/bruFormat/util/getBlockStartPatternByName";
@@ -52,6 +54,8 @@ export * from "./fileParsing/external/shared/getSequenceForFolder";
 export * from "./fileParsing/external/shared/getFolderSettingsFilePath";
 export * from "./fileParsing/external/shared/getSequencesForRequestsAndAppFiles";
 export * from "./fileParsing/external/shared/getMaxSequenceForRequestsAndAppFiles";
+export * from "./fileParsing/external/shared/getStoredItemName";
+export * from "./fileParsing/external/shared/sequencePrefix";
 export * from "./fileParsing/external/shared/getCollectionPresets";
 export * from "./fileParsing/external/shared/getCollectionRootFileSections";
 
@@ -110,6 +114,9 @@ export * from "./logging/interfaces";
 export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 export * from "./vsCodeSettings/testEnvironmentsSettingGetter";
 export * from "./vsCodeSettings/interfaces";
+
+// commands
+export * from "./commands/renameItemToMatchSequenceCommand";
 
 // language utils
 export * from "./languageUtils/bruFormat/blockInterfaces";

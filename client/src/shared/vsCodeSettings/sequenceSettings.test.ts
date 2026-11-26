@@ -2,6 +2,7 @@ import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { mockVsCodeSettings } from "../../_testingUtils";
 import {
     getSequenceStepFromSettings,
+    shouldPrefixNamesWithSequence,
     shouldRenumberSequencesAutomatically,
 } from "./sequenceSettings";
 
@@ -48,6 +49,22 @@ describe("sequenceSettings", () => {
             });
 
             expect(shouldRenumberSequencesAutomatically()).toBe(false);
+        });
+    });
+
+    describe("shouldPrefixNamesWithSequence", () => {
+        it("is disabled by default", () => {
+            mockVsCodeSettings({});
+
+            expect(shouldPrefixNamesWithSequence()).toBe(false);
+        });
+
+        it("is enabled if the setting is `true`", () => {
+            mockVsCodeSettings({
+                "bru-as-code.prefixNamesWithSequence": true,
+            });
+
+            expect(shouldPrefixNamesWithSequence()).toBe(true);
         });
     });
 });

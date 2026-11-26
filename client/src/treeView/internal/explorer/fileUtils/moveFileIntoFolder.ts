@@ -6,6 +6,9 @@ import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFail
 import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { dirname } from "path";
 import { RequestFileInsertionPositionType } from "./interfaces";
+import { getFoldersAffectedByFileInsertion } from "../sequencePrefixUtils/getFoldersAffectedByFileInsertion";
+import { getSequencesBeforeChange } from "../sequencePrefixUtils/getSequencesBeforeChange";
+import { syncSequencePrefixes } from "../sequencePrefixUtils/syncSequencePrefixes";
 
 export async function moveFileIntoFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -16,6 +19,15 @@ export async function moveFileIntoFolder(
     fileType: ItemType,
     logger?: Logger,
 ) {
+    const affectedFolders = getFoldersAffectedByFileInsertion(
+        itemProvider,
+        { sourcePath, newPath, isMoved: true },
+        fileType,
+    );
+    const previousSequences = await getSequencesBeforeChange(
+        itemProvider,
+        affectedFolders,
+    );
     const wasSuccessful = await renameFileOrFolder(
         itemProvider,
         sourcePath,
@@ -46,4 +58,11 @@ export async function moveFileIntoFolder(
             },
         );
     }
+
+    await syncSequencePrefixes(itemProvider, affectedFolders, {
+        logger,
+        previousSequences,
+        // The collection data may not know the moved file at its new location yet.
+        previousRenames: [{ sourcePath, targetPath: newPath, isFile: true }],
+    });
 }

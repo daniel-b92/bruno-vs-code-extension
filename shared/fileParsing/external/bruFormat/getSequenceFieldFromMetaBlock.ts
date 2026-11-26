@@ -1,29 +1,11 @@
 import {
+    getFieldFromMetaBlock,
     MetaBlockKey,
     TextDocumentHelper,
-    RequestFileBlockName,
-    parseBlockFromFile,
-    isDictionaryBlockField,
 } from "../../..";
 
 export function getSequenceFieldFromMetaBlock(
     documentHelper: TextDocumentHelper,
 ) {
-    const metaBlockContent = parseBlockFromFile(
-        documentHelper,
-        RequestFileBlockName.Meta,
-    )?.content;
-
-    const sequence =
-        metaBlockContent &&
-        Array.isArray(metaBlockContent) &&
-        metaBlockContent.length > 0 &&
-        metaBlockContent.every((content) => isDictionaryBlockField(content))
-            ? metaBlockContent.find(
-                  ({ key, disabled }) =>
-                      key == MetaBlockKey.Sequence && !disabled,
-              )
-            : undefined;
-
-    return sequence;
+    return getFieldFromMetaBlock(documentHelper, MetaBlockKey.Sequence);
 }

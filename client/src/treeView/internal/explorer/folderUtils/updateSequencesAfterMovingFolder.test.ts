@@ -10,6 +10,7 @@ import {
 import {
     createCollectionWithItems,
     createItemProviderStub,
+    folderSettingsContent,
     getModifiedFiles,
     markFilesAsUnmodified,
     useTemporaryDirectories,
@@ -176,9 +177,9 @@ describe("updateSequencesAfterMovingFolder", () => {
 
         it("only changes the sequence of the moved folder, if there is a gap", async () => {
             const directory = await createTemporaryDirectory({
-                "f1/folder.yml": folderSettingsFile("f1", 10, format),
-                "f2/folder.yml": folderSettingsFile("f2", 20, format),
-                "f3/folder.yml": folderSettingsFile("f3", 30, format),
+                "f1/folder.yml": folderSettingsContent(format, "f1", 10),
+                "f2/folder.yml": folderSettingsContent(format, "f2", 20),
+                "f3/folder.yml": folderSettingsContent(format, "f3", 30),
             });
             const unmodifiedFolders = await markFilesAsUnmodified(directory, [
                 "f1/folder.yml",
@@ -203,11 +204,11 @@ describe("updateSequencesAfterMovingFolder", () => {
 
         it("only shifts the directly consecutive following folders, if there is no gap", async () => {
             const directory = await createTemporaryDirectory({
-                "f1/folder.yml": folderSettingsFile("f1", 1, format),
-                "f2/folder.yml": folderSettingsFile("f2", 2, format),
-                "f3/folder.yml": folderSettingsFile("f3", 3, format),
-                "f4/folder.yml": folderSettingsFile("f4", 10, format),
-                "f5/folder.yml": folderSettingsFile("f5", 11, format),
+                "f1/folder.yml": folderSettingsContent(format, "f1", 1),
+                "f2/folder.yml": folderSettingsContent(format, "f2", 2),
+                "f3/folder.yml": folderSettingsContent(format, "f3", 3),
+                "f4/folder.yml": folderSettingsContent(format, "f4", 10),
+                "f5/folder.yml": folderSettingsContent(format, "f5", 11),
             });
 
             await moveWithinParent(
@@ -233,8 +234,12 @@ describe("updateSequencesAfterMovingFolder", () => {
 
         it("keeps all other settings when moving within the same parent", async () => {
             const directory = await createTemporaryDirectory({
-                "a/folder.bru": `${folderSettingsFile("a", 1)}\n${otherSettings}`,
-                "b/folder.bru": folderSettingsFile("b", 2),
+                "a/folder.bru": `${folderSettingsContent(CollectionFormat.Bru, "a", 1)}\n${otherSettings}`,
+                "b/folder.bru": folderSettingsContent(
+                    CollectionFormat.Bru,
+                    "b",
+                    2,
+                ),
             });
 
             await updateSequencesAfterMovingFolder(
@@ -248,17 +253,21 @@ describe("updateSequencesAfterMovingFolder", () => {
             );
 
             expect(await readSettings(directory, "a")).toBe(
-                `${folderSettingsFile("a", 3)}\n${otherSettings}`,
+                `${folderSettingsContent(CollectionFormat.Bru, "a", 3)}\n${otherSettings}`,
             );
             expect(await readSettings(directory, "b")).toBe(
-                folderSettingsFile("b", 2),
+                folderSettingsContent(CollectionFormat.Bru, "b", 2),
             );
         });
 
         it("updates the settings at the new location and does not create anything at the old location, when moving to another parent", async () => {
             const directory = await createTemporaryDirectory({
-                "new/b/folder.bru": folderSettingsFile("b", 2),
-                "new/moved/folder.bru": `${folderSettingsFile("moved", 9)}\n${otherSettings}`,
+                "new/b/folder.bru": folderSettingsContent(
+                    CollectionFormat.Bru,
+                    "b",
+                    2,
+                ),
+                "new/moved/folder.bru": `${folderSettingsContent(CollectionFormat.Bru, "moved", 9)}\n${otherSettings}`,
             });
 
             // The new parent folder needs to be registered, so that the sequences of its subfolders are considered.
@@ -279,10 +288,10 @@ describe("updateSequencesAfterMovingFolder", () => {
             );
 
             expect(await readSettings(directory, "new/b")).toBe(
-                folderSettingsFile("b", 2),
+                folderSettingsContent(CollectionFormat.Bru, "b", 2),
             );
             expect(await readSettings(directory, "new/moved")).toBe(
-                `${folderSettingsFile("moved", 3)}\n${otherSettings}`,
+                `${folderSettingsContent(CollectionFormat.Bru, "moved", 3)}\n${otherSettings}`,
             );
             expect(await readSettings(directory, "old/moved")).toBeUndefined();
         });
@@ -291,11 +300,31 @@ describe("updateSequencesAfterMovingFolder", () => {
     /** The moved folder (`target/moved`) already has its new path and the sequence from its old parent. */
     async function createFoldersForMovingIntoTarget() {
         return await createTemporaryDirectory({
-            "target/s1/folder.bru": folderSettingsFile("s1", 1),
-            "target/s2/folder.bru": folderSettingsFile("s2", 5),
-            "target/moved/folder.bru": folderSettingsFile("moved", 9),
-            "old/a/folder.bru": folderSettingsFile("a", 2),
-            "old/b/folder.bru": folderSettingsFile("b", 5),
+            "target/s1/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "s1",
+                1,
+            ),
+            "target/s2/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "s2",
+                5,
+            ),
+            "target/moved/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "moved",
+                9,
+            ),
+            "old/a/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "a",
+                2,
+            ),
+            "old/b/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "b",
+                5,
+            ),
         });
     }
 
@@ -326,7 +355,11 @@ describe("updateSequencesAfterMovingFolder", () => {
             Object.fromEntries(
                 sequences.map((sequence, index) => [
                     `f${index + 1}/folder.bru`,
-                    folderSettingsFile(`f${index + 1}`, sequence),
+                    folderSettingsContent(
+                        CollectionFormat.Bru,
+                        `f${index + 1}`,
+                        sequence,
+                    ),
                 ]),
             ),
         );
@@ -350,16 +383,6 @@ describe("updateSequencesAfterMovingFolder", () => {
         );
     }
 });
-
-function folderSettingsFile(
-    name: string,
-    sequence: number,
-    format = CollectionFormat.Bru,
-) {
-    return format == CollectionFormat.Yaml
-        ? `info:\n  name: ${name}\n  type: folder\n  seq: ${sequence}\n`
-        : `meta {\n  name: ${name}\n  seq: ${sequence}\n}\n`;
-}
 
 function treeItem(path: string, sequence?: number) {
     return {

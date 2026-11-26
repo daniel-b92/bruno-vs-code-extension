@@ -6,7 +6,9 @@ import {
     getFolderSettingsFilePath,
     getFolderSettingsFileName,
     getSequenceValueRangeFromFileContent,
+    removeSequencePrefix,
 } from "@global_shared";
+import { shouldPrefixNamesWithSequence } from "@shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
 /**
@@ -14,6 +16,8 @@ import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
  *
  * - If the folder has no settings file yet, a minimal one is created.
  * - If the settings file has no sequence yet, it is added.
+ * - If a name has to be stored as well, it is the name of the folder. If names are prefixed with sequences, a prefix matching the new sequence is not stored.
+ *   Other leading digits are kept, even if they are padded with zeros (e.g. `007_bond`), since a folder without a stored name was named by the user.
  *
  * @returns Whether the sequence could be set.
  */
@@ -22,7 +26,13 @@ export async function setSequenceForFolder(
     sequence: number,
     format: CollectionFormat,
 ) {
-    const folderName = basename(folderPath);
+    const folderName = shouldPrefixNamesWithSequence()
+        ? removeSequencePrefix(basename(folderPath), {
+              sequence,
+              // Without a stored name, padded digits would be treated as a prefix as well.
+              storedName: basename(folderPath),
+          })
+        : basename(folderPath);
     const settingsFile = await getFolderSettingsFilePath(
         false,
         folderPath,
