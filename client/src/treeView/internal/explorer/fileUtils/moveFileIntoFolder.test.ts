@@ -143,6 +143,59 @@ describe("moveFileIntoFolder", () => {
         expect(await readFile(newPath, "utf-8")).toBe(movedContent);
     });
 
+    it("adjusts the sequence and prefix of a file that replaces one with the same name", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 10,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "a/00010_x.bru": requestContent(CollectionFormat.Bru, "x", 10),
+            "b/00010_x.bru": requestContent(CollectionFormat.Bru, "x", 10),
+            "b/00020_y.bru": requestContent(CollectionFormat.Bru, "y", 20),
+        });
+        const sourcePath = join(directory, "a", "00010_x.bru");
+        const newPath = join(directory, "b", "00010_x.bru");
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    new BrunoRequestFile(sourcePath, 10),
+                    new BrunoRequestFile(newPath, 10),
+                    new BrunoRequestFile(
+                        join(directory, "b", "00020_y.bru"),
+                        20,
+                    ),
+                ],
+                CollectionFormat.Bru,
+                [],
+                directory,
+            );
+
+        await moveFileIntoFolder(
+            itemProvider,
+            sourcePath,
+            newPath,
+            new BrunoTreeItem(join(directory, "b"), false, false),
+            join(directory, "b"),
+            BrunoFileType.RequestFile,
+            undefined,
+            true,
+        );
+
+        expect(await readdir(join(directory, "a"))).toEqual([]);
+        expect((await readdir(join(directory, "b"))).sort()).toEqual([
+            "00020_y.bru",
+            "00030_x.bru",
+        ]);
+        expect(
+            await readFile(join(directory, "b", "00030_x.bru"), "utf-8"),
+        ).toContain("seq: 30");
+    });
+
     it("does not rename requests when moving a file of another type", async () => {
         mockVsCodeSettings({
             "bru-as-code.prefixNamesWithSequence": true,

@@ -181,4 +181,84 @@ describe("moveFolderIntoTargetFolder", () => {
             await readFile(join(directory, "b", "users", "get.bru"), "utf-8"),
         ).toBe(movedContent);
     });
+
+    it("adjusts the sequence and prefix of a folder that replaces one with the same name", async () => {
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.sequenceStep": 10,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const directory = await createTemporaryDirectory({
+            "a/00010_users/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "users",
+                10,
+            ),
+            "b/00010_users/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "users",
+                10,
+            ),
+            "b/00010_users/replaced.bru": requestContent(
+                CollectionFormat.Bru,
+                "replaced",
+                10,
+            ),
+            "b/00020_other/folder.bru": folderSettingsContent(
+                CollectionFormat.Bru,
+                "other",
+                20,
+            ),
+        });
+        const createFolder = (parent: string, name: string, sequence: number) =>
+            new CollectionDirectory(
+                join(directory, parent, name),
+                join(directory, parent, name, "folder.bru"),
+                sequence,
+            );
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    createFolder("a", "00010_users", 10),
+                    createFolder("b", "00010_users", 10),
+                    createFolder("b", "00020_other", 20),
+                    new BrunoRequestFile(
+                        join(directory, "b", "00010_users", "replaced.bru"),
+                        10,
+                    ),
+                ],
+                CollectionFormat.Bru,
+                [],
+                directory,
+            );
+
+        await moveFolderIntoTargetFolder(
+            itemProvider,
+            join(directory, "a", "00010_users"),
+            new BrunoTreeItem(join(directory, "b"), false, false),
+            FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+            10,
+            undefined,
+            true,
+        );
+
+        expect(await readdir(join(directory, "a"))).toEqual([]);
+        expect((await readdir(join(directory, "b"))).sort()).toEqual([
+            "00020_other",
+            "00030_users",
+        ]);
+        expect(await readdir(join(directory, "b", "00030_users"))).toEqual([
+            "folder.bru",
+        ]);
+        expect(
+            await readFile(
+                join(directory, "b", "00030_users", "folder.bru"),
+                "utf-8",
+            ),
+        ).toContain("seq: 30");
+    });
 });

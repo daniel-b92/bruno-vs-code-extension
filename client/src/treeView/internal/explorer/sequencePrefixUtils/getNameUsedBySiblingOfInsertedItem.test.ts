@@ -135,7 +135,7 @@ describe("getNameUsedBySiblingOfInsertedItem", () => {
                 ).toBeUndefined();
             });
 
-            it("allows overwriting a file with the same name when pasting", async () => {
+            it("allows overwriting a file with the same name", async () => {
                 const overwritten = createRequest(
                     targetFolder,
                     "0010_login",
@@ -146,6 +146,24 @@ describe("getNameUsedBySiblingOfInsertedItem", () => {
                     await getUsedName(
                         format,
                         source,
+                        [overwritten],
+                        overwritten.getPath(),
+                    ),
+                ).toBeUndefined();
+            });
+
+            it("allows overwriting a folder with the same name", async () => {
+                const moved = createFolder(sourceFolder, "0010_users", 10);
+                const overwritten = createFolder(
+                    targetFolder,
+                    "0010_users",
+                    10,
+                );
+
+                expect(
+                    await getUsedName(
+                        format,
+                        moved,
                         [overwritten],
                         overwritten.getPath(),
                     ),
