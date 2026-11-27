@@ -374,7 +374,13 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                   newPath,
                   targetCollection,
               )
-            : { proceed: true, overwrite: false };
+            : {
+                  proceed: !(await this.rejectInsertionIfPathIsTaken(
+                      sourcePath,
+                      newPath,
+                  )),
+                  overwrite: false,
+              };
 
         if (!proceed) {
             return;
@@ -429,6 +435,22 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
         vscode.window.showErrorMessage(
             `${getMessageForNameUsedBySibling(usedName)} in '${basename(targetFolder)}'.`,
+        );
+        return true;
+    }
+
+    private async rejectInsertionIfPathIsTaken(
+        sourcePath: string,
+        newPath: string,
+    ) {
+        const message = await validateNewItemNameIsUnique(newPath, sourcePath);
+
+        if (message === undefined) {
+            return false;
+        }
+
+        vscode.window.showErrorMessage(
+            `${message} in '${basename(dirname(newPath))}'.`,
         );
         return true;
     }

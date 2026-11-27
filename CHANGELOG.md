@@ -11,13 +11,14 @@
 ### Fixes / Maintenance
 
 - Reject empty names for requests and names with a path separator for any item when creating or renaming them in the collection explorer.
-- Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls (e.g. `headerList.has`, the cookie jar, `bru.runner.iterationData` and response queries).
+- Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls (e.g. for `headerList.has` and the cookie jar).
 - Show an info message (once per session, can be disabled via `bru-as-code.informAboutTypescript7`) when the Typescript 7 language server is used, since it does not support Javascript intellisense in Bruno files yet.
 - Insert the flow-specific keys of an `oauth2` auth in Yaml files when selecting a completion for its `flow`.
 - Show a warning with a quick fix for keys of an `oauth2` auth in Yaml files that Bruno ignores for the selected `flow`.
 - Fix false errors about duplicate sequences after renaming, moving, creating or deleting requests and folders.
 - Fix an issue that caused moving an item via drag-and-drop in the collection explorer to fail after confirming to overwrite an existing item.
 - Fix remaining folders not being renumbered after deleting a folder when `bru-as-code.renumberSequencesAutomatically` is enabled.
+- Show a clear error message when moving a folder before or after another one fails because a folder with the same name already exists there.
 
 ## [2.2.0] (2026-11-19)
 
