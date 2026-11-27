@@ -1,16 +1,12 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
-import { readdir, readFile } from "fs/promises";
-import { basename, dirname, join } from "path";
-import {
-    CollectionDirectory,
-    CollectionFormat,
-    getFileExtensionForFormat,
-    parseSequenceFromFile,
-} from "@global_shared";
+import { readFile } from "fs/promises";
+import { join } from "path";
+import { CollectionDirectory, CollectionFormat } from "@global_shared";
 import {
     createCollectionWithItems,
     createItemProviderStub,
     folderSettingsContent,
+    getFolderSequences,
     getModifiedFiles,
     markFilesAsUnmodified,
     useTemporaryDirectories,
@@ -39,7 +35,9 @@ describe("updateSequencesAfterMovingFolder", () => {
 
             await moveIntoTarget(directory);
 
-            expect(await getSequences(directory)).toEqual({
+            expect(
+                await getFolderSequences(directory, CollectionFormat.Bru),
+            ).toEqual({
                 "target/s1": 1,
                 "target/s2": 5,
                 // The sequence of the moved folder from its old parent must not be considered.
@@ -56,7 +54,11 @@ describe("updateSequencesAfterMovingFolder", () => {
 
             await moveIntoTarget(directory);
 
-            expect((await getSequences(directory))["target/moved"]).toBe(15);
+            expect(
+                (await getFolderSequences(directory, CollectionFormat.Bru))[
+                    "target/moved"
+                ],
+            ).toBe(15);
         });
 
         it("renumbers the target folder and the old parent with the configured step, if enabled", async () => {
@@ -68,7 +70,9 @@ describe("updateSequencesAfterMovingFolder", () => {
 
             await moveIntoTarget(directory);
 
-            expect(await getSequences(directory)).toEqual({
+            expect(
+                await getFolderSequences(directory, CollectionFormat.Bru),
+            ).toEqual({
                 "target/s1": 10,
                 "target/s2": 20,
                 "target/moved": 30,
@@ -93,7 +97,9 @@ describe("updateSequencesAfterMovingFolder", () => {
                 FolderDropInsertionOption.InsertBeforeTarget,
             );
 
-            expect(await getSequences(directory)).toEqual({
+            expect(
+                await getFolderSequences(directory, CollectionFormat.Bru),
+            ).toEqual({
                 f1: 10,
                 f3: 15,
                 f2: 20,
@@ -111,7 +117,9 @@ describe("updateSequencesAfterMovingFolder", () => {
                 FolderDropInsertionOption.InsertAfterTarget,
             );
 
-            expect(await getSequences(directory)).toEqual({
+            expect(
+                await getFolderSequences(directory, CollectionFormat.Bru),
+            ).toEqual({
                 f1: 10,
                 f3: 15,
                 f2: 20,
@@ -128,7 +136,9 @@ describe("updateSequencesAfterMovingFolder", () => {
                 FolderDropInsertionOption.InsertAfterTarget,
             );
 
-            expect(await getSequences(directory)).toEqual({
+            expect(
+                await getFolderSequences(directory, CollectionFormat.Bru),
+            ).toEqual({
                 f1: 1,
                 f4: 2,
                 f2: 3,
@@ -147,7 +157,11 @@ describe("updateSequencesAfterMovingFolder", () => {
                 FolderDropInsertionOption.InsertAfterTarget,
             );
 
-            expect((await getSequences(directory))["f1"]).toBe(40);
+            expect(
+                (await getFolderSequences(directory, CollectionFormat.Bru))[
+                    "f1"
+                ],
+            ).toBe(40);
         });
 
         it("renumbers the parent folder with the configured step, if enabled", async () => {
@@ -164,7 +178,9 @@ describe("updateSequencesAfterMovingFolder", () => {
                 FolderDropInsertionOption.InsertAfterTarget,
             );
 
-            expect(await getSequences(directory)).toEqual({
+            expect(
+                await getFolderSequences(directory, CollectionFormat.Bru),
+            ).toEqual({
                 f1: 5,
                 f3: 10,
                 f2: 15,
@@ -194,7 +210,7 @@ describe("updateSequencesAfterMovingFolder", () => {
                 format,
             );
 
-            expect(await getSequences(directory, format)).toEqual({
+            expect(await getFolderSequences(directory, format)).toEqual({
                 f1: 10,
                 f3: 15,
                 f2: 20,
@@ -219,7 +235,7 @@ describe("updateSequencesAfterMovingFolder", () => {
                 format,
             );
 
-            expect(await getSequences(directory, format)).toEqual({
+            expect(await getFolderSequences(directory, format)).toEqual({
                 f1: 1,
                 f5: 2,
                 f2: 3,
@@ -389,22 +405,6 @@ function treeItem(path: string, sequence?: number) {
         getPath: () => path,
         getSequence: () => sequence,
     } as unknown as BrunoTreeItem;
-}
-
-/** Returns the sequences of all folders below the directory that have a settings file (keys are the relative folder paths). */
-async function getSequences(directory: string, format = CollectionFormat.Bru) {
-    const settingsFileName = `folder${getFileExtensionForFormat(format)}`;
-    const sequences: Record<string, number | undefined> = {};
-
-    for (const relativePath of await readdir(directory, { recursive: true })) {
-        if (basename(relativePath) == settingsFileName) {
-            sequences[dirname(relativePath)] = await parseSequenceFromFile(
-                join(directory, relativePath),
-            );
-        }
-    }
-
-    return sequences;
 }
 
 async function readSettings(directory: string, folder: string) {
