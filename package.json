@@ -69,7 +69,7 @@
         "eslint-import-resolver-typescript": "^4.3.0",
         "eslint-plugin-boundaries": "^7.4.3",
         "evt": "^2.5.9",
-        "glob": "^13.0.1",
+        "glob": "^14.0.6",
         "jest": "^30.4.2",
         "jiti": "^2.7.0",
         "jsonc-parser": "^3.3.1",
