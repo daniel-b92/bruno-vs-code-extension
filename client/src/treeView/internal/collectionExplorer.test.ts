@@ -205,18 +205,26 @@ describe("CollectionExplorer", () => {
                 });
                 const { applyEdit, showErrorMessage } = mockDialogsAndSettings(
                     insertionOption,
-                    false,
+                    { prefixNamesWithSequence: false },
                 );
                 const drop = createExplorer(directory, [
                     new CollectionDirectory(join(directory, "a")),
                     new CollectionDirectory(join(directory, "b")),
-                    new CollectionDirectory(join(directory, "a", "users")),
+                    createFolderItem(
+                        join(directory, "a", "users"),
+                        CollectionFormat.Bru,
+                        2,
+                    ),
                     createFolderItem(
                         join(directory, "b", "orders"),
                         CollectionFormat.Bru,
                         1,
                     ),
-                    new CollectionDirectory(join(directory, "b", "users")),
+                    createFolderItem(
+                        join(directory, "b", "users"),
+                        CollectionFormat.Bru,
+                        2,
+                    ),
                 ]);
 
                 await drop(join("a", "users"), join("b", "orders"));
@@ -235,10 +243,13 @@ describe("CollectionExplorer", () => {
     });
 });
 
-/** Confirms overwriting items and picks the given option when asked where to insert a folder. */
+/**
+ * Confirms overwriting items and picks the given option when asked where to insert a folder.
+ * Prefixing names with sequences is enabled unless `prefixNamesWithSequence` is set to `false`.
+ */
 function mockDialogsAndSettings(
     insertionOption = FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
-    prefixNamesWithSequence = true,
+    { prefixNamesWithSequence = true } = {},
 ) {
     mockVsCodeSettings({
         "bru-as-code.prefixNamesWithSequence": prefixNamesWithSequence,
