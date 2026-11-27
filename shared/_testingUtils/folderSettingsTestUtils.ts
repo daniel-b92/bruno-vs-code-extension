@@ -1,5 +1,6 @@
 import { readdir } from "fs/promises";
 import { basename, dirname, join } from "path";
+import { CollectionDirectory } from "../baseModel/collectionDirectory";
 import { CollectionFormat } from "../baseModel/interfaces";
 import { parseSequenceFromFile } from "../fileParsing/external/shared/parseSequenceFromFile";
 import { getFileExtensionForFormat } from "../fileSystem/util/collectionFormatFileNames";
@@ -13,6 +14,19 @@ export function folderSettingsContent(
     return format == CollectionFormat.Yaml
         ? `info:\n  name: ${name}\n  type: folder\n  seq: ${sequence}\n`
         : `meta {\n  name: ${name}\n  seq: ${sequence}\n}\n`;
+}
+
+/** Creates the collection item of a folder that has a settings file with a sequence. No files are written. */
+export function createFolderItem(
+    folderPath: string,
+    format: CollectionFormat,
+    sequence: number,
+) {
+    return new CollectionDirectory(
+        folderPath,
+        join(folderPath, `folder${getFileExtensionForFormat(format)}`),
+        sequence,
+    );
 }
 
 /** Returns the sequences of all folders below the directory that have a settings file (keys are the relative folder paths). */

@@ -15,7 +15,10 @@ import {
     getFileExtensionForFormat,
     NonBrunoFile,
 } from "@global_shared";
-import { createCollectionWithItems } from "@global_shared/_testingUtils";
+import {
+    createCollectionWithItems,
+    createFolderItem,
+} from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
 import { mockVsCodeSettings } from "../../../../_testingUtils";
 import { getNameUsedBySiblingOfInsertedItem } from "./getNameUsedBySiblingOfInsertedItem";
@@ -50,12 +53,7 @@ describe("getNameUsedBySiblingOfInsertedItem", () => {
                 parent: string,
                 name: string,
                 sequence: number,
-            ) =>
-                new CollectionDirectory(
-                    join(parent, name),
-                    join(parent, name, `folder${extension}`),
-                    sequence,
-                );
+            ) => createFolderItem(join(parent, name), format, sequence);
             const source = createRequest(sourceFolder, "0010_login", 10);
             const sibling = createRequest(targetFolder, "0020_login", 20);
 

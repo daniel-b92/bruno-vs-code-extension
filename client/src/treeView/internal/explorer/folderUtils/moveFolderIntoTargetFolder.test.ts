@@ -9,6 +9,7 @@ import {
 } from "@global_shared";
 import {
     createCollectionWithItems,
+    createFolderItem,
     folderSettingsContent,
     requestContent,
     runRequestBlock,
@@ -212,20 +213,26 @@ describe("moveFolderIntoTargetFolder", () => {
                 20,
             ),
         });
-        const createFolder = (parent: string, name: string, sequence: number) =>
-            new CollectionDirectory(
-                join(directory, parent, name),
-                join(directory, parent, name, "folder.bru"),
-                sequence,
-            );
         const { itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
                 [
                     new CollectionDirectory(join(directory, "a")),
                     new CollectionDirectory(join(directory, "b")),
-                    createFolder("a", "00010_users", 10),
-                    createFolder("b", "00010_users", 10),
-                    createFolder("b", "00020_other", 20),
+                    createFolderItem(
+                        join(directory, "a", "00010_users"),
+                        CollectionFormat.Bru,
+                        10,
+                    ),
+                    createFolderItem(
+                        join(directory, "b", "00010_users"),
+                        CollectionFormat.Bru,
+                        10,
+                    ),
+                    createFolderItem(
+                        join(directory, "b", "00020_other"),
+                        CollectionFormat.Bru,
+                        20,
+                    ),
                     new BrunoRequestFile(
                         join(directory, "b", "00010_users", "replaced.bru"),
                         10,
