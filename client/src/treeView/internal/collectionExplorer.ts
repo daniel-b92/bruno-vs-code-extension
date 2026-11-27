@@ -265,6 +265,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             }
 
             const itemType = originalItem.getItemType();
+            // The user has confirmed overwriting an existing item at this point.
+            const overwrite = await checkIfPathExistsAsync(newPath);
 
             if (originalItem.isFile()) {
                 await this.withProgressInExplorer(
@@ -278,6 +280,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             dirname(newPath),
                             itemType,
                             this.logger,
+                            overwrite,
                         ),
                 );
 
@@ -323,6 +326,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 return;
             }
 
+            const overwrite = await checkIfPathExistsAsync(newPath);
+
             await this.withProgressInExplorer(
                 `Moving '${basename(sourcePath)}'`,
                 () =>
@@ -333,6 +338,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
                         originalTreeItem.getSequence(),
                         this.logger,
+                        overwrite,
                     ),
             );
             return;
@@ -343,6 +349,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             { modal: true },
             ...Object.values(FolderDropInsertionOption),
         );
+
+        // With the insertion option of moving into the target folder, the new item path is the same as if moving a file.
+        const subfolderPath = resolve(target.getPath(), basename(sourcePath));
 
         if (
             !pickedOption ||
@@ -359,13 +368,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 FolderDropInsertionOption.MoveIntoTargetAsSubfolder &&
                 !(await this.requestConfirmationForOverwritingItemIfNeeded(
                     sourcePath,
-                    // With the insertion option of moving into the target folder, the new item path is the same as if moving a file.
-                    resolve(target.getPath(), basename(sourcePath)),
+                    subfolderPath,
                     targetCollection,
                 )))
         ) {
             return;
         }
+
+        // Overwriting is only confirmed for moving into the target folder.
+        const overwrite =
+            pickedOption ==
+                FolderDropInsertionOption.MoveIntoTargetAsSubfolder &&
+            (await checkIfPathExistsAsync(subfolderPath));
 
         await this.withProgressInExplorer(
             `Moving '${basename(sourcePath)}'`,
@@ -377,6 +391,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     pickedOption,
                     originalTreeItem.getSequence(),
                     this.logger,
+                    overwrite,
                 ),
         );
     }

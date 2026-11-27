@@ -116,4 +116,69 @@ describe("moveFolderIntoTargetFolder", () => {
             ),
         ).toContain('runRequest("b/00020_users/00020_other")');
     });
+
+    it("replaces an existing folder if overwriting is requested", async () => {
+        mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const movedContent = requestContent(CollectionFormat.Bru, "moved", 10);
+        const directory = await createTemporaryDirectory({
+            "a/users/get.bru": movedContent,
+            // The calls of the replaced folder must not cause edits of the moved one.
+            "b/users/get.bru": requestContent(
+                CollectionFormat.Bru,
+                "replaced",
+                10,
+                runRequestBlock("a/users/get"),
+            ),
+            "b/users/other.bru": requestContent(
+                CollectionFormat.Bru,
+                "other",
+                20,
+            ),
+        });
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    new CollectionDirectory(join(directory, "a", "users")),
+                    new CollectionDirectory(join(directory, "b", "users")),
+                    new BrunoRequestFile(
+                        join(directory, "a", "users", "get.bru"),
+                        10,
+                    ),
+                    new BrunoRequestFile(
+                        join(directory, "b", "users", "get.bru"),
+                        10,
+                    ),
+                    new BrunoRequestFile(
+                        join(directory, "b", "users", "other.bru"),
+                        20,
+                    ),
+                ],
+                CollectionFormat.Bru,
+                [],
+                directory,
+            );
+
+        await moveFolderIntoTargetFolder(
+            itemProvider,
+            join(directory, "a", "users"),
+            new BrunoTreeItem(join(directory, "b"), false, false),
+            FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+            undefined,
+            undefined,
+            true,
+        );
+
+        expect(await readdir(join(directory, "a"))).toEqual([]);
+        expect(await readdir(join(directory, "b", "users"))).toEqual([
+            "get.bru",
+        ]);
+        expect(
+            await readFile(join(directory, "b", "users", "get.bru"), "utf-8"),
+        ).toBe(movedContent);
+    });
 });

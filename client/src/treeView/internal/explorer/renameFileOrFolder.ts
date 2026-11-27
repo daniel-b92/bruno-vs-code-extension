@@ -14,6 +14,7 @@ import {
 import {
     getEditsForRunRequestPaths,
     getPathAfterRenames,
+    isReplacedByRenames,
     PathRename,
     RunRequestPathEdit,
 } from "./runRequestPaths/getEditsForRunRequestPaths";
@@ -96,7 +97,10 @@ export async function renameFilesAndFolders(
     );
     // Documents with unsaved changes keep them. The others are saved after the edit, so that later writes to the files do not conflict with their buffers.
     const dirtyFilePathsAfterRename = workspace.textDocuments
-        .filter(({ isDirty }) => isDirty)
+        .filter(
+            ({ isDirty, uri }) =>
+                isDirty && !isReplacedByRenames(uri.fsPath, renames),
+        )
         .map(({ uri }) => getPathAfterRenames(uri.fsPath, renames));
 
     const executedSteps: RenameStep[] = [];

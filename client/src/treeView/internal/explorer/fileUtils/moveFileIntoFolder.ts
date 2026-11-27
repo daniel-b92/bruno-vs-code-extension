@@ -18,6 +18,8 @@ export async function moveFileIntoFolder(
     targetDirectoryForDragAndDrop: string,
     fileType: ItemType,
     logger?: Logger,
+    /** Whether an existing item at the new path should be replaced (see `renameFileOrFolder`). */
+    overwrite = false,
 ) {
     const affectedFolders = getFoldersAffectedByFileInsertion(
         itemProvider,
@@ -34,6 +36,7 @@ export async function moveFileIntoFolder(
         newPath,
         true,
         logger,
+        overwrite,
     );
 
     if (!wasSuccessful) {

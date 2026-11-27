@@ -16,6 +16,7 @@
 - Insert the flow-specific keys of an `oauth2` auth in Yaml files when selecting a completion for its `flow`.
 - Show a warning with a quick fix for keys of an `oauth2` auth in Yaml files that Bruno ignores for the selected `flow`.
 - Fix false errors about duplicate sequences after renaming, moving, creating or deleting requests and folders.
+- Fix an issue that caused moving an item via drag-and-drop in the collection explorer to fail after confirming to overwrite an existing item.
 
 ## [2.2.0] (2026-11-19)
 
