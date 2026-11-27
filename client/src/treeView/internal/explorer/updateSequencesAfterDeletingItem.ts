@@ -16,18 +16,20 @@ import { normalizeSequencesForFolders } from "./folderUtils/normalizeSequencesFo
 import { SequencesByPath } from "./sequencePrefixUtils/getSequencesBeforeChange";
 import { syncSequencePrefixes } from "./sequencePrefixUtils/syncSequencePrefixes";
 
+/** The data of a deleted item, as it was before its deletion. */
+export interface DeletedItemData {
+    path: string;
+    itemType: ItemType;
+    sequence: number | undefined;
+}
+
 /**
  * Renumbers the remaining items after a file or folder has been deleted.
  * Unless renumbering is enabled in the settings, the sequences of the remaining items are kept.
  */
 export async function updateSequencesAfterDeletingItem(
     itemProvider: TypedCollectionItemProvider,
-    /** The data of the item before its deletion. */
-    deletedItem: {
-        path: string;
-        itemType: ItemType;
-        sequence: number | undefined;
-    },
+    deletedItem: DeletedItemData,
     /** The folder whose direct child items may be affected by the deletion. */
     parentFolder: string | undefined,
     /** See `getSequencesBeforeChange`. */

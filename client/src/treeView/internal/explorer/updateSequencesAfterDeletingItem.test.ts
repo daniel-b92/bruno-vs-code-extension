@@ -4,7 +4,7 @@ import { join } from "path";
 import {
     BrunoFileType,
     CollectionFormat,
-    ItemType,
+    getFileExtensionForFormat,
     NonBrunoSpecificItemType,
 } from "@global_shared";
 import {
@@ -15,7 +15,10 @@ import {
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
 import { mockVsCodeSettings } from "../../../_testingUtils";
-import { updateSequencesAfterDeletingItem } from "./updateSequencesAfterDeletingItem";
+import {
+    DeletedItemData,
+    updateSequencesAfterDeletingItem,
+} from "./updateSequencesAfterDeletingItem";
 
 describe("updateSequencesAfterDeletingItem", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
@@ -104,8 +107,7 @@ describe("updateSequencesAfterDeletingItem", () => {
 
     /** The folders that are left after deleting the folder `a` with the sequence 1. */
     async function createRemainingFolders(format: CollectionFormat) {
-        const fileName =
-            format == CollectionFormat.Yaml ? "folder.yml" : "folder.bru";
+        const fileName = `folder${getFileExtensionForFormat(format)}`;
 
         return await createTemporaryDirectory({
             [`b/${fileName}`]: folderSettingsContent(format, "b", 2),
@@ -126,11 +128,7 @@ async function deleteFolderA(directory: string, format: CollectionFormat) {
 async function deleteItem(
     directory: string,
     format: CollectionFormat,
-    deletedItem: {
-        path: string;
-        itemType: ItemType;
-        sequence: number | undefined;
-    },
+    deletedItem: DeletedItemData,
 ) {
     await updateSequencesAfterDeletingItem(
         createItemProviderStub<TypedCollectionItemProvider>(directory, format),
