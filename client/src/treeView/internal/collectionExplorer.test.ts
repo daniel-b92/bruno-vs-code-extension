@@ -178,14 +178,70 @@ describe("CollectionExplorer", () => {
             expect(applyEdit).not.toHaveBeenCalled();
         });
     });
+
+    describe("handleDrop with names without sequence prefixes", () => {
+        it.each([
+            FolderDropInsertionOption.InsertBeforeTarget,
+            FolderDropInsertionOption.InsertAfterTarget,
+        ])(
+            "rejects moving a folder next to one with the same name for option '%s'",
+            async (insertionOption) => {
+                const directory = await createTemporaryDirectory({
+                    "a/users/folder.bru": folderSettingsContent(
+                        CollectionFormat.Bru,
+                        "users",
+                        2,
+                    ),
+                    "b/orders/folder.bru": folderSettingsContent(
+                        CollectionFormat.Bru,
+                        "orders",
+                        1,
+                    ),
+                    "b/users/folder.bru": folderSettingsContent(
+                        CollectionFormat.Bru,
+                        "users",
+                        2,
+                    ),
+                });
+                const { applyEdit, showErrorMessage } = mockDialogsAndSettings(
+                    insertionOption,
+                    false,
+                );
+                const drop = createExplorer(directory, [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    new CollectionDirectory(join(directory, "a", "users")),
+                    createFolderItem(
+                        join(directory, "b", "orders"),
+                        CollectionFormat.Bru,
+                        1,
+                    ),
+                    new CollectionDirectory(join(directory, "b", "users")),
+                ]);
+
+                await drop(join("a", "users"), join("b", "orders"));
+
+                expect(getShownMessages(showErrorMessage)).toEqual([
+                    "Folder with name 'users' already exists in 'b'.",
+                ]);
+                expect(applyEdit).not.toHaveBeenCalled();
+                expect(await readdir(join(directory, "a"))).toEqual(["users"]);
+                expect((await readdir(join(directory, "b"))).sort()).toEqual([
+                    "orders",
+                    "users",
+                ]);
+            },
+        );
+    });
 });
 
 /** Confirms overwriting items and picks the given option when asked where to insert a folder. */
 function mockDialogsAndSettings(
     insertionOption = FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+    prefixNamesWithSequence = true,
 ) {
     mockVsCodeSettings({
-        "bru-as-code.prefixNamesWithSequence": true,
+        "bru-as-code.prefixNamesWithSequence": prefixNamesWithSequence,
         "bru-as-code.sequenceStep": 10,
     });
     return {
