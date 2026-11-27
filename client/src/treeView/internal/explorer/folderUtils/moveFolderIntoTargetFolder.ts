@@ -16,6 +16,8 @@ export async function moveFolderIntoTargetFolder(
     insertionOption: FolderDropInsertionOption,
     originalItemSequence?: number,
     logger?: Logger,
+    /** Whether an existing item at the new path should be replaced (see `renameFileOrFolder`). */
+    overwrite = false,
 ) {
     const affectedFolders = [
         insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
@@ -33,6 +35,7 @@ export async function moveFolderIntoTargetFolder(
         targetItem,
         insertionOption,
         logger,
+        overwrite,
     );
 
     if (!move.wasSuccessful) {
@@ -65,6 +68,7 @@ async function moveFolderIfNecessary(
     targetItem: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,
     logger?: Logger,
+    overwrite?: boolean,
 ): Promise<{ wasSuccessful: boolean; rename?: PathRename }> {
     if (
         (insertionOption ==
@@ -89,6 +93,7 @@ async function moveFolderIfNecessary(
         targetPath,
         false,
         logger,
+        overwrite,
     );
 
     if (!wasSuccessful) {

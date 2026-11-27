@@ -96,6 +96,53 @@ describe("moveFileIntoFolder", () => {
         },
     );
 
+    it("replaces an existing file if overwriting is requested", async () => {
+        mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const movedContent = requestContent(CollectionFormat.Bru, "moved", 10);
+        const directory = await createTemporaryDirectory({
+            "a/x.bru": movedContent,
+            // The calls of the replaced file must not cause edits of the moved one.
+            "b/x.bru": requestContent(
+                CollectionFormat.Bru,
+                "replaced",
+                10,
+                runRequestBlock("a/x"),
+            ),
+        });
+        const sourcePath = join(directory, "a", "x.bru");
+        const newPath = join(directory, "b", "x.bru");
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    new BrunoRequestFile(sourcePath, 10),
+                    new BrunoRequestFile(newPath, 10),
+                ],
+                CollectionFormat.Bru,
+                [],
+                directory,
+            );
+
+        await moveFileIntoFolder(
+            itemProvider,
+            sourcePath,
+            newPath,
+            new BrunoTreeItem(join(directory, "b"), false, false),
+            join(directory, "b"),
+            BrunoFileType.RequestFile,
+            undefined,
+            true,
+        );
+
+        expect(await readdir(join(directory, "a"))).toEqual([]);
+        expect(await readdir(join(directory, "b"))).toEqual(["x.bru"]);
+        expect(await readFile(newPath, "utf-8")).toBe(movedContent);
+    });
+
     it("does not rename requests when moving a file of another type", async () => {
         mockVsCodeSettings({
             "bru-as-code.prefixNamesWithSequence": true,

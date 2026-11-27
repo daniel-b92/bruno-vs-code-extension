@@ -251,13 +251,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 return;
             }
 
-            if (
-                !(await this.requestConfirmationForOverwritingItemIfNeeded(
+            const { proceed, overwrite } =
+                await this.requestConfirmationForOverwritingItemIfNeeded(
                     sourcePath,
                     newPath,
                     targetCollection,
-                ))
-            ) {
+                );
+
+            if (!proceed) {
                 return;
             }
 
@@ -275,6 +276,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             dirname(newPath),
                             itemType,
                             this.logger,
+                            overwrite,
                         ),
                 );
 
@@ -310,13 +312,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 return;
             }
 
-            if (
-                !(await this.requestConfirmationForOverwritingItemIfNeeded(
+            const { proceed, overwrite } =
+                await this.requestConfirmationForOverwritingItemIfNeeded(
                     sourcePath,
                     newPath,
                     targetCollection,
-                ))
-            ) {
+                );
+
+            if (!proceed) {
                 return;
             }
 
@@ -330,6 +333,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
                         originalTreeItem.getSequence(),
                         this.logger,
+                        overwrite,
                     ),
             );
             return;
@@ -351,16 +355,23 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     ? target.getPath()
                     : dirname(target.getPath()),
                 sourcePath,
-            )) ||
-            (pickedOption ==
-                FolderDropInsertionOption.MoveIntoTargetAsSubfolder &&
-                !(await this.requestConfirmationForOverwritingItemIfNeeded(
-                    sourcePath,
-                    // With the insertion option of moving into the target folder, the new item path is the same as if moving a file.
-                    resolve(target.getPath(), basename(sourcePath)),
-                    targetCollection,
-                )))
+            ))
         ) {
+            return;
+        }
+
+        // Overwriting is only offered for moving into the target folder.
+        const { proceed, overwrite } =
+            pickedOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
+                ? await this.requestConfirmationForOverwritingItemIfNeeded(
+                      sourcePath,
+                      // With this insertion option, the new item path is the same as if moving a file.
+                      resolve(target.getPath(), basename(sourcePath)),
+                      targetCollection,
+                  )
+                : { proceed: true, overwrite: false };
+
+        if (!proceed) {
             return;
         }
 
@@ -374,6 +385,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     pickedOption,
                     originalTreeItem.getSequence(),
                     this.logger,
+                    overwrite,
                 ),
         );
     }
@@ -468,17 +480,16 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         const targetCollection =
             this.itemProvider.getAncestorCollectionForPath(newPath);
 
-        if (
-            !(await this.requestConfirmationForOverwritingItemIfNeeded(
+        const { proceed, overwrite } =
+            await this.requestConfirmationForOverwritingItemIfNeeded(
                 sourcePath,
                 newPath,
                 targetCollection,
-            ))
-        ) {
+            );
+
+        if (!proceed) {
             return;
         }
-
-        const overwrite = await checkIfPathExistsAsync(newPath);
 
         await this.withProgressInExplorer(
             `Moving '${basename(sourcePath)}'`,
@@ -1223,14 +1234,15 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         basename(sourceItem.getPath()),
                     );
 
-                    if (
-                        !(await this.requestConfirmationForOverwritingItemIfNeeded(
+                    const { proceed } =
+                        await this.requestConfirmationForOverwritingItemIfNeeded(
                             sourceItem.getPath(),
                             targetPath,
                             collection,
                             true,
-                        ))
-                    ) {
+                        );
+
+                    if (!proceed) {
                         return;
                     }
 
@@ -1622,6 +1634,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         return true;
     }
 
+    /**
+     * @returns Whether to proceed with the operation, and whether the user has agreed to overwrite an existing item.
+     * Only replace an existing item if `overwrite` is true, since there may be items on disk that the user was not asked about.
+     */
     private async requestConfirmationForOverwritingItemIfNeeded(
         sourcePath: string,
         newPath: string,
@@ -1641,7 +1657,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 : normalizePath(newPath) != normalizePath(sourcePath));
 
         if (!needsConfirmation) {
-            return true;
+            return { proceed: true, overwrite: false };
         }
 
         const pickedOption = await vscode.window.showInformationMessage(
@@ -1650,7 +1666,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             this.confirmationOptionForModals,
         );
 
-        return pickedOption == this.confirmationOptionForModals;
+        const isConfirmed = pickedOption == this.confirmationOptionForModals;
+
+        return { proceed: isConfirmed, overwrite: isConfirmed };
     }
 
     private async writeFileAndOpenItOnSuccess(

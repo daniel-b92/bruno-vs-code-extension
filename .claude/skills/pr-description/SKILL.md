@@ -13,17 +13,22 @@ The description is read by the reviewer, who knows the repository but not the co
 
 ### 1. Collect the changes of the branch
 
-Compare the branch with `main` (or the base branch the user names):
+Compare the branch with `main` (or the base branch the user names). First determine which ref to compare with, since the local `main` is often behind the remote one, and a diff against an outdated `main` would include changes that other pull requests already merged:
 
-- `git log --format='%h %s%n%b' main..HEAD` for the commits and their messages
-- `git diff --stat main...HEAD` and `git diff main...HEAD` for the changes themselves. Read the diff, not only the commit messages, which are often short or out of date.
+1. Run `git fetch origin main` to update `origin/main`. If the fetch fails (e.g. no network access), continue with the existing `origin/main` and tell the user that it may be outdated.
+2. Run `git rev-list --count main..origin/main`. If the count is greater than 0, the local `main` is behind `origin/main`, so use `origin/main` as the base. Otherwise use `main`.
+
+In the rest of this workflow, `<base>` stands for the ref chosen here.
+
+- `git log --format='%h %s%n%b' <base>..HEAD` for the commits and their messages
+- `git diff --stat <base>...HEAD` and `git diff <base>...HEAD` for the changes themselves. Read the diff, not only the commit messages, which are often short or out of date.
 - `git status --short` for uncommitted changes. If there are changes to tracked files that are not committed yet, and it is unclear whether they belong to the pull request, ask the user before including them. Untracked files that are unrelated to the change (e.g. local configuration) are ignored.
 
 Also use what is known from the conversation, e.g. why the change was made or which alternatives were rejected.
 
 Look for the related issue: a number in the branch name (e.g. `123-fix-hover`) or in the commit messages (`#123`), or one mentioned in the conversation. Don't guess a number.
 
-If the branch has no commits and no changes compared to `main`, tell the user and stop.
+If the branch has no commits and no changes compared to `<base>`, tell the user and stop.
 
 ### 2. Run the checks
 
@@ -42,7 +47,7 @@ They run on the working tree, so uncommitted changes are included. If they fail,
 
 ### 4. Check for sensitive files
 
-Read the patterns in `SENSITIVE_FILE_PATTERNS` in `.github/workflows/sensitive-files.yml` and match them against the changed files (`git diff --name-only main...HEAD`, plus uncommitted files that belong to the pull request). Use the file as the single source of truth instead of a list of your own, since it changes over time.
+Read the patterns in `SENSITIVE_FILE_PATTERNS` in `.github/workflows/sensitive-files.yml` and match them against the changed files (`git diff --name-only <base>...HEAD`, plus uncommitted files that belong to the pull request). Use the file as the single source of truth instead of a list of your own, since it changes over time.
 
 Also check whether the diff extends one of the allowlists described in the "Security checks" section of `CONTRIBUTING.md`: install scripts (`.github/scripts/checkInstallScripts.mjs`), package aliases (`.github/scripts/checkLockfiles.mjs`), hidden Unicode characters (`.github/scripts/checkHiddenUnicode.mjs`) or restricted modules (`getAllowedSensitiveImportsConfig(...)` in `eslint.config.ts`).
 
@@ -77,6 +82,7 @@ Don't add commentary inside the block, since everything in it ends up in the pul
 - that you added a changelog entry (or why none is needed)
 - which checks failed, if any
 - that no related issue was found, so they can add "Closes #..." themselves
+- that the branch was compared with `origin/main` because the local `main` is behind it
 
 When the user asks for changes, show the complete description again, not only the changed section, so it can still be copied with one click. Before the block, say in one line what changed.
 

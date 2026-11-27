@@ -104,6 +104,8 @@ export async function getEditsForRunRequestPaths(
             itemType == undefined ||
             // A file that was moved into another collection may still be cached here, but the renames of this collection do not affect it.
             !isPathEqualOrDescendant(originalPath, rootDirectory) ||
+            // Its content is gone after the renames, so edits would change the item that takes its place.
+            isReplacedByRenames(originalPath, renames) ||
             !isFileToSearch(itemType, originalPath)
         ) {
             continue;
@@ -242,6 +244,20 @@ export function getPathAfterRenames(path: string, renames: PathRename[]) {
                     ? resolve(targetPath, relative(sourcePath, currentPath))
                     : undefined,
         ) ?? path
+    );
+}
+
+/**
+ * Whether the item with the given path is overwritten by one of the renames, i.e. it is located at (or within) a target without being renamed itself.
+ */
+export function isReplacedByRenames(path: string, renames: PathRename[]) {
+    return (
+        renames.some(({ targetPath }) =>
+            isPathEqualOrDescendant(path, targetPath),
+        ) &&
+        !renames.some(({ sourcePath }) =>
+            isPathEqualOrDescendant(path, sourcePath),
+        )
     );
 }
 

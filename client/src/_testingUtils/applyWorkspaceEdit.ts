@@ -1,4 +1,4 @@
-import { access, readFile, rename, writeFile } from "fs/promises";
+import { access, readFile, rename, rm, writeFile } from "fs/promises";
 import { WorkspaceEdit } from "vscode";
 
 type MockedWorkspaceEdit = WorkspaceEdit & {
@@ -41,7 +41,12 @@ export async function applyWorkspaceEdit(edit: unknown) {
         }
     }
 
-    for (const { from, to } of renames) {
+    for (const { from, to, options } of renames) {
+        // Like VS Code, an existing item at the target is replaced completely, e.g. a folder that is not empty.
+        if (options?.overwrite && from.fsPath != to.fsPath) {
+            await rm(to.fsPath, { recursive: true, force: true });
+        }
+
         await rename(from.fsPath, to.fsPath);
     }
 
