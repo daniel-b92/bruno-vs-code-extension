@@ -154,11 +154,23 @@ const EndOfLine = {
 
 const window = {
     showInformationMessage: (..._args: unknown[]) => Promise.resolve(undefined),
-    showErrorMessage: () => Promise.resolve(undefined),
+    showErrorMessage: (..._args: unknown[]) => Promise.resolve(undefined),
     showWarningMessage: (..._args: unknown[]) => Promise.resolve(undefined),
     showInputBox: (_options?: unknown): Promise<string | undefined> =>
         Promise.resolve(undefined),
     createQuickPick: (): unknown => ({}),
+    createTreeView: (_viewId: string, _options: unknown) => ({
+        visible: false,
+        selection: [],
+        onDidChangeVisibility: (_listener: unknown) => ({ dispose: () => {} }),
+    }),
+    onDidChangeActiveTextEditor: (_listener: unknown) => ({
+        dispose: () => {},
+    }),
+    onDidChangeTextEditorSelection: (_listener: unknown) => ({
+        dispose: () => {},
+    }),
+    withProgress: <T>(_options: unknown, task: () => Promise<T>) => task(),
     tabGroups: {
         all: [] as { tabs: { input: unknown }[] }[],
         close: (_tabs: unknown): Promise<boolean> => Promise.resolve(true),
@@ -166,6 +178,9 @@ const window = {
 };
 
 const commands = {
+    registerCommand: (_command: string, _callback: unknown) => ({
+        dispose: () => {},
+    }),
     executeCommand: (_command: string, ..._args: unknown[]) =>
         Promise.resolve(undefined),
 };

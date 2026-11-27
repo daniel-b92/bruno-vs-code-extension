@@ -245,7 +245,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     targetCollection,
                     originalItem,
                     dirname(newPath),
-                    sourcePath,
+                    newPath,
                 )
             ) {
                 return;
@@ -306,7 +306,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     targetCollection,
                     originalItem,
                     target.getPath(),
-                    sourcePath,
+                    newPath,
                 )
             ) {
                 return;
@@ -345,31 +345,36 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             ...Object.values(FolderDropInsertionOption),
         );
 
-        if (
-            !pickedOption ||
-            (await this.rejectInsertionIfNameIsUsedBySibling(
-                targetCollection,
-                originalItem,
-                pickedOption ==
-                    FolderDropInsertionOption.MoveIntoTargetAsSubfolder
-                    ? target.getPath()
-                    : dirname(target.getPath()),
-                sourcePath,
-            ))
-        ) {
+        if (!pickedOption) {
             return;
         }
 
         // Overwriting is only offered for moving into the target folder.
-        const { proceed, overwrite } =
-            pickedOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
-                ? await this.requestConfirmationForOverwritingItemIfNeeded(
-                      sourcePath,
-                      // With this insertion option, the new item path is the same as if moving a file.
-                      resolve(target.getPath(), basename(sourcePath)),
-                      targetCollection,
-                  )
-                : { proceed: true, overwrite: false };
+        const isMovedIntoTarget =
+            pickedOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder;
+        const targetFolder = isMovedIntoTarget
+            ? target.getPath()
+            : dirname(target.getPath());
+        const newPath = resolve(targetFolder, basename(sourcePath));
+
+        if (
+            await this.rejectInsertionIfNameIsUsedBySibling(
+                targetCollection,
+                originalItem,
+                targetFolder,
+                isMovedIntoTarget ? newPath : sourcePath,
+            )
+        ) {
+            return;
+        }
+
+        const { proceed, overwrite } = isMovedIntoTarget
+            ? await this.requestConfirmationForOverwritingItemIfNeeded(
+                  sourcePath,
+                  newPath,
+                  targetCollection,
+              )
+            : { proceed: true, overwrite: false };
 
         if (!proceed) {
             return;
