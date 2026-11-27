@@ -27,8 +27,6 @@ import {
     FileSystemCacheSyncingHelper,
     removeConfigForCollection,
     BrunoTreeItem,
-    getSequenceStepFromSettings,
-    shouldRenumberSequencesAutomatically,
     shouldPrefixNamesWithSequence,
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
@@ -47,8 +45,6 @@ import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
 import { replaceNameInBrunoJson } from "./explorer/fileUtils/replaceNameInBrunoJson";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
-import { normalizeSequencesForRequestsAndAppFiles } from "./explorer/fileUtils/normalizeSequencesForRequestsAndAppFiles";
-import { normalizeSequencesForFolders } from "./explorer/folderUtils/normalizeSequencesForFolders";
 import { normalizeSequencesRecursively } from "./explorer/normalizeSequencesRecursively";
 import { selectSequenceStep } from "./explorer/selectSequenceStep";
 import { updateSettingsFileOfDuplicatedFolder } from "./explorer/folderUtils/updateSettingsFileOfDuplicatedFolder";
@@ -83,6 +79,7 @@ import { getCheckForNamesOfDuplicatedItem } from "./explorer/sequencePrefixUtils
 import { getFolderWithItemsAffectedByFile } from "./explorer/sequencePrefixUtils/getFolderWithItemsAffectedByFile";
 import { getNameUsedBySiblingOfInsertedItem } from "./explorer/sequencePrefixUtils/getNameUsedBySiblingOfInsertedItem";
 import { getSiblingNamesWithoutSequencePrefix } from "./explorer/sequencePrefixUtils/getSiblingNamesWithoutSequencePrefix";
+import { updateSequencesAfterDeletingItem } from "./explorer/updateSequencesAfterDeletingItem";
 import { removeSequencePrefixesRecursively } from "./explorer/sequencePrefixUtils/removeSequencePrefixesRecursively";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
@@ -1128,53 +1125,19 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 // Before renumbering, because a remaining item can be renamed to the path of the deleted one then.
                 await closeTabsRelatedToItem(treeItem);
 
-                // ToDo: Replace usage of item provider in called utility functions with passing collection as a parameter directly.
-
-                // Unless renumbering is enabled in the settings, the sequences of the remaining items are kept after a deletion.
-                const shouldRenumber = shouldRenumberSequencesAutomatically();
-                const sequenceStep = getSequenceStepFromSettings();
-
-                if (
-                    parentFolder &&
-                    (itemType == BrunoFileType.RequestFile ||
-                        itemType == BrunoFileType.AppFile) &&
-                    (await checkIfPathExistsAsync(dirname(path)))
-                ) {
-                    if (shouldRenumber) {
-                        await normalizeSequencesForRequestsAndAppFiles(
-                            this.itemProvider,
-                            dirname(path),
-                            sequenceStep,
-                        );
-                        await syncSequencePrefixes(
-                            this.itemProvider,
-                            [parentFolder],
-                            { logger: this.logger, previousSequences },
-                        );
-                    }
-                } else if (
-                    parentFolder &&
-                    (itemType == BrunoFileType.FolderSettingsFile ||
-                        (!itemType &&
-                            !treeItem.isFile &&
-                            treeItem.getSequence())) &&
-                    (await checkIfPathExistsAsync(dirname(path)))
-                ) {
-                    if (shouldRenumber) {
-                        await normalizeSequencesForFolders(
-                            this.itemProvider,
-                            parentFolder,
-                            sequenceStep,
-                        );
-                        await syncSequencePrefixes(
-                            this.itemProvider,
-                            [parentFolder],
-                            { logger: this.logger, previousSequences },
-                        );
-                    }
-                } else if (collection.isRootDirectory(treeItem.getPath())) {
-                    await removeConfigForCollection(treeItem.getPath());
+                if (collection.isRootDirectory(path)) {
+                    await removeConfigForCollection(path);
+                    return;
                 }
+
+                // ToDo: Replace usage of item provider in called utility functions with passing collection as a parameter directly.
+                await updateSequencesAfterDeletingItem(
+                    this.itemProvider,
+                    { path, itemType, sequence: treeItem.getSequence() },
+                    parentFolder,
+                    previousSequences,
+                    this.logger,
+                );
             },
         );
     }
