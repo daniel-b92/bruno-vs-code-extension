@@ -10,6 +10,7 @@ import {
 } from "@global_shared";
 import { shouldPrefixNamesWithSequence } from "@shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
+import { addSequenceToSection } from "../sequenceUtils/addSequenceToSection";
 
 /**
  * Sets the sequence in the folder settings file of the given folder, without changing any other settings.
@@ -60,16 +61,18 @@ export async function setSequenceForFolder(
         return await replaceSequenceForFile(settingsFile, sequence);
     }
 
-    const contentWithSequence = addSequenceToContent(
+    const { hasSection, contentWithSequence } = addSequenceToSection(
         content,
-        folderName,
         sequence,
         format,
     );
+    const newContent = hasSection
+        ? contentWithSequence
+        : addSectionToContent(content, folderName, sequence, format);
 
-    return contentWithSequence === undefined
+    return newContent === undefined
         ? false
-        : await writeFile(settingsFile, contentWithSequence)
+        : await writeFile(settingsFile, newContent)
               .then(() => true)
               .catch(() => false);
 }
@@ -87,67 +90,19 @@ function getMinimalContent(
         : `meta {\n  name: ${folderName}\n  seq: ${sequence}\n}\n`;
 }
 
-/** Returns `undefined` if the existing content has a structure that is not supported for adding the sequence. */
-function addSequenceToContent(
+/** For a file that has no `info` or `meta` section at all (e.g. one with only headers). */
+function addSectionToContent(
     content: string,
     folderName: string,
     sequence: number,
     format: CollectionFormat,
 ) {
     const eol = content.includes("\r\n") ? "\r\n" : "\n";
-    const [sectionAnywhere, sectionStart] =
-        format == CollectionFormat.Yaml
-            ? ([/^info:/m, /^info:[ \t]*\r?\n/m] as const)
-            : ([/^meta[ \t]*\{/m, /^meta[ \t]*\{[ \t]*\r?\n/m] as const);
-    const match = sectionStart.exec(content);
-
-    if (!match && sectionAnywhere.test(content)) {
-        // The section exists, but not in the usual multi-line notation (e.g. `info: {}`).
-        return undefined;
-    }
-
-    if (!match) {
-        // A file that has no `info` or `meta` section at all (e.g. one with only headers).
-        const separator = content.length > 0 ? eol : "";
-        return (
-            getMinimalContent(folderName, sequence, format).replace(
-                /\n/g,
-                eol,
-            ) +
-            separator +
-            content
-        );
-    }
-
-    const insertionIndex = match.index + match[0].length;
-
-    if (hasSequenceKey(content.slice(insertionIndex))) {
-        // There is a `seq` key, but its value is not a valid sequence. Adding a second one would make the file invalid.
-        return undefined;
-    }
-
-    // The new line needs to use the same indentation as the existing properties of the section.
-    const indentation =
-        /^([ \t]+)\S/.exec(content.slice(insertionIndex))?.[1] ?? "  ";
+    const separator = content.length > 0 ? eol : "";
 
     return (
-        content.slice(0, insertionIndex) +
-        `${indentation}seq: ${sequence}${eol}` +
-        content.slice(insertionIndex)
+        getMinimalContent(folderName, sequence, format).replace(/\n/g, eol) +
+        separator +
+        content
     );
-}
-
-/** Checks whether the section that starts at the beginning of the given content (up to the next non-indented line) contains a `seq` key. */
-function hasSequenceKey(contentAfterSectionStart: string) {
-    for (const line of contentAfterSectionStart.split(/\r?\n/)) {
-        if (/^\S/.test(line)) {
-            return false;
-        }
-
-        if (/^[ \t]+seq[ \t]*:/.test(line)) {
-            return true;
-        }
-    }
-
-    return false;
 }

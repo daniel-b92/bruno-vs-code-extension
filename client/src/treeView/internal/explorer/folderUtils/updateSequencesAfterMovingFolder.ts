@@ -23,6 +23,8 @@ export async function updateSequencesAfterMovingFolder(
     sourcePath: string,
     target: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,
+    /** The sequence of the folder that was overwritten by moving into the target folder. The moved folder takes it over. */
+    replacedSequence?: number,
 ) {
     const collection = itemProvider.getAncestorCollectionForPath(sourcePath);
 
@@ -42,13 +44,15 @@ export async function updateSequencesAfterMovingFolder(
         const parentFolder = target.getPath();
         const newFolderPath = resolve(parentFolder, basename(sourcePath));
 
-        const { newSequence } = calculateSequenceChangesForInsertion(
-            await getSequencesOfOtherFolders(itemProvider, parentFolder, [
-                newFolderPath,
-            ]),
-            { type: SequenceInsertionPointType.Append },
-            sequenceStep,
-        );
+        const newSequence =
+            replacedSequence ??
+            calculateSequenceChangesForInsertion(
+                await getSequencesOfOtherFolders(itemProvider, parentFolder, [
+                    newFolderPath,
+                ]),
+                { type: SequenceInsertionPointType.Append },
+                sequenceStep,
+            ).newSequence;
 
         if (!(await setSequenceForFolder(newFolderPath, newSequence, format))) {
             showErrorMessageForFailedDragAndDrop(sourcePath);

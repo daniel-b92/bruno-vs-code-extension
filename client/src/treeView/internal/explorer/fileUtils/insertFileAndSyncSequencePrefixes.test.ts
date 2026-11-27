@@ -13,10 +13,11 @@ import {
 import {
     createCollectionWithItems,
     folderSettingsContent,
+    getRequestSequences,
     requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
-import { TypedCollectionItemProvider } from "@shared";
+import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
 import {
     applyWorkspaceEdit,
     mockVsCodeSettings,
@@ -105,6 +106,88 @@ describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
                 `00030_y${extension}`,
             ]);
         });
+
+        it.each(
+            [10, undefined].flatMap((copiedSequence) =>
+                [false, true].flatMap((renumber) =>
+                    [false, true].map((isPastedOnFile) => ({
+                        copiedSequence,
+                        renumber,
+                        isPastedOnFile,
+                    })),
+                ),
+            ),
+        )(
+            "takes over the sequence of an overwritten request (copied sequence: $copiedSequence, renumbering: $renumber, pasted on file: $isPastedOnFile)",
+            async ({ copiedSequence, renumber, isPastedOnFile }) => {
+                mockVsCodeSettings({
+                    "bru-as-code.renumberSequencesAutomatically": renumber,
+                    "bru-as-code.sequenceStep": 10,
+                });
+                const extension = getFileExtensionForFormat(format);
+                const files = [
+                    { path: join("a", `x${extension}`), name: "x" },
+                    { path: join("b", `x${extension}`), name: "x" },
+                    { path: join("b", `first${extension}`), name: "first" },
+                    { path: join("b", `last${extension}`), name: "last" },
+                ];
+                const sequences = [copiedSequence, 20, 10, 30];
+                const directory = await createTemporaryDirectory(
+                    Object.fromEntries(
+                        files.map(({ path, name }, index) => [
+                            path,
+                            requestContent(format, name, sequences[index]),
+                        ]),
+                    ),
+                );
+                const items = files.map(
+                    ({ path }, index) =>
+                        new BrunoRequestFile(
+                            join(directory, path),
+                            sequences[index],
+                        ),
+                );
+                const { itemProvider } =
+                    createCollectionWithItems<TypedCollectionItemProvider>(
+                        [
+                            new CollectionDirectory(join(directory, "a")),
+                            new CollectionDirectory(join(directory, "b")),
+                            ...items,
+                        ],
+                        format,
+                        [],
+                        directory,
+                    );
+                const newPath = join(directory, "b", `x${extension}`);
+
+                await insertFileAndSyncSequencePrefixes(
+                    itemProvider,
+                    items[0],
+                    {
+                        newPath,
+                        insertionPosition: isPastedOnFile
+                            ? {
+                                  type: RequestFileInsertionPositionType.AfterFile,
+                                  item: new BrunoTreeItem(
+                                      newPath,
+                                      true,
+                                      false,
+                                      20,
+                                  ),
+                              }
+                            : RequestFileInsertionPositionType.Folder,
+                    },
+                );
+
+                expect(await getRequestSequences(join(directory, "b"))).toEqual(
+                    {
+                        [`first${extension}`]: 10,
+                        [`x${extension}`]: 20,
+                        [`last${extension}`]: 30,
+                    },
+                );
+            },
+        );
 
         async function insertSettingsFile(targetFolder: string) {
             mockPrefixSettings();

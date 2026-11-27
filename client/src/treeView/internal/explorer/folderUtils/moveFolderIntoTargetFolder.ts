@@ -1,5 +1,5 @@
 import { basename, dirname, resolve } from "path";
-import { Logger, normalizePath } from "@global_shared";
+import { getSequenceForFolder, Logger, normalizePath } from "@global_shared";
 import { TypedCollectionItemProvider, BrunoTreeItem } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
@@ -29,6 +29,15 @@ export async function moveFolderIntoTargetFolder(
         itemProvider,
         affectedFolders,
     );
+    // Has to be read before the existing folder is overwritten. Overwriting is only supported for moving into the target folder.
+    const replacedSequence =
+        overwrite &&
+        insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
+            ? await getSequenceOfFolder(
+                  itemProvider,
+                  resolve(targetItem.getPath(), basename(sourcePath)),
+              )
+            : undefined;
     const move = await moveFolderIfNecessary(
         itemProvider,
         sourcePath,
@@ -44,6 +53,7 @@ export async function moveFolderIntoTargetFolder(
 
     if (
         originalItemSequence ||
+        replacedSequence !== undefined ||
         insertionOption != FolderDropInsertionOption.MoveIntoTargetAsSubfolder
     ) {
         await updateSequencesAfterMovingFolder(
@@ -51,6 +61,7 @@ export async function moveFolderIntoTargetFolder(
             sourcePath,
             targetItem,
             insertionOption,
+            replacedSequence,
         );
     }
 
@@ -60,6 +71,21 @@ export async function moveFolderIntoTargetFolder(
         // The collection data may not know the items of the moved folder at their new locations yet.
         previousRenames: move.rename ? [move.rename] : undefined,
     });
+}
+
+async function getSequenceOfFolder(
+    itemProvider: TypedCollectionItemProvider,
+    folderPath: string,
+) {
+    const collection = itemProvider.getAncestorCollectionForPath(folderPath);
+
+    return collection
+        ? await getSequenceForFolder(
+              collection.getRootDirectory(),
+              folderPath,
+              collection.getFormat(),
+          )
+        : undefined;
 }
 
 async function moveFolderIfNecessary(

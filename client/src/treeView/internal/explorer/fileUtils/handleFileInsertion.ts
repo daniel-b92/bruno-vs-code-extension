@@ -12,6 +12,7 @@ import {
     isInEnvironmentsFolderOfCollection,
     ItemType,
     normalizePath,
+    parseSequenceFromFile,
     ReadyOnlyCollection,
 } from "@global_shared";
 import { DialogOptionLabelEnum, TypedCollectionItemProvider } from "@shared";
@@ -174,6 +175,14 @@ async function insertFile(
     newContent?: string,
 ) {
     const { newPath, insertionPosition } = target;
+    const itemType = sourceItem.getItemType();
+    const isRequestOrAppFile =
+        itemType == BrunoFileType.RequestFile ||
+        itemType == BrunoFileType.AppFile;
+    // Has to be read before an existing file is overwritten.
+    const replacedSequence = isRequestOrAppFile
+        ? await parseSequenceFromFile(newPath)
+        : undefined;
 
     if (
         newContent === undefined &&
@@ -196,14 +205,14 @@ async function insertFile(
     }
 
     if (
-        (sourceItem.getItemType() == BrunoFileType.RequestFile ||
-            sourceItem.getItemType() == BrunoFileType.AppFile) &&
-        isCollectionItemWithSequence(sourceItem) &&
-        sourceItem.getSequence() != undefined
+        isRequestOrAppFile &&
+        (replacedSequence !== undefined ||
+            (isCollectionItemWithSequence(sourceItem) &&
+                sourceItem.getSequence() != undefined))
     ) {
         const sourceItemDirectory = dirname(sourceItem.getPath());
         const targetDirectory = dirname(newPath);
-        // Only if the source file has a sequence, sequences of requests and app files may need to be adjusted.
+        // Only if the source or the overwritten file has a sequence, sequences of requests and app files may need to be adjusted.
 
         await updateSequencesAfterInsertingRequestOrAppFile(
             itemProvider,
@@ -217,6 +226,7 @@ async function insertFile(
                         ? undefined
                         : sourceItemDirectory,
             },
+            replacedSequence,
         );
     }
     return true;
