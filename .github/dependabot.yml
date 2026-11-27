@@ -26,3 +26,9 @@ updates:
           interval: "weekly"
       cooldown:
           default-days: 7
+      groups:
+          # All steps using `github/codeql-action` (`init`, `analyze`, ...) must use the same version, otherwise the
+          # workflow fails. Grouping them makes Dependabot update all of them in a single pull request.
+          codeql-action:
+              patterns:
+                  - "github/codeql-action*"
