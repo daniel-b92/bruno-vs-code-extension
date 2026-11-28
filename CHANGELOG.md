@@ -11,6 +11,7 @@
 
 ### Fixes / Maintenance
 
+- Offer to save the step chosen in "Normalize sequences" as `bru-as-code.sequenceStep` in the workspace settings, if it differs from the configured one.
 - Keep the position of the replaced item (its `seq`) when overwriting a folder via drag and drop, or a request or app file by dropping or pasting onto it.
 - Reject empty names for requests and names with a path separator for any item when creating or renaming them in the collection explorer.
 - Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls (e.g. for `headerList.has` and the cookie jar).
