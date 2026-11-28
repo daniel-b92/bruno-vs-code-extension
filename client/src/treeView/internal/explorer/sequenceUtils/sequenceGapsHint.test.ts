@@ -25,7 +25,7 @@ describe("sequenceGapsHint", () => {
         jest.restoreAllMocks();
     });
 
-    it("shows the hint with the number of shifted items and both options", async () => {
+    it("shows the hint with the number of shifted items and a link to the README", async () => {
         const show = mockHint();
 
         await showHintFor(7);
@@ -34,7 +34,6 @@ describe("sequenceGapsHint", () => {
         expect(show.mock.calls[0]).toEqual([
             "Inserting this item also changed the sequence of 7 other items. With gaps between sequences, most inserts only change one file.",
             { title: "Learn more" },
-            { title: "Do not show again" },
         ]);
     });
 
@@ -80,7 +79,16 @@ describe("sequenceGapsHint", () => {
         expect(show).toHaveBeenCalledTimes(1);
     });
 
-    it("is not shown again while it is still open", async () => {
+    it("is not shown again while it is still open, even before the global state is updated", async () => {
+        const context = createExtensionContextStub();
+        const { update } = context.globalState;
+        jest.spyOn(context.globalState, "update").mockImplementation(
+            async (key, value) => {
+                await flushPromises();
+                await update(key, value);
+            },
+        );
+        initializeSequenceGapsHint(context);
         const show = mockHint().mockReturnValue(new Promise<never>(() => {}));
 
         showSequenceGapsHintIfNeeded(3);
@@ -103,17 +111,14 @@ describe("sequenceGapsHint", () => {
         );
     });
 
-    it.each([undefined, "Do not show again"])(
-        "does not open anything if %s is picked",
-        async (pick) => {
-            mockHint(pick);
-            const open = jest.spyOn(env, "openExternal");
+    it("does not open anything if the hint is closed", async () => {
+        mockHint();
+        const open = jest.spyOn(env, "openExternal");
 
-            await showHintFor(3);
+        await showHintFor(3);
 
-            expect(open).not.toHaveBeenCalled();
-        },
-    );
+        expect(open).not.toHaveBeenCalled();
+    });
 
     it("logs a warning if handling the picked option fails", async () => {
         mockHint("Learn more");

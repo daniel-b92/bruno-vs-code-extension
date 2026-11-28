@@ -12,10 +12,13 @@ const readmeLink =
     "https://github.com/daniel-b92/bruno-vs-code-extension#review-friendly-diffs";
 
 let extensionContext: ExtensionContext | undefined;
+/** Prevents showing the hint again before the global state has been updated (e.g. while it is still open). */
+let wasShownInThisSession = false;
 
 /** Has to be called on activation, since the global state of the context stores whether the hint was already shown. */
 export function initializeSequenceGapsHint(context: ExtensionContext) {
     extensionContext = context;
+    wasShownInThisSession = false;
 }
 
 /**
@@ -28,6 +31,7 @@ export function showSequenceGapsHintIfNeeded(shiftedItemsCount: number) {
 
     if (
         !context ||
+        wasShownInThisSession ||
         shiftedItemsCount < minShiftedItemsForHint ||
         context.globalState.get<boolean>(wasShownStateKey) ||
         getSequenceStepFromSettings() != 1 ||
@@ -36,19 +40,18 @@ export function showSequenceGapsHintIfNeeded(shiftedItemsCount: number) {
         return;
     }
 
+    wasShownInThisSession = true;
     void showHint(context, shiftedItemsCount);
 }
 
 async function showHint(context: ExtensionContext, shiftedItemsCount: number) {
     try {
-        // Stored before showing the message, so that further inserts do not show it again while it is still open.
-        // Therefore, it also does not matter whether the user closes it or selects "Do not show again".
+        // Stored before showing the message, so that it is not shown again, no matter how the user reacts to it.
         await context.globalState.update(wasShownStateKey, true);
 
         const pickedOption = await window.showInformationMessage<MessageItem>(
             `Inserting this item also changed the sequence of ${shiftedItemsCount} other items. With gaps between sequences, most inserts only change one file.`,
             { title: DialogOptionLabelEnum.LearnMore },
-            { title: DialogOptionLabelEnum.DoNotShowAgain },
         );
 
         if (pickedOption?.title == DialogOptionLabelEnum.LearnMore) {
