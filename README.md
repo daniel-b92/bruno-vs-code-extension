@@ -13,6 +13,14 @@ This extension lets you work with [Bruno](https://docs.usebruno.com/) collection
 
 ![Extension usage](images/extension_usage.gif)
 
+The collection explorer next to a request in the `yaml` format:
+
+![Collection explorer with an opened request](images/explorer_with_editor.png)
+
+A finished test run with the HTML report and the output of the Bruno CLI:
+
+![Finished test run with HTML report and test results](images/finished-testrun.png)
+
 ## Using the extension
 
 ### Getting started
