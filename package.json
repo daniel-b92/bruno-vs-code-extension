@@ -1,7 +1,7 @@
 {
     "name": "bru-as-code",
-    "displayName": "bru-as-code",
-    "description": "Work with Bruno collections (Bru and YAML formats) like code: language support, a collection explorer and test runs via the Bruno CLI.",
+    "displayName": "bru-as-code (Bruno collections)",
+    "description": "Bruno collections (Bru and YAML) as code: IntelliSense, diagnostics, a collection explorer and test runs via the Bruno CLI.",
     "version": "2.2.0",
     "publisher": "daniel-b92",
     "private": true,
@@ -13,6 +13,7 @@
     "bugs": {
         "url": "https://github.com/daniel-b92/bruno-vs-code-extension/issues"
     },
+    "qna": "https://github.com/daniel-b92/bruno-vs-code-extension/issues",
     "engines": {
         "vscode": "^1.140.0"
     },
@@ -21,17 +22,31 @@
     ],
     "categories": [
         "Testing",
-        "Snippets",
         "Programming Languages",
-        "Linters"
+        "Linters",
+        "Formatters"
     ],
     "keywords": [
         "Bruno",
         "API Testing",
         "Test Automation",
-        "Bruno CLI"
+        "Bruno CLI",
+        "bru",
+        "usebruno",
+        "OpenCollection",
+        "YAML",
+        "REST",
+        "HTTP",
+        "API Client",
+        "GraphQL",
+        "IntelliSense",
+        "Collection Explorer"
     ],
     "icon": "./icon.png",
+    "galleryBanner": {
+        "color": "#1E1E2E",
+        "theme": "dark"
+    },
     "activationEvents": [
         "workspaceContains:**/*.bru",
         "workspaceContains:**/opencollection.yml"
@@ -202,7 +217,7 @@
                     ".bru"
                 ],
                 "aliases": [
-                    "bru",
+                    "Bru",
                     "bru"
                 ],
                 "configuration": "./client/src/languageFeatures/language-configuration.json"
