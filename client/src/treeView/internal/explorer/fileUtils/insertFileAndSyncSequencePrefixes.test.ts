@@ -110,16 +110,18 @@ describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
         it.each(
             [10, undefined].flatMap((copiedSequence) =>
                 [false, true].flatMap((renumber) =>
-                    [false, true].map((isPastedOnFile) => ({
-                        copiedSequence,
-                        renumber,
-                        isPastedOnFile,
-                    })),
+                    (["folder", "replaced file", "last file"] as const).map(
+                        (pastedOn) => ({
+                            copiedSequence,
+                            renumber,
+                            pastedOn,
+                        }),
+                    ),
                 ),
             ),
         )(
-            "takes over the sequence of an overwritten request (copied sequence: $copiedSequence, renumbering: $renumber, pasted on file: $isPastedOnFile)",
-            async ({ copiedSequence, renumber, isPastedOnFile }) => {
+            "only takes over the sequence of an overwritten request if pasted on it (copied sequence: $copiedSequence, renumbering: $renumber, pasted on: $pastedOn)",
+            async ({ copiedSequence, renumber, pastedOn }) => {
                 mockVsCodeSettings({
                     "bru-as-code.renumberSequencesAutomatically": renumber,
                     "bru-as-code.sequenceStep": 10,
@@ -159,31 +161,37 @@ describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
                         directory,
                     );
                 const newPath = join(directory, "b", `x${extension}`);
+                const afterFile = (path: string, sequence: number) => ({
+                    type: RequestFileInsertionPositionType.AfterFile as const,
+                    item: new BrunoTreeItem(path, true, false, sequence),
+                });
+                const insertionPositions = {
+                    folder: RequestFileInsertionPositionType.Folder as const,
+                    "replaced file": afterFile(newPath, 20),
+                    "last file": afterFile(
+                        join(directory, "b", `last${extension}`),
+                        30,
+                    ),
+                };
 
                 await insertFileAndSyncSequencePrefixes(
                     itemProvider,
                     items[0],
                     {
                         newPath,
-                        insertionPosition: isPastedOnFile
-                            ? {
-                                  type: RequestFileInsertionPositionType.AfterFile,
-                                  item: new BrunoTreeItem(
-                                      newPath,
-                                      true,
-                                      false,
-                                      20,
-                                  ),
-                              }
-                            : RequestFileInsertionPositionType.Folder,
+                        insertionPosition: insertionPositions[pastedOn],
                     },
                 );
+
+                const isTakenOver = pastedOn == "replaced file";
+                const lastSequence = !isTakenOver && renumber ? 20 : 30;
+                const appendedSequence = renumber ? 30 : 40;
 
                 expect(await getRequestSequences(join(directory, "b"))).toEqual(
                     {
                         [`first${extension}`]: 10,
-                        [`x${extension}`]: 20,
-                        [`last${extension}`]: 30,
+                        [`x${extension}`]: isTakenOver ? 20 : appendedSequence,
+                        [`last${extension}`]: lastSequence,
                     },
                 );
             },

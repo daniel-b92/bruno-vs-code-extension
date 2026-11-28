@@ -1,5 +1,7 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
+import { readFile } from "fs/promises";
 import { join } from "path";
+import { window } from "vscode";
 import { CollectionDirectory, CollectionFormat } from "@global_shared";
 import {
     createCollectionWithItems,
@@ -270,6 +272,34 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
         });
     });
 
+    it.each([
+        [CollectionFormat.Bru, "new.bru", "get {\n}\n"],
+        [CollectionFormat.Yaml, "new.yml", "info: {}\n"],
+    ])(
+        "shows an error if the replaced sequence cannot be set (%s)",
+        async (format, fileName, content) => {
+            const showErrorMessage = jest
+                .spyOn(window, "showErrorMessage")
+                .mockResolvedValue(undefined);
+            const directory = await createTemporaryDirectory({
+                [fileName]: content,
+            });
+
+            await runUpdate(
+                directory,
+                RequestFileInsertionPositionType.Folder,
+                fileName,
+                format,
+                20,
+            );
+
+            expect(showErrorMessage.mock.calls[0]?.[0]).toContain(fileName);
+            expect(await readFile(join(directory, fileName), "utf-8")).toBe(
+                content,
+            );
+        },
+    );
+
     describe("with automatic renumbering enabled", () => {
         it("renumbers the target directory with the configured step", async () => {
             mockVsCodeSettings({
@@ -337,6 +367,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
         targetPosition: FileInsertionPosition,
         newFileName: string,
         format = CollectionFormat.Bru,
+        replacedSequence?: number,
     ) {
         const { itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
@@ -351,6 +382,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
             targetPosition,
             join(directory, newFileName),
             { targetDirectory: directory },
+            replacedSequence,
         );
     }
 });

@@ -10,7 +10,7 @@
 
 ### Fixes / Maintenance
 
-- Keep the position of the replaced item (its `seq`) when overwriting a request, app file or folder via drag and drop or paste.
+- Keep the position of the replaced item (its `seq`) when overwriting a folder via drag and drop, or a request or app file by dropping or pasting onto it.
 - Reject empty names for requests and names with a path separator for any item when creating or renaming them in the collection explorer.
 - Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls (e.g. for `headerList.has` and the cookie jar).
 - Show an info message (once per session, can be disabled via `bru-as-code.informAboutTypescript7`) when the Typescript 7 language server is used, since it does not support Javascript intellisense in Bruno files yet.
