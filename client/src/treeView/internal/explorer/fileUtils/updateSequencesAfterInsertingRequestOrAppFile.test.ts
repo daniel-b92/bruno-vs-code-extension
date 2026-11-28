@@ -1,15 +1,12 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
-import { readdir } from "fs/promises";
+import { chmod, readFile } from "fs/promises";
 import { join } from "path";
-import {
-    CollectionDirectory,
-    CollectionFormat,
-    getFileExtensionForFormat,
-    parseSequenceFromFile,
-} from "@global_shared";
+import { window } from "vscode";
+import { CollectionDirectory, CollectionFormat } from "@global_shared";
 import {
     createCollectionWithItems,
     getModifiedFiles,
+    getRequestSequences,
     markFilesAsUnmodified,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
@@ -44,7 +41,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
             await runUpdate(directory, afterFile(10), "new.bru");
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "get-user.bru": 10,
                 "new.bru": 15,
                 "create-user.bru": 20,
@@ -68,7 +65,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
             await runUpdate(directory, afterFile(1), "new.bru");
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "a.bru": 1,
                 "new.bru": 2,
                 "b.bru": 3,
@@ -87,7 +84,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
             await runUpdate(directory, afterFile(2), "new.bru");
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "app.bru": 2,
                 "new.bru": 3,
                 "b.bru": 4,
@@ -111,7 +108,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
                 "new.bru",
             );
 
-            expect((await getSequences(directory))["new.bru"]).toBe(8);
+            expect((await getRequestSequences(directory))["new.bru"]).toBe(8);
             expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
         });
 
@@ -129,7 +126,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
                 "new.bru",
             );
 
-            expect((await getSequences(directory))["new.bru"]).toBe(30);
+            expect((await getRequestSequences(directory))["new.bru"]).toBe(30);
         });
 
         it("uses the sequence of the target plus the step, if the target is the last file", async () => {
@@ -142,7 +139,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
             await runUpdate(directory, afterFile(20), "new.bru");
 
-            expect((await getSequences(directory))["new.bru"]).toBe(30);
+            expect((await getRequestSequences(directory))["new.bru"]).toBe(30);
         });
 
         it("ignores the previous sequence of a file that is moved within its directory", async () => {
@@ -159,7 +156,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
             // Moves `a` behind `c`.
             await runUpdate(directory, afterFile(3), "a.bru");
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "b.bru": 2,
                 "c.bru": 3,
                 "a.bru": 4,
@@ -177,7 +174,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
             // Moves `c` behind `a`.
             await runUpdate(directory, afterFile(1), "c.bru");
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "a.bru": 1,
                 "c.bru": 2,
                 "b.bru": 3,
@@ -199,7 +196,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
                 { targetDirectory: directory, otherDirectory },
             );
 
-            expect(await getSequences(otherDirectory)).toEqual({
+            expect(await getRequestSequences(otherDirectory)).toEqual({
                 "x.bru": 1,
                 "z.bru": 3,
             });
@@ -223,7 +220,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
             await runUpdate(directory, afterFile(10), "new.yml", format);
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "get-user.yml": 10,
                 "new.yml": 15,
                 "create-user.yml": 20,
@@ -246,7 +243,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
             await runUpdate(directory, afterFile(1), "new.yml", format);
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "a.yml": 1,
                 "new.yml": 2,
                 "b.yml": 3,
@@ -271,8 +268,80 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
                 format,
             );
 
-            expect((await getSequences(directory))["new.yml"]).toBe(30);
+            expect((await getRequestSequences(directory))["new.yml"]).toBe(30);
         });
+    });
+
+    it.each<[string, FileInsertionPosition]>([
+        ["a file", afterFile(1)],
+        ["the folder", RequestFileInsertionPositionType.Folder],
+    ])(
+        "does not change any sequences, if the inserted file has none and the target is %s",
+        async (_, targetPosition) => {
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 1),
+                "b.bru": requestFile("b", 2),
+                "new.bru": "meta {\n  name: new\n  type: http\n}\n",
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "a.bru",
+                "b.bru",
+                "new.bru",
+            ]);
+
+            await runUpdate(directory, targetPosition, "new.bru");
+
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        },
+    );
+
+    it.each([
+        [CollectionFormat.Bru, "new.bru", "get {\n}\n"],
+        [CollectionFormat.Yaml, "new.yml", "info: {}\n"],
+    ])(
+        "shows an error if the replaced sequence cannot be set (%s)",
+        async (format, fileName, content) => {
+            const showErrorMessage = jest
+                .spyOn(window, "showErrorMessage")
+                .mockResolvedValue(undefined);
+            const directory = await createTemporaryDirectory({
+                [fileName]: content,
+            });
+
+            await runUpdate(
+                directory,
+                RequestFileInsertionPositionType.Folder,
+                fileName,
+                format,
+                20,
+            );
+
+            expect(showErrorMessage.mock.calls[0]?.[0]).toContain(fileName);
+            expect(await readFile(join(directory, fileName), "utf-8")).toBe(
+                content,
+            );
+        },
+    );
+
+    it("shows only one error if the sequence cannot be written", async () => {
+        const showErrorMessage = jest
+            .spyOn(window, "showErrorMessage")
+            .mockResolvedValue(undefined);
+        const directory = await createTemporaryDirectory({
+            "new.bru": requestFile("new", 1),
+        });
+        await chmod(join(directory, "new.bru"), 0o444);
+
+        await runUpdate(
+            directory,
+            RequestFileInsertionPositionType.Folder,
+            "new.bru",
+            CollectionFormat.Bru,
+            20,
+        );
+
+        expect(showErrorMessage).toHaveBeenCalledTimes(1);
+        expect(showErrorMessage.mock.calls[0]?.[0]).toContain("new.bru");
     });
 
     describe("with automatic renumbering enabled", () => {
@@ -289,7 +358,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
             await runUpdate(directory, afterFile(3), "new.bru");
 
-            expect(await getSequences(directory)).toEqual({
+            expect(await getRequestSequences(directory)).toEqual({
                 "a.bru": 10,
                 "new.bru": 20,
                 "b.bru": 30,
@@ -310,7 +379,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
                 { targetDirectory: directory, otherDirectory },
             );
 
-            expect(await getSequences(otherDirectory)).toEqual({
+            expect(await getRequestSequences(otherDirectory)).toEqual({
                 "x.bru": 1,
                 "z.bru": 2,
             });
@@ -342,6 +411,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
         targetPosition: FileInsertionPosition,
         newFileName: string,
         format = CollectionFormat.Bru,
+        replacedSequence?: number,
     ) {
         const { itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
@@ -356,6 +426,7 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
             targetPosition,
             join(directory, newFileName),
             { targetDirectory: directory },
+            replacedSequence,
         );
     }
 });
@@ -373,22 +444,11 @@ function requestFile(
 function afterFile(sequence: number): FileInsertionPosition {
     return {
         type: RequestFileInsertionPositionType.AfterFile,
-        item: { getSequence: () => sequence } as unknown as BrunoTreeItem,
+        item: new BrunoTreeItem(
+            `file-with-sequence-${sequence}`,
+            true,
+            false,
+            sequence,
+        ),
     };
-}
-
-/** Returns the sequences of all request files in the directory (keys are the file names). */
-async function getSequences(directory: string) {
-    const sequences: Record<string, number | undefined> = {};
-    const extensions = [CollectionFormat.Bru, CollectionFormat.Yaml].map(
-        getFileExtensionForFormat,
-    );
-
-    for (const name of (await readdir(directory)).filter((name) =>
-        extensions.some((extension) => name.endsWith(extension)),
-    )) {
-        sequences[name] = await parseSequenceFromFile(join(directory, name));
-    }
-
-    return sequences;
 }

@@ -117,6 +117,22 @@ describe("sortTreeItems", () => {
         });
     });
 
+    describe("sequence 0", () => {
+        it("is ordered like any other sequence", () => {
+            const items = [
+                makeItem(false, "no-seq-folder"),
+                makeItem(false, "first", 1),
+                makeItem(false, "zeroth", 0),
+            ];
+            const result = sortTreeItems(items);
+            expect(result.map((i) => i.label)).toEqual([
+                "zeroth",
+                "first",
+                "no-seq-folder",
+            ]);
+        });
+    });
+
     describe("does not mutate the input array", () => {
         it("returns a new array without modifying the original", () => {
             const items = [makeItem(true, "z.bru"), makeItem(true, "a.bru")];

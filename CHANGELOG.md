@@ -10,6 +10,7 @@
 
 ### Fixes / Maintenance
 
+- Keep the position of the replaced item (its `seq`) when overwriting a folder via drag and drop, or a request or app file by dropping or pasting onto it.
 - Reject empty names for requests and names with a path separator for any item when creating or renaming them in the collection explorer.
 - Fix the type definitions of the Bruno scripting API (compared with Bruno v4.4.0), so that hovers and completions are correct and no false errors are shown for valid calls (e.g. for `headerList.has` and the cookie jar).
 - Show an info message (once per session, can be disabled via `bru-as-code.informAboutTypescript7`) when the Typescript 7 language server is used, since it does not support Javascript intellisense in Bruno files yet.
@@ -19,6 +20,9 @@
 - Fix an issue that caused moving an item via drag-and-drop in the collection explorer to fail after confirming to overwrite an existing item.
 - Fix remaining folders not being renumbered after deleting a folder when `bru-as-code.renumberSequencesAutomatically` is enabled.
 - Show a clear error message when moving a folder before or after another one fails because a folder with the same name already exists there.
+- Fix the sequence of an app file not being adjusted when moving it to another folder via drag and drop.
+- Fix the sequences of other requests and app files being shifted when moving a file without a sequence onto them.
+- Fix issues with the sequence `0` (Bru collections), e.g. a folder keeping it when moved into another folder or duplicated, or being sorted like one without a sequence.
 
 ## [2.2.0] (2026-11-19)
 

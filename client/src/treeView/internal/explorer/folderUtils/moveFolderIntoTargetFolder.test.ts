@@ -6,11 +6,14 @@ import {
     BrunoRequestFile,
     CollectionDirectory,
     CollectionFormat,
+    getFolderSettingsFileName,
+    getSequencePrefix,
 } from "@global_shared";
 import {
     createCollectionWithItems,
     createFolderItem,
     folderSettingsContent,
+    getFolderSequences,
     requestContent,
     runRequestBlock,
     useTemporaryDirectories,
@@ -118,6 +121,57 @@ describe("moveFolderIntoTargetFolder", () => {
         ).toContain('runRequest("b/00020_users/00020_other")');
     });
 
+    // Only Bru collections can have folders with the sequence 0, it is invalid in Yaml files.
+    it("assigns a new sequence to a moved folder with the sequence 0", async () => {
+        const format = CollectionFormat.Bru;
+        mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const settingsFile = getFolderSettingsFileName(format);
+        const directory = await createTemporaryDirectory({
+            [`a/users/${settingsFile}`]: folderSettingsContent(
+                format,
+                "users",
+                0,
+            ),
+            [`b/existing/${settingsFile}`]: folderSettingsContent(
+                format,
+                "existing",
+                0,
+            ),
+        });
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    createFolderItem(join(directory, "a", "users"), format, 0),
+                    createFolderItem(
+                        join(directory, "b", "existing"),
+                        format,
+                        0,
+                    ),
+                ],
+                format,
+                [],
+                directory,
+            );
+
+        await moveFolderIntoTargetFolder(
+            itemProvider,
+            join(directory, "a", "users"),
+            new BrunoTreeItem(join(directory, "b"), false, false),
+            FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+            0,
+        );
+
+        expect(await getFolderSequences(directory, format)).toEqual({
+            [join("b", "existing")]: 0,
+            [join("b", "users")]: 10,
+        });
+    });
+
     it("replaces an existing folder if overwriting is requested", async () => {
         mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
         jest.spyOn(workspace, "applyEdit").mockImplementation(
@@ -183,89 +237,127 @@ describe("moveFolderIntoTargetFolder", () => {
         ).toBe(movedContent);
     });
 
-    it("adjusts the sequence and prefix of a folder that replaces one with the same name", async () => {
+    describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
+        "when overwriting a folder (%s)",
+        (format) => {
+            it.each(
+                [10, undefined].flatMap((movedSequence) =>
+                    [false, true].map((renumber) => ({
+                        movedSequence,
+                        renumber,
+                    })),
+                ),
+            )(
+                "takes over the replaced sequence (moved sequence: $movedSequence, renumbering: $renumber)",
+                async ({ movedSequence, renumber }) => {
+                    const directory = await overwriteFolder({
+                        format,
+                        movedSequence,
+                        renumber,
+                    });
+
+                    expect(await getFolderSequences(directory, format)).toEqual(
+                        {
+                            [join("b", "first")]: 10,
+                            [join("b", "users")]: 20,
+                            [join("b", "last")]: 30,
+                        },
+                    );
+                },
+            );
+
+            it("adjusts the prefix to the taken over sequence", async () => {
+                const directory = await overwriteFolder({
+                    format,
+                    movedSequence: 10,
+                    prefixNames: true,
+                });
+
+                expect(await getFolderSequences(directory, format)).toEqual({
+                    [join("b", "00010_first")]: 10,
+                    [join("b", "00020_users")]: 20,
+                    [join("b", "00030_last")]: 30,
+                });
+            });
+        },
+    );
+
+    /** Moves `a/users` over `b/users` (with sequence 20), which is located between the folders `first` and `last`. */
+    async function overwriteFolder({
+        format,
+        movedSequence,
+        renumber = false,
+        prefixNames = false,
+    }: {
+        format: CollectionFormat;
+        movedSequence: number | undefined;
+        renumber?: boolean;
+        prefixNames?: boolean;
+    }) {
+        const settingsFile = getFolderSettingsFileName(format);
         mockVsCodeSettings({
-            "bru-as-code.prefixNamesWithSequence": true,
+            "bru-as-code.prefixNamesWithSequence": prefixNames,
+            "bru-as-code.renumberSequencesAutomatically": renumber,
             "bru-as-code.sequenceStep": 10,
         });
         jest.spyOn(workspace, "applyEdit").mockImplementation(
             applyWorkspaceEdit,
         );
-        const directory = await createTemporaryDirectory({
-            "a/00010_users/folder.bru": folderSettingsContent(
-                CollectionFormat.Bru,
-                "users",
-                10,
+        // With prefixes, folders can only be overwritten if they have the same prefix, even if it is outdated.
+        const name = (baseName: string, sequence: number) =>
+            `${prefixNames ? getSequencePrefix(sequence) : ""}${baseName}`;
+        const folders = [
+            {
+                path: join("a", name("users", 10)),
+                sequence: movedSequence,
+            },
+            { path: join("b", name("users", 10)), sequence: 20 },
+            { path: join("b", name("first", 10)), sequence: 10 },
+            { path: join("b", name("last", 30)), sequence: 30 },
+        ];
+        const directory = await createTemporaryDirectory(
+            Object.fromEntries(
+                folders.map(({ path, sequence }) =>
+                    // A folder without a sequence has no settings file.
+                    sequence === undefined
+                        ? [join(path, "script.js"), ""]
+                        : [
+                              join(path, settingsFile),
+                              folderSettingsContent(format, "name", sequence),
+                          ],
+                ),
             ),
-            "b/00010_users/folder.bru": folderSettingsContent(
-                CollectionFormat.Bru,
-                "users",
-                10,
-            ),
-            "b/00010_users/replaced.bru": requestContent(
-                CollectionFormat.Bru,
-                "replaced",
-                10,
-            ),
-            "b/00020_other/folder.bru": folderSettingsContent(
-                CollectionFormat.Bru,
-                "other",
-                20,
-            ),
-        });
+        );
         const { itemProvider } =
             createCollectionWithItems<TypedCollectionItemProvider>(
                 [
                     new CollectionDirectory(join(directory, "a")),
                     new CollectionDirectory(join(directory, "b")),
-                    createFolderItem(
-                        join(directory, "a", "00010_users"),
-                        CollectionFormat.Bru,
-                        10,
-                    ),
-                    createFolderItem(
-                        join(directory, "b", "00010_users"),
-                        CollectionFormat.Bru,
-                        10,
-                    ),
-                    createFolderItem(
-                        join(directory, "b", "00020_other"),
-                        CollectionFormat.Bru,
-                        20,
-                    ),
-                    new BrunoRequestFile(
-                        join(directory, "b", "00010_users", "replaced.bru"),
-                        10,
+                    ...folders.map(({ path, sequence }) =>
+                        sequence === undefined
+                            ? new CollectionDirectory(join(directory, path))
+                            : createFolderItem(
+                                  join(directory, path),
+                                  format,
+                                  sequence,
+                              ),
                     ),
                 ],
-                CollectionFormat.Bru,
+                format,
                 [],
                 directory,
             );
 
         await moveFolderIntoTargetFolder(
             itemProvider,
-            join(directory, "a", "00010_users"),
+            join(directory, "a", name("users", 10)),
             new BrunoTreeItem(join(directory, "b"), false, false),
             FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
-            10,
+            movedSequence,
             undefined,
             true,
         );
 
-        expect(await readdir(join(directory, "a"))).toEqual([]);
-        expect((await readdir(join(directory, "b"))).sort()).toEqual([
-            "00020_other",
-            "00030_users",
-        ]);
-        expect(await readdir(join(directory, "b", "00030_users"))).toEqual([
-            "folder.bru",
-        ]);
-        expect(
-            await readFile(
-                join(directory, "b", "00030_users", "folder.bru"),
-                "utf-8",
-            ),
-        ).toContain("seq: 30");
-    });
+        return directory;
+    }
 });

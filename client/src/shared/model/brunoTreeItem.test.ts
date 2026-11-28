@@ -39,6 +39,15 @@ describe("BrunoTreeItem", () => {
         );
     });
 
+    it("shows the sequence 0 in the description and tooltip", () => {
+        const item = new BrunoTreeItem("/collection/folder", false, false, 0);
+
+        expect(item.description).toBe("seq: 0");
+        expect((item.tooltip as vscode.MarkdownString).value).toBe(
+            "folder (seq: 0)",
+        );
+    });
+
     describe("label", () => {
         afterEach(() => {
             jest.restoreAllMocks();

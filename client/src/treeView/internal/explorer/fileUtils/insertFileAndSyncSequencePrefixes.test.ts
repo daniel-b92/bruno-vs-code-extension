@@ -13,10 +13,11 @@ import {
 import {
     createCollectionWithItems,
     folderSettingsContent,
+    getRequestSequences,
     requestContent,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
-import { TypedCollectionItemProvider } from "@shared";
+import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
 import {
     applyWorkspaceEdit,
     mockVsCodeSettings,
@@ -105,6 +106,96 @@ describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
                 `00030_y${extension}`,
             ]);
         });
+
+        it.each(
+            [10, undefined].flatMap((copiedSequence) =>
+                [false, true].flatMap((renumber) =>
+                    (["folder", "replaced file", "last file"] as const).map(
+                        (pastedOn) => ({
+                            copiedSequence,
+                            renumber,
+                            pastedOn,
+                        }),
+                    ),
+                ),
+            ),
+        )(
+            "only takes over the sequence of an overwritten request if pasted on it (copied sequence: $copiedSequence, renumbering: $renumber, pasted on: $pastedOn)",
+            async ({ copiedSequence, renumber, pastedOn }) => {
+                mockVsCodeSettings({
+                    "bru-as-code.renumberSequencesAutomatically": renumber,
+                    "bru-as-code.sequenceStep": 10,
+                });
+                const extension = getFileExtensionForFormat(format);
+                const files = [
+                    { path: join("a", `x${extension}`), name: "x" },
+                    { path: join("b", `x${extension}`), name: "x" },
+                    { path: join("b", `first${extension}`), name: "first" },
+                    { path: join("b", `last${extension}`), name: "last" },
+                ];
+                const sequences = [copiedSequence, 20, 10, 30];
+                const directory = await createTemporaryDirectory(
+                    Object.fromEntries(
+                        files.map(({ path, name }, index) => [
+                            path,
+                            requestContent(format, name, sequences[index]),
+                        ]),
+                    ),
+                );
+                const items = files.map(
+                    ({ path }, index) =>
+                        new BrunoRequestFile(
+                            join(directory, path),
+                            sequences[index],
+                        ),
+                );
+                const { itemProvider } =
+                    createCollectionWithItems<TypedCollectionItemProvider>(
+                        [
+                            new CollectionDirectory(join(directory, "a")),
+                            new CollectionDirectory(join(directory, "b")),
+                            ...items,
+                        ],
+                        format,
+                        [],
+                        directory,
+                    );
+                const newPath = join(directory, "b", `x${extension}`);
+                const afterFile = (path: string, sequence: number) => ({
+                    type: RequestFileInsertionPositionType.AfterFile as const,
+                    item: new BrunoTreeItem(path, true, false, sequence),
+                });
+                const insertionPositions = {
+                    folder: RequestFileInsertionPositionType.Folder as const,
+                    "replaced file": afterFile(newPath, 20),
+                    "last file": afterFile(
+                        join(directory, "b", `last${extension}`),
+                        30,
+                    ),
+                };
+
+                await insertFileAndSyncSequencePrefixes(
+                    itemProvider,
+                    items[0],
+                    {
+                        newPath,
+                        insertionPosition: insertionPositions[pastedOn],
+                    },
+                );
+
+                const isTakenOver = pastedOn == "replaced file";
+                const lastSequence = !isTakenOver && renumber ? 20 : 30;
+                const appendedSequence = renumber ? 30 : 40;
+
+                expect(await getRequestSequences(join(directory, "b"))).toEqual(
+                    {
+                        [`first${extension}`]: 10,
+                        [`x${extension}`]: isTakenOver ? 20 : appendedSequence,
+                        [`last${extension}`]: lastSequence,
+                    },
+                );
+            },
+        );
 
         async function insertSettingsFile(targetFolder: string) {
             mockPrefixSettings();

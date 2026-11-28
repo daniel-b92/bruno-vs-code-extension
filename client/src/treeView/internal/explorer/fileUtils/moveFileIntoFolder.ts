@@ -1,4 +1,4 @@
-import { BrunoFileType, ItemType } from "@global_shared";
+import { BrunoFileType, ItemType, parseSequenceFromFile } from "@global_shared";
 import { Logger } from "@global_shared";
 import { TypedCollectionItemProvider, BrunoTreeItem } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
@@ -30,6 +30,14 @@ export async function moveFileIntoFolder(
         itemProvider,
         affectedFolders,
     );
+    const isRequestOrAppFile =
+        fileType == BrunoFileType.RequestFile ||
+        fileType == BrunoFileType.AppFile;
+    // Has to be read before the existing file is overwritten.
+    const replacedSequence =
+        overwrite && isRequestOrAppFile
+            ? await parseSequenceFromFile(newPath)
+            : undefined;
     const wasSuccessful = await renameFileOrFolder(
         itemProvider,
         sourcePath,
@@ -44,8 +52,8 @@ export async function moveFileIntoFolder(
         return;
     }
 
-    if (fileType == BrunoFileType.RequestFile) {
-        // Only when moving a request file, sequences of requests may need to be adjusted
+    if (isRequestOrAppFile) {
+        // Only when moving a request or app file, sequences of requests and app files may need to be adjusted
         await updateSequencesAfterInsertingRequestOrAppFile(
             itemProvider,
             target.isFile
@@ -59,6 +67,7 @@ export async function moveFileIntoFolder(
                 targetDirectory: targetDirectoryForDragAndDrop,
                 otherDirectory: dirname(sourcePath),
             },
+            replacedSequence,
         );
     }
 

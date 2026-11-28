@@ -66,11 +66,12 @@ export class BrunoTreeItem extends vscode.TreeItem {
                 : "Click for selecting environment";
         }
 
-        if (!this.sequence && !this.tags) {
+        if (this.sequence === undefined && !this.tags) {
             return undefined;
         }
 
-        const forSequence = this.sequence ? `seq: ${this.sequence}` : undefined;
+        const forSequence =
+            this.sequence !== undefined ? `seq: ${this.sequence}` : undefined;
         const forTags = this.tags
             ? `tags: (${this.tags.map((t) => `'${t}'`).join(",")})`
             : undefined;
@@ -96,7 +97,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
             );
         }
 
-        return this.sequence
+        return this.sequence !== undefined
             ? new vscode.MarkdownString(
                   `${this.label} (seq: ${this.sequence})`.concat(
                       this.tags && this.tags.length > 0

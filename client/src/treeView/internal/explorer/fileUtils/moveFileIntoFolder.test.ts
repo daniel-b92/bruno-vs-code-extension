@@ -3,18 +3,22 @@ import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import { workspace } from "vscode";
 import {
+    BrunoAppFile,
     BrunoFileType,
     BrunoFolderSettingsFile,
     BrunoRequestFile,
     CollectionDirectory,
     CollectionFormat,
+    getFileExtensionForFormat,
     getFolderSettingsFileName,
+    getSequencePrefix,
     NonBrunoFile,
     NonBrunoSpecificItemType,
 } from "@global_shared";
 import {
     createCollectionWithItems,
     folderSettingsContent,
+    getRequestSequences,
     requestContent,
     runRequestBlock,
     useTemporaryDirectories,
@@ -96,6 +100,50 @@ describe("moveFileIntoFolder", () => {
         },
     );
 
+    it.each([BrunoFileType.RequestFile, BrunoFileType.AppFile])(
+        "appends the moved file to the files of the target folder (%s)",
+        async (fileType) => {
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+            jest.spyOn(workspace, "applyEdit").mockImplementation(
+                applyWorkspaceEdit,
+            );
+            const directory = await createTemporaryDirectory({
+                "a/x.bru": requestContent(CollectionFormat.Bru, "x", 10),
+                "b/y.bru": requestContent(CollectionFormat.Bru, "y", 10),
+            });
+            const sourcePath = join(directory, "a", "x.bru");
+            const targetFolder = join(directory, "b");
+            const { itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [
+                        new CollectionDirectory(join(directory, "a")),
+                        new CollectionDirectory(targetFolder),
+                        fileType == BrunoFileType.AppFile
+                            ? new BrunoAppFile(sourcePath, 10)
+                            : new BrunoRequestFile(sourcePath, 10),
+                        new BrunoRequestFile(join(targetFolder, "y.bru"), 10),
+                    ],
+                    CollectionFormat.Bru,
+                    [],
+                    directory,
+                );
+
+            await moveFileIntoFolder(
+                itemProvider,
+                sourcePath,
+                join(targetFolder, "x.bru"),
+                new BrunoTreeItem(targetFolder, false, false),
+                targetFolder,
+                fileType,
+            );
+
+            expect(await getRequestSequences(targetFolder)).toEqual({
+                "y.bru": 10,
+                "x.bru": 20,
+            });
+        },
+    );
+
     it("replaces an existing file if overwriting is requested", async () => {
         mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
         jest.spyOn(workspace, "applyEdit").mockImplementation(
@@ -143,58 +191,99 @@ describe("moveFileIntoFolder", () => {
         expect(await readFile(newPath, "utf-8")).toBe(movedContent);
     });
 
-    it("adjusts the sequence and prefix of a file that replaces one with the same name", async () => {
-        mockVsCodeSettings({
-            "bru-as-code.prefixNamesWithSequence": true,
-            "bru-as-code.sequenceStep": 10,
-        });
-        jest.spyOn(workspace, "applyEdit").mockImplementation(
-            applyWorkspaceEdit,
-        );
-        const directory = await createTemporaryDirectory({
-            "a/00010_x.bru": requestContent(CollectionFormat.Bru, "x", 10),
-            "b/00010_x.bru": requestContent(CollectionFormat.Bru, "x", 10),
-            "b/00020_y.bru": requestContent(CollectionFormat.Bru, "y", 20),
-        });
-        const sourcePath = join(directory, "a", "00010_x.bru");
-        const newPath = join(directory, "b", "00010_x.bru");
-        const { itemProvider } =
-            createCollectionWithItems<TypedCollectionItemProvider>(
-                [
-                    new CollectionDirectory(join(directory, "a")),
-                    new CollectionDirectory(join(directory, "b")),
-                    new BrunoRequestFile(sourcePath, 10),
-                    new BrunoRequestFile(newPath, 10),
-                    new BrunoRequestFile(
-                        join(directory, "b", "00020_y.bru"),
-                        20,
-                    ),
-                ],
-                CollectionFormat.Bru,
-                [],
-                directory,
+    describe.each([CollectionFormat.Bru, CollectionFormat.Yaml])(
+        "when overwriting a file (%s)",
+        (format) => {
+            const extension = getFileExtensionForFormat(format);
+
+            const cases = [
+                BrunoFileType.RequestFile,
+                BrunoFileType.AppFile,
+            ].flatMap((fileType) =>
+                [10, undefined].flatMap((movedSequence) =>
+                    [false, true].map((renumber) => ({
+                        fileType,
+                        movedSequence,
+                        renumber,
+                    })),
+                ),
             );
 
-        await moveFileIntoFolder(
-            itemProvider,
-            sourcePath,
-            newPath,
-            new BrunoTreeItem(join(directory, "b"), false, false),
-            join(directory, "b"),
-            BrunoFileType.RequestFile,
-            undefined,
-            true,
-        );
+            it.each(cases)(
+                "takes over the replaced sequence when dropped on the replaced file ($fileType with sequence $movedSequence, renumbering: $renumber)",
+                async ({ fileType, movedSequence, renumber }) => {
+                    const { targetFolder } = await overwriteFile({
+                        format,
+                        fileType,
+                        movedSequence,
+                        replacedSequence: 20,
+                        renumber,
+                        droppedOn: "replaced file",
+                    });
 
-        expect(await readdir(join(directory, "a"))).toEqual([]);
-        expect((await readdir(join(directory, "b"))).sort()).toEqual([
-            "00020_y.bru",
-            "00030_x.bru",
-        ]);
-        expect(
-            await readFile(join(directory, "b", "00030_x.bru"), "utf-8"),
-        ).toContain("seq: 30");
-    });
+                    expect(await getRequestSequences(targetFolder)).toEqual({
+                        [`first${extension}`]: 10,
+                        [`x${extension}`]: 20,
+                        [`last${extension}`]: 30,
+                    });
+                },
+            );
+
+            it.each(
+                (["folder", "last file"] as const).flatMap((droppedOn) =>
+                    cases.map((testCase) => ({ ...testCase, droppedOn })),
+                ),
+            )(
+                "moves the file to the end when dropped on the $droppedOn ($fileType with sequence $movedSequence, renumbering: $renumber)",
+                async ({ fileType, movedSequence, renumber, droppedOn }) => {
+                    const { targetFolder } = await overwriteFile({
+                        format,
+                        fileType,
+                        movedSequence,
+                        replacedSequence: 20,
+                        renumber,
+                        droppedOn,
+                    });
+
+                    expect(await getRequestSequences(targetFolder)).toEqual({
+                        [`first${extension}`]: 10,
+                        [`last${extension}`]: renumber ? 20 : 30,
+                        [`x${extension}`]: renumber ? 30 : 40,
+                    });
+                },
+            );
+
+            it("appends the moved request if the replaced one has no sequence", async () => {
+                const { targetFolder } = await overwriteFile({
+                    format,
+                    movedSequence: 5,
+                    replacedSequence: undefined,
+                });
+
+                expect(await getRequestSequences(targetFolder)).toEqual({
+                    [`first${extension}`]: 10,
+                    [`x${extension}`]: 40,
+                    [`last${extension}`]: 30,
+                });
+            });
+
+            it("adjusts the prefix to the taken over sequence", async () => {
+                const { targetFolder } = await overwriteFile({
+                    format,
+                    movedSequence: 10,
+                    replacedSequence: 20,
+                    prefixNames: true,
+                    droppedOn: "replaced file",
+                });
+
+                expect(await getRequestSequences(targetFolder)).toEqual({
+                    [`00010_first${extension}`]: 10,
+                    [`00020_x${extension}`]: 20,
+                    [`00030_last${extension}`]: 30,
+                });
+            });
+        },
+    );
 
     it("does not rename requests when moving a file of another type", async () => {
         mockVsCodeSettings({
@@ -331,4 +420,101 @@ describe("moveFileIntoFolder", () => {
             );
         },
     );
+
+    /** Moves `a/x` over `b/x`, which is located between the files `first` and `last`. */
+    async function overwriteFile({
+        format,
+        fileType = BrunoFileType.RequestFile,
+        movedSequence,
+        replacedSequence,
+        renumber = false,
+        droppedOn = "folder",
+        prefixNames = false,
+    }: {
+        format: CollectionFormat;
+        fileType?: BrunoFileType;
+        movedSequence: number | undefined;
+        replacedSequence: number | undefined;
+        renumber?: boolean;
+        droppedOn?: "folder" | "replaced file" | "last file";
+        prefixNames?: boolean;
+    }) {
+        const extension = getFileExtensionForFormat(format);
+        mockVsCodeSettings({
+            "bru-as-code.prefixNamesWithSequence": prefixNames,
+            "bru-as-code.renumberSequencesAutomatically": renumber,
+            "bru-as-code.sequenceStep": 10,
+        });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        // With prefixes, files can only be overwritten if they have the same prefix, even if it is outdated.
+        const name = (baseName: string, sequence: number) =>
+            `${prefixNames ? getSequencePrefix(sequence) : ""}${baseName}${extension}`;
+        const files = [
+            { path: join("a", name("x", 10)), sequence: movedSequence },
+            {
+                path: join("b", name("x", 10)),
+                sequence: replacedSequence,
+            },
+            { path: join("b", name("first", 10)), sequence: 10 },
+            { path: join("b", name("last", 30)), sequence: 30 },
+        ];
+        const directory = await createTemporaryDirectory(
+            Object.fromEntries(
+                files.map(({ path, sequence }) => [
+                    path,
+                    requestContent(format, "name", sequence),
+                ]),
+            ),
+        );
+        const targetFolder = join(directory, "b");
+        const newPath = join(targetFolder, name("x", 10));
+        const dropTargets = {
+            folder: new BrunoTreeItem(targetFolder, false, false),
+            "replaced file": new BrunoTreeItem(
+                newPath,
+                true,
+                false,
+                replacedSequence,
+            ),
+            "last file": new BrunoTreeItem(
+                join(targetFolder, name("last", 30)),
+                true,
+                false,
+                30,
+            ),
+        };
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(targetFolder),
+                    ...files.map(({ path, sequence }) =>
+                        fileType == BrunoFileType.AppFile
+                            ? new BrunoAppFile(join(directory, path), sequence)
+                            : new BrunoRequestFile(
+                                  join(directory, path),
+                                  sequence,
+                              ),
+                    ),
+                ],
+                format,
+                [],
+                directory,
+            );
+
+        await moveFileIntoFolder(
+            itemProvider,
+            join(directory, "a", name("x", 10)),
+            newPath,
+            dropTargets[droppedOn],
+            targetFolder,
+            fileType,
+            undefined,
+            true,
+        );
+
+        return { targetFolder };
+    }
 });

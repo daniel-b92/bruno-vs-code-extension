@@ -1,12 +1,15 @@
 import {
     getSequencesForRequestsAndAppFiles,
     normalizePath,
+    parseSequenceFromFile,
 } from "@global_shared";
 import {
     getSequenceStepFromSettings,
     shouldRenumberSequencesAutomatically,
     TypedCollectionItemProvider,
 } from "@shared";
+import { basename } from "path";
+import { window } from "vscode";
 import { normalizeSequencesForRequestsAndAppFiles } from "./normalizeSequencesForRequestsAndAppFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 import { FileInsertionPosition } from "./interfaces";
@@ -15,9 +18,11 @@ import {
     SequenceInsertionPoint,
     SequenceInsertionPointType,
 } from "../sequenceUtils/calculateSequenceChangesForInsertion";
+import { setSequenceInFile } from "../sequenceUtils/setSequenceInFile";
 
 /**
  * Sets the sequence of a newly inserted (or moved) request or app file, without changing the sequences of other files if possible.
+ * A file that overwrote the targeted file takes over its sequence. Otherwise, the sequence depends on the target position.
  * Only if the setting for renumbering sequences automatically is enabled, the sequences of the affected directories are normalized afterwards.
  */
 export async function updateSequencesAfterInsertingRequestOrAppFile(
@@ -28,25 +33,49 @@ export async function updateSequencesAfterInsertingRequestOrAppFile(
         targetDirectory: string;
         otherDirectory?: string;
     },
+    /** The sequence of the file that was overwritten by the inserted one. */
+    replacedSequence?: number,
 ) {
     const { targetDirectory, otherDirectory } = directoriesForNormalization;
     const sequenceStep = getSequenceStepFromSettings();
 
-    // The inserted file must not be considered, because it may already have a sequence (e.g. when moving it within the same directory).
-    const otherFiles = (
-        await getSequencesForRequestsAndAppFiles(itemProvider, targetDirectory)
-    ).filter(({ path }) => normalizePath(path) != normalizePath(newPath));
+    const collection = itemProvider.getAncestorCollectionForPath(newPath);
 
-    const { newSequence, shiftedItems } = calculateSequenceChangesForInsertion(
-        otherFiles,
-        getInsertionPoint(targetPosition),
-        sequenceStep,
-    );
+    if (!collection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${newPath}'.`,
+        );
+        return;
+    }
 
-    await replaceSequenceForFile(newPath, newSequence);
+    // A file without a sequence only gets one if it overwrote a file with a sequence.
+    // Otherwise, neither its sequence nor the ones of other files are changed.
+    const shouldSetSequence =
+        replacedSequence !== undefined ||
+        (await parseSequenceFromFile(newPath)) !== undefined;
 
-    for (const { path, sequence } of shiftedItems) {
-        await replaceSequenceForFile(path, sequence);
+    const setSequence = (sequence: number) =>
+        setSequenceInFile(newPath, sequence, collection.getFormat());
+
+    const wasSuccessful = !shouldSetSequence
+        ? true
+        : replacedSequence !== undefined &&
+            isFileTargeted(targetPosition, newPath)
+          ? await setSequence(replacedSequence)
+          : await setSequenceForTargetPosition(
+                itemProvider,
+                targetPosition,
+                newPath,
+                targetDirectory,
+                sequenceStep,
+                setSequence,
+            );
+
+    if (!wasSuccessful) {
+        window.showErrorMessage(
+            `'${basename(newPath)}' was inserted, but its sequence could not be set. The sequences of the other items were not adjusted.`,
+        );
+        return;
     }
 
     if (!shouldRenumberSequencesAutomatically()) {
@@ -69,6 +98,46 @@ export async function updateSequencesAfterInsertingRequestOrAppFile(
             sequenceStep,
         );
     }
+}
+
+async function setSequenceForTargetPosition(
+    itemProvider: TypedCollectionItemProvider,
+    targetPosition: FileInsertionPosition,
+    newPath: string,
+    targetDirectory: string,
+    sequenceStep: number,
+    setSequence: (sequence: number) => Promise<boolean>,
+) {
+    // The inserted file must not be considered, because it may already have a sequence (e.g. when moving it within the same directory).
+    const otherFiles = (
+        await getSequencesForRequestsAndAppFiles(itemProvider, targetDirectory)
+    ).filter(({ path }) => normalizePath(path) != normalizePath(newPath));
+
+    const { newSequence, shiftedItems } = calculateSequenceChangesForInsertion(
+        otherFiles,
+        getInsertionPoint(targetPosition),
+        sequenceStep,
+    );
+
+    if (!(await setSequence(newSequence))) {
+        return false;
+    }
+
+    for (const { path, sequence } of shiftedItems) {
+        await replaceSequenceForFile(path, sequence);
+    }
+
+    return true;
+}
+
+function isFileTargeted(
+    targetPosition: FileInsertionPosition,
+    filePath: string,
+) {
+    return (
+        typeof targetPosition == "object" &&
+        normalizePath(targetPosition.item.getPath()) == normalizePath(filePath)
+    );
 }
 
 function getInsertionPoint(

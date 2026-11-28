@@ -297,7 +297,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             return;
         }
 
-        if (!target.getSequence()) {
+        if (target.getSequence() === undefined) {
             // If the target does not have a sequence, moving a folder should always cause an insertion into the target folder.
             const newPath = resolve(target.getPath(), basename(sourcePath));
 

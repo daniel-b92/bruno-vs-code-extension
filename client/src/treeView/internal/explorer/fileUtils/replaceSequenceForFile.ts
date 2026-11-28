@@ -10,6 +10,8 @@ import { window } from "vscode";
 export async function replaceSequenceForFile(
     filePath: string,
     newSequence: number,
+    /** Should be `false` if the caller shows its own error message for a failed replacement. */
+    showErrorMessages = true,
 ) {
     if (Number.isNaN(newSequence)) {
         throw new Error(`New sequence to set for file '${filePath}' is 'NaN'.`);
@@ -21,9 +23,11 @@ export async function replaceSequenceForFile(
     ).catch(() => undefined);
 
     if (originalFileContent === undefined) {
-        window.showErrorMessage(
-            `An unexpected error occured while trying to read the file content.`,
-        );
+        if (showErrorMessages) {
+            window.showErrorMessage(
+                `An unexpected error occured while trying to read the file content.`,
+            );
+        }
         return false;
     }
 
@@ -49,9 +53,11 @@ export async function replaceSequenceForFile(
     )
         .then(() => true)
         .catch(() => {
-            window.showErrorMessage(
-                `An unexpected error occured while trying to replace the sequence.`,
-            );
+            if (showErrorMessages) {
+                window.showErrorMessage(
+                    `An unexpected error occured while trying to replace the sequence.`,
+                );
+            }
             return false;
         });
 }
