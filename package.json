@@ -15,7 +15,7 @@
     },
     "qna": "https://github.com/daniel-b92/bruno-vs-code-extension/issues",
     "engines": {
-        "vscode": "^1.140.0"
+        "vscode": "^1.146.0"
     },
     "extensionDependencies": [
         "vscode.typescript-language-features"
