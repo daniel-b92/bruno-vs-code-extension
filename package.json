@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code (Bruno collections)",
     "description": "Bruno collections (Bru and YAML) as code: IntelliSense, diagnostics, a collection explorer and test runs via the Bruno CLI.",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
