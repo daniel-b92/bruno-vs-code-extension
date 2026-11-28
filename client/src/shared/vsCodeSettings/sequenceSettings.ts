@@ -19,7 +19,11 @@ export function getSequenceStepFromSettings() {
         : defaultSequenceStep;
 }
 
-/** Saves the step in the workspace settings, so that it can be shared with others who work on the same files. */
+/**
+ * Saves the step in the workspace settings.
+ * For a single folder, these are stored in its `.vscode/settings.json`, which can be shared with others who work on the same files.
+ * For a multi-root workspace, they are stored in its `.code-workspace` file.
+ */
 export async function saveSequenceStepToWorkspaceSettings(
     sequenceStep: number,
 ) {

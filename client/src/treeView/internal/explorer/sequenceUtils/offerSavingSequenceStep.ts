@@ -7,6 +7,7 @@ import {
 } from "@shared";
 
 const offerSettingKey = "bru-as-code.offerSavingSequenceStep";
+const saveOption = "Save in workspace settings";
 
 /**
  * Offers to save the step, with which sequences have been normalized, if it differs from the configured one.
@@ -26,11 +27,11 @@ export async function offerSavingSequenceStep(
     try {
         const pickedOption = await window.showInformationMessage<MessageItem>(
             `Use ${sequenceStep} as the sequence step in this workspace?`,
-            { title: DialogOptionLabelEnum.Yes },
+            { title: saveOption },
             { title: DialogOptionLabelEnum.DoNotAskAgain },
         );
 
-        if (pickedOption?.title == DialogOptionLabelEnum.Yes) {
+        if (pickedOption?.title == saveOption) {
             await saveSequenceStepToWorkspaceSettings(sequenceStep);
         } else if (pickedOption?.title == DialogOptionLabelEnum.DoNotAskAgain) {
             await workspace

@@ -17,7 +17,7 @@ describe("offerSavingSequenceStep", () => {
         expect(show.mock.calls).toEqual([
             [
                 "Use 10 as the sequence step in this workspace?",
-                { title: "Yes" },
+                { title: "Save in workspace settings" },
                 { title: "Do not ask again" },
             ],
         ]);
@@ -41,7 +41,12 @@ describe("offerSavingSequenceStep", () => {
     });
 
     it.each([
-        ["Yes", "bru-as-code.sequenceStep", 10, ConfigurationTarget.Workspace],
+        [
+            "Save in workspace settings",
+            "bru-as-code.sequenceStep",
+            10,
+            ConfigurationTarget.Workspace,
+        ],
         [
             "Do not ask again",
             "bru-as-code.offerSavingSequenceStep",
@@ -70,7 +75,7 @@ describe("offerSavingSequenceStep", () => {
 
     it("logs a warning if saving the step fails", async () => {
         mockVsCodeSettings({}, () => Promise.reject(new Error("failed")));
-        mockMessage("Yes");
+        mockMessage("Save in workspace settings");
         const warn = jest.fn();
 
         await offerSavingSequenceStep(10, { warn } as never);

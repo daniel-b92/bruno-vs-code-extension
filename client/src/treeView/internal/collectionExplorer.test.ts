@@ -64,7 +64,6 @@ describe("CollectionExplorer", () => {
                     window,
                     "showInformationMessage",
                 );
-                const registerCommand = jest.spyOn(commands, "registerCommand");
                 const { runCommand } = createExplorer(directory, [
                     new CollectionDirectory(join(directory, "users")),
                     new BrunoRequestFile(
@@ -73,11 +72,7 @@ describe("CollectionExplorer", () => {
                     ),
                 ]);
 
-                await runCommand(
-                    registerCommand.mock.calls,
-                    "normalizeSequences",
-                    "users",
-                );
+                await runCommand("normalizeSequences", "users");
 
                 expect(showInformationMessage).toHaveBeenCalledTimes(messages);
             },
@@ -355,9 +350,9 @@ function getShownMessages(dialogSpy: { mock: { calls: unknown[][] } }) {
 /**
  * Creates a collection explorer for a Bru collection with the given items.
  * Returns functions for dragging and dropping one item onto another and for running a command on an item (all paths are relative to the directory).
- * Running a command needs the recorded calls for registering commands.
  */
 function createExplorer(directory: string, items: CollectionItem[]) {
+    const registerCommand = jest.spyOn(commands, "registerCommand");
     jest.replaceProperty(workspace, "workspaceFolders", [
         { uri: Uri.file(directory), name: "workspace", index: 0 },
     ]);
@@ -402,14 +397,10 @@ function createExplorer(directory: string, items: CollectionItem[]) {
         explorer.handleDrag([getTreeItem(sourcePath)], dataTransfer, token);
         await explorer.handleDrop(getTreeItem(targetPath), dataTransfer, token);
     };
-    const runCommand = async (
-        registrations: unknown[][],
-        commandName: string,
-        itemPath: string,
-    ) => {
+    const runCommand = async (commandName: string, itemPath: string) => {
         const [, command] =
-            registrations.find(([id]) =>
-                (id as string).endsWith(`.${commandName}`),
+            registerCommand.mock.calls.find(([id]) =>
+                id.endsWith(`.${commandName}`),
             ) ?? [];
         await (command as (item: BrunoTreeItem) => Promise<void>)(
             getTreeItem(itemPath),

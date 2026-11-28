@@ -3,5 +3,4 @@ export enum DialogOptionLabelEnum {
     Confirm = "Confirm",
     DoNotAskAgain = "Do not ask again",
     LearnMore = "Learn more",
-    Yes = "Yes",
 }
