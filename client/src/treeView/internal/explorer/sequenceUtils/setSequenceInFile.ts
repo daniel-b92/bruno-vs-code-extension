@@ -8,6 +8,7 @@ import { addSequenceToSection } from "./addSequenceToSection";
 
 /**
  * Sets the sequence of a request, app or folder settings file. If the file has no sequence yet, it is added.
+ * No error message is shown, so that the caller can show one that describes the failed operation.
  *
  * @returns Whether the sequence could be set.
  */
@@ -25,7 +26,7 @@ export async function setSequenceInFile(
     }
 
     if (getSequenceValueRangeFromFileContent(filePath, content)) {
-        return await replaceSequenceForFile(filePath, sequence);
+        return await replaceSequenceForFile(filePath, sequence, false);
     }
 
     const { hasSection, contentWithSequence } = addSequenceToSection(

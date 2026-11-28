@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
-import { readFile } from "fs/promises";
+import { chmod, readFile } from "fs/promises";
 import { join } from "path";
 import { window } from "vscode";
 import { CollectionDirectory, CollectionFormat } from "@global_shared";
@@ -322,6 +322,27 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
             );
         },
     );
+
+    it("shows only one error if the sequence cannot be written", async () => {
+        const showErrorMessage = jest
+            .spyOn(window, "showErrorMessage")
+            .mockResolvedValue(undefined);
+        const directory = await createTemporaryDirectory({
+            "new.bru": requestFile("new", 1),
+        });
+        await chmod(join(directory, "new.bru"), 0o444);
+
+        await runUpdate(
+            directory,
+            RequestFileInsertionPositionType.Folder,
+            "new.bru",
+            CollectionFormat.Bru,
+            20,
+        );
+
+        expect(showErrorMessage).toHaveBeenCalledTimes(1);
+        expect(showErrorMessage.mock.calls[0]?.[0]).toContain("new.bru");
+    });
 
     describe("with automatic renumbering enabled", () => {
         it("renumbers the target directory with the configured step", async () => {
