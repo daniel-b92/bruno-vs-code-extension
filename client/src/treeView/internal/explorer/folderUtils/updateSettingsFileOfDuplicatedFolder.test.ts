@@ -38,6 +38,27 @@ describe("updateSettingsFileOfDuplicatedFolder", () => {
         ).toBe(getBruFolderSettings("second_copy", 3));
     });
 
+    it("updates the sequence for a duplicated folder with the sequence 0", async () => {
+        const root = await createTemporaryDirectory({
+            "first/folder.bru": getBruFolderSettings("first", 1),
+            "zeroth/folder.bru": getBruFolderSettings("zeroth", 0),
+            "zeroth_copy/folder.bru": getBruFolderSettings("zeroth", 0),
+        });
+
+        await updateSettingsFileOfDuplicatedFolder(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                root,
+                CollectionFormat.Bru,
+            ),
+            join(root, "zeroth"),
+            join(root, "zeroth_copy"),
+        );
+
+        expect(
+            await readFile(join(root, "zeroth_copy/folder.bru"), "utf-8"),
+        ).toBe(getBruFolderSettings("zeroth_copy", 2));
+    });
+
     it("updates name and sequence for a duplicated yaml folder with a sequence", async () => {
         const root = await createTemporaryDirectory({
             "first/folder.yml": getYamlFolderSettings("first", 1),

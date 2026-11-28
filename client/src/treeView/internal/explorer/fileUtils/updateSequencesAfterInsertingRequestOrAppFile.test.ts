@@ -272,6 +272,29 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
         });
     });
 
+    it.each<[string, FileInsertionPosition]>([
+        ["a file", afterFile(1)],
+        ["the folder", RequestFileInsertionPositionType.Folder],
+    ])(
+        "does not change any sequences, if the inserted file has none and the target is %s",
+        async (_, targetPosition) => {
+            const directory = await createTemporaryDirectory({
+                "a.bru": requestFile("a", 1),
+                "b.bru": requestFile("b", 2),
+                "new.bru": "meta {\n  name: new\n  type: http\n}\n",
+            });
+            const unmodifiedFiles = await markFilesAsUnmodified(directory, [
+                "a.bru",
+                "b.bru",
+                "new.bru",
+            ]);
+
+            await runUpdate(directory, targetPosition, "new.bru");
+
+            expect(await getModifiedFiles(unmodifiedFiles)).toEqual([]);
+        },
+    );
+
     it.each([
         [CollectionFormat.Bru, "new.bru", "get {\n}\n"],
         [CollectionFormat.Yaml, "new.yml", "info: {}\n"],

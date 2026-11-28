@@ -57,7 +57,7 @@ export async function updateSettingsFileOfDuplicatedFolder(
         format,
     );
 
-    if (originalSequence) {
+    if (originalSequence !== undefined) {
         await replaceSequenceForFile(
             newFolderSettingsFile,
             ((await getMaxSequenceForFolders(

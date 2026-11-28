@@ -1,6 +1,7 @@
 import {
     getSequencesForRequestsAndAppFiles,
     normalizePath,
+    parseSequenceFromFile,
 } from "@global_shared";
 import {
     getSequenceStepFromSettings,
@@ -47,37 +48,32 @@ export async function updateSequencesAfterInsertingRequestOrAppFile(
         return;
     }
 
-    const setSequence = async (sequence: number) => {
-        if (replacedSequence !== undefined) {
-            // The overwritten file had a sequence, so the new one needs one too, even if it has none yet.
-            return await setSequenceInFile(
+    // A file without a sequence only gets one if it overwrote a file with a sequence.
+    // Otherwise, neither its sequence nor the ones of other files are changed.
+    const shouldSetSequence =
+        replacedSequence !== undefined ||
+        (await parseSequenceFromFile(newPath)) !== undefined;
+
+    const setSequence = (sequence: number) =>
+        setSequenceInFile(newPath, sequence, collection.getFormat());
+
+    const wasSuccessful = !shouldSetSequence
+        ? true
+        : replacedSequence !== undefined &&
+            isFileTargeted(targetPosition, newPath)
+          ? await setSequence(replacedSequence)
+          : await setSequenceForTargetPosition(
+                itemProvider,
+                targetPosition,
                 newPath,
-                sequence,
-                collection.getFormat(),
+                targetDirectory,
+                sequenceStep,
+                setSequence,
             );
-        }
-
-        // A file without a sequence does not get one.
-        await replaceSequenceForFile(newPath, sequence);
-        return true;
-    };
-
-    const wasSuccessful =
-        replacedSequence !== undefined &&
-        isFileTargeted(targetPosition, newPath)
-            ? await setSequence(replacedSequence)
-            : await setSequenceForTargetPosition(
-                  itemProvider,
-                  targetPosition,
-                  newPath,
-                  targetDirectory,
-                  sequenceStep,
-                  setSequence,
-              );
 
     if (!wasSuccessful) {
         window.showErrorMessage(
-            `An unexpected error occurred while trying to set the sequence of '${basename(newPath)}'.`,
+            `'${basename(newPath)}' was inserted, but its sequence could not be set. The sequences of the other items were not adjusted.`,
         );
         return;
     }

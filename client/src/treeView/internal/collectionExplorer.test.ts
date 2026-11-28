@@ -240,6 +240,43 @@ describe("CollectionExplorer", () => {
                 ]);
             },
         );
+
+        it("offers to insert next to a target folder with the sequence 0", async () => {
+            const directory = await createTemporaryDirectory({
+                "orders/folder.bru": folderSettingsContent(
+                    CollectionFormat.Bru,
+                    "orders",
+                    0,
+                ),
+                "users/folder.bru": folderSettingsContent(
+                    CollectionFormat.Bru,
+                    "users",
+                    2,
+                ),
+            });
+            const { showInformationMessage } = mockDialogsAndSettings(
+                FolderDropInsertionOption.InsertBeforeTarget,
+                { prefixNamesWithSequence: false },
+            );
+            const drop = createExplorer(directory, [
+                createFolderItem(
+                    join(directory, "orders"),
+                    CollectionFormat.Bru,
+                    0,
+                ),
+                createFolderItem(
+                    join(directory, "users"),
+                    CollectionFormat.Bru,
+                    2,
+                ),
+            ]);
+
+            await drop("users", "orders");
+
+            expect(showInformationMessage.mock.calls[0]).toContain(
+                FolderDropInsertionOption.InsertBeforeTarget,
+            );
+        });
     });
 });
 

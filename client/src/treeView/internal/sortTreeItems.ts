@@ -11,7 +11,15 @@ export function sortTreeItems<T extends BrunoTreeItem>(items: T[]) {
             // Display all subfolders before files
             return a.isFile ? 1 : -1;
         }
-        if (!a.getSequence() && !b.getSequence() && a.label && b.label) {
+        const sequenceForA = a.getSequence();
+        const sequenceForB = b.getSequence();
+
+        if (
+            sequenceForA === undefined &&
+            sequenceForB === undefined &&
+            a.label &&
+            b.label
+        ) {
             // Order items without a sequence alphabetically by label
             const labelForA = (
                 typeof a.label == "string" ? a.label : a.label.label
@@ -23,15 +31,11 @@ export function sortTreeItems<T extends BrunoTreeItem>(items: T[]) {
             return labelForA <= labelForB ? -1 : 1;
         }
 
-        if (!a.getSequence() || !b.getSequence()) {
+        if (sequenceForA === undefined || sequenceForB === undefined) {
             // Diplay items with a sequence before items without one
-            return a.getSequence() ? -1 : 1;
+            return sequenceForA !== undefined ? -1 : 1;
         }
 
-        if (a.getSequence() && b.getSequence()) {
-            return (a.getSequence() as number) - (b.getSequence() as number);
-        }
-
-        return 0;
+        return sequenceForA - sequenceForB;
     });
 }
