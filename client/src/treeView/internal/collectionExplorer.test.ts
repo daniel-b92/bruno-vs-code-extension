@@ -3,6 +3,7 @@ import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import {
     CancellationToken,
+    commands,
     DataTransfer,
     EventEmitter,
     Uri,
@@ -42,6 +43,47 @@ describe("CollectionExplorer", () => {
         jest.restoreAllMocks();
     });
 
+    describe("normalizeSequences command", () => {
+        it.each([
+            { description: "another step", pickedStep: 10, messages: 1 },
+            { description: "the configured step", pickedStep: 1, messages: 0 },
+            { description: "no step", pickedStep: undefined, messages: 0 },
+        ])(
+            "offers $messages time(s) to save the step after picking $description",
+            async ({ pickedStep, messages }) => {
+                const directory = await createTemporaryDirectory({
+                    "users/request.bru": requestContent(
+                        CollectionFormat.Bru,
+                        "request",
+                        3,
+                    ),
+                });
+                mockVsCodeSettings({});
+                mockStepSelection(pickedStep);
+                const showInformationMessage = jest.spyOn(
+                    window,
+                    "showInformationMessage",
+                );
+                const registerCommand = jest.spyOn(commands, "registerCommand");
+                const { runCommand } = createExplorer(directory, [
+                    new CollectionDirectory(join(directory, "users")),
+                    new BrunoRequestFile(
+                        join(directory, "users", "request.bru"),
+                        3,
+                    ),
+                ]);
+
+                await runCommand(
+                    registerCommand.mock.calls,
+                    "normalizeSequences",
+                    "users",
+                );
+
+                expect(showInformationMessage).toHaveBeenCalledTimes(messages);
+            },
+        );
+    });
+
     describe("handleDrop with names that are prefixed with sequences", () => {
         it("offers to overwrite a file with the same name", async () => {
             const directory = await createTemporaryDirectory({
@@ -55,7 +97,7 @@ describe("CollectionExplorer", () => {
             });
             const { showInformationMessage, showErrorMessage } =
                 mockDialogsAndSettings();
-            const drop = createExplorer(directory, [
+            const { drop } = createExplorer(directory, [
                 new CollectionDirectory(join(directory, "a")),
                 new CollectionDirectory(join(directory, "b")),
                 new BrunoRequestFile(join(directory, "a", "00010_x.bru"), 10),
@@ -98,7 +140,7 @@ describe("CollectionExplorer", () => {
                 const { showInformationMessage, showErrorMessage } =
                     mockDialogsAndSettings();
                 const target = join(directory, "b");
-                const drop = createExplorer(directory, [
+                const { drop } = createExplorer(directory, [
                     new CollectionDirectory(join(directory, "a")),
                     targetSequence === undefined
                         ? new CollectionDirectory(target)
@@ -154,7 +196,7 @@ describe("CollectionExplorer", () => {
             const { applyEdit, showErrorMessage } = mockDialogsAndSettings(
                 FolderDropInsertionOption.InsertBeforeTarget,
             );
-            const drop = createExplorer(directory, [
+            const { drop } = createExplorer(directory, [
                 new CollectionDirectory(join(directory, "a")),
                 new CollectionDirectory(join(directory, "b")),
                 ...[
@@ -207,7 +249,7 @@ describe("CollectionExplorer", () => {
                     insertionOption,
                     { prefixNamesWithSequence: false },
                 );
-                const drop = createExplorer(directory, [
+                const { drop } = createExplorer(directory, [
                     new CollectionDirectory(join(directory, "a")),
                     new CollectionDirectory(join(directory, "b")),
                     createFolderItem(
@@ -258,7 +300,7 @@ describe("CollectionExplorer", () => {
                 FolderDropInsertionOption.InsertBeforeTarget,
                 { prefixNamesWithSequence: false },
             );
-            const drop = createExplorer(directory, [
+            const { drop } = createExplorer(directory, [
                 createFolderItem(
                     join(directory, "orders"),
                     CollectionFormat.Bru,
@@ -312,7 +354,8 @@ function getShownMessages(dialogSpy: { mock: { calls: unknown[][] } }) {
 
 /**
  * Creates a collection explorer for a Bru collection with the given items.
- * Returns a function that drags and drops one item onto another (both paths are relative to the directory).
+ * Returns functions for dragging and dropping one item onto another and for running a command on an item (all paths are relative to the directory).
+ * Running a command needs the recorded calls for registering commands.
  */
 function createExplorer(directory: string, items: CollectionItem[]) {
     jest.replaceProperty(workspace, "workspaceFolders", [
@@ -351,7 +394,7 @@ function createExplorer(directory: string, items: CollectionItem[]) {
         collection.getStoredDataForPath(join(directory, relativePath))
             ?.additionalData.treeItem as BrunoTreeItem;
 
-    return async (sourcePath: string, targetPath: string) => {
+    const drop = async (sourcePath: string, targetPath: string) => {
         // The transfer items are passed on as they are set when dragging.
         const dataTransfer = new Map() as unknown as DataTransfer;
         const token = {} as CancellationToken;
@@ -359,4 +402,39 @@ function createExplorer(directory: string, items: CollectionItem[]) {
         explorer.handleDrag([getTreeItem(sourcePath)], dataTransfer, token);
         await explorer.handleDrop(getTreeItem(targetPath), dataTransfer, token);
     };
+    const runCommand = async (
+        registrations: unknown[][],
+        commandName: string,
+        itemPath: string,
+    ) => {
+        const [, command] =
+            registrations.find(([id]) =>
+                (id as string).endsWith(`.${commandName}`),
+            ) ?? [];
+        await (command as (item: BrunoTreeItem) => Promise<void>)(
+            getTreeItem(itemPath),
+        );
+    };
+
+    return { drop, runCommand };
+}
+
+/** Makes the quick pick for the sequence step return the given step, or be cancelled for `undefined`. */
+function mockStepSelection(step: number | undefined) {
+    let accept = () => {};
+    let hide = () => {};
+    jest.spyOn(window, "createQuickPick").mockReturnValue({
+        onDidAccept: (listener: () => void) => (accept = listener),
+        onDidHide: (listener: () => void) => (hide = listener),
+        show() {
+            if (step === undefined) {
+                hide();
+                return;
+            }
+            Object.assign(this, { activeItems: [{ value: step }] });
+            accept();
+        },
+        hide: () => hide(),
+        dispose: () => {},
+    } as never);
 }

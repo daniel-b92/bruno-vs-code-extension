@@ -28,6 +28,7 @@ import {
     removeConfigForCollection,
     BrunoTreeItem,
     shouldPrefixNamesWithSequence,
+    getSequenceStepFromSettings,
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
@@ -47,6 +48,7 @@ import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
 import { normalizeSequencesRecursively } from "./explorer/normalizeSequencesRecursively";
 import { selectSequenceStep } from "./explorer/selectSequenceStep";
+import { offerSavingSequenceStep } from "./explorer/sequenceUtils/offerSavingSequenceStep";
 import { updateSettingsFileOfDuplicatedFolder } from "./explorer/folderUtils/updateSettingsFileOfDuplicatedFolder";
 import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderIntoTargetFolder";
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
@@ -1405,12 +1407,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     return;
                 }
 
-                const configuredStep = vscode.workspace
-                    .getConfiguration()
-                    .get<number>("bru-as-code.sequenceStep", 1);
                 const sequenceStep = await selectSequenceStep(
                     basename(selectedPath),
-                    configuredStep,
+                    getSequenceStepFromSettings(),
                 );
 
                 if (sequenceStep === undefined) {
@@ -1431,6 +1430,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             this.logger,
                         ),
                 );
+
+                // Not awaited, so that the command does not wait for the user to react to the message.
+                void offerSavingSequenceStep(sequenceStep, this.logger);
             },
         );
     }

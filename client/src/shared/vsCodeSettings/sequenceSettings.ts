@@ -1,4 +1,4 @@
-import { workspace } from "vscode";
+import { ConfigurationTarget, workspace } from "vscode";
 
 const sequenceStepSettingKey = "bru-as-code.sequenceStep";
 const renumberSequencesSettingKey =
@@ -17,6 +17,19 @@ export function getSequenceStepFromSettings() {
         configured > 0
         ? configured
         : defaultSequenceStep;
+}
+
+/** Saves the step in the workspace settings, so that it can be shared with others who work on the same files. */
+export async function saveSequenceStepToWorkspaceSettings(
+    sequenceStep: number,
+) {
+    await workspace
+        .getConfiguration()
+        .update(
+            sequenceStepSettingKey,
+            sequenceStep,
+            ConfigurationTarget.Workspace,
+        );
 }
 
 /**
