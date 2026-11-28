@@ -1,4 +1,5 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
+import { window } from "vscode";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { CollectionDirectory, CollectionFormat } from "@global_shared";
@@ -11,7 +12,11 @@ import {
     markFilesAsUnmodified,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
-import { mockVsCodeSettings } from "../../../../_testingUtils";
+import {
+    createExtensionContextStub,
+    mockVsCodeSettings,
+} from "../../../../_testingUtils";
+import { initializeSequenceGapsHint } from "../sequenceUtils/sequenceGapsHint";
 import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
@@ -144,6 +149,27 @@ describe("updateSequencesAfterMovingFolder", () => {
                 f2: 3,
                 f3: 4,
             });
+        });
+
+        it("shows the hint about sequence gaps for three shifted folders", async () => {
+            initializeSequenceGapsHint(createExtensionContextStub());
+            const showInformationMessage = jest.spyOn(
+                window,
+                "showInformationMessage",
+            );
+            const directory = await createFoldersForReordering([1, 2, 3, 4, 5]);
+
+            await moveWithinParent(
+                directory,
+                "f5",
+                { folder: "f1", sequence: 1 },
+                FolderDropInsertionOption.InsertAfterTarget,
+            );
+
+            expect(showInformationMessage).toHaveBeenCalledTimes(1);
+            expect(showInformationMessage.mock.calls[0]?.[0]).toContain(
+                "3 other items",
+            );
         });
 
         it("uses the highest sequence plus the step when moving behind the last folder", async () => {

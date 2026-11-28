@@ -19,6 +19,7 @@ import {
     SequenceInsertionPointType,
 } from "../sequenceUtils/calculateSequenceChangesForInsertion";
 import { setSequenceInFile } from "../sequenceUtils/setSequenceInFile";
+import { showSequenceGapsHintIfNeeded } from "../sequenceUtils/sequenceGapsHint";
 
 /**
  * Sets the sequence of a newly inserted (or moved) request or app file, without changing the sequences of other files if possible.
@@ -126,6 +127,8 @@ async function setSequenceForTargetPosition(
     for (const { path, sequence } of shiftedItems) {
         await replaceSequenceForFile(path, sequence);
     }
+
+    showSequenceGapsHintIfNeeded(shiftedItems.length);
 
     return true;
 }

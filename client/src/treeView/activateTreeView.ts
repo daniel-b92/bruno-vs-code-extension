@@ -1,4 +1,5 @@
 import { CollectionExplorer } from "./internal/collectionExplorer";
+import { initializeSequenceGapsHint } from "./internal/explorer/sequenceUtils/sequenceGapsHint";
 import { EventEmitter, ExtensionContext, Uri } from "vscode";
 import {
     TypedCollectionItemProvider,
@@ -15,6 +16,7 @@ export function activateTreeView(
         withDialog: boolean;
     }>,
 ) {
+    initializeSequenceGapsHint(context);
     context.subscriptions.push(
         new CollectionExplorer(
             itemProvider,

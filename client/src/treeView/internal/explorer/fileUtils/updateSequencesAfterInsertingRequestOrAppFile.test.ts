@@ -10,7 +10,11 @@ import {
     markFilesAsUnmodified,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
-import { mockVsCodeSettings } from "../../../../_testingUtils";
+import {
+    createExtensionContextStub,
+    mockVsCodeSettings,
+} from "../../../../_testingUtils";
+import { initializeSequenceGapsHint } from "../sequenceUtils/sequenceGapsHint";
 import { BrunoTreeItem, TypedCollectionItemProvider } from "@shared";
 import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import {
@@ -342,6 +346,27 @@ describe("updateSequencesAfterInsertingRequestOrAppFile", () => {
 
         expect(showErrorMessage).toHaveBeenCalledTimes(1);
         expect(showErrorMessage.mock.calls[0]?.[0]).toContain("new.bru");
+    });
+
+    it("shows the hint about sequence gaps for three shifted files, without waiting for an answer", async () => {
+        initializeSequenceGapsHint(createExtensionContextStub());
+        const showInformationMessage = jest
+            .spyOn(window, "showInformationMessage")
+            .mockReturnValue(new Promise<never>(() => {}));
+        const directory = await createTemporaryDirectory({
+            "a.bru": requestFile("a", 1),
+            "b.bru": requestFile("b", 2),
+            "c.bru": requestFile("c", 3),
+            "d.bru": requestFile("d", 4),
+            "new.bru": requestFile("new", 1),
+        });
+
+        await runUpdate(directory, afterFile(1), "new.bru");
+
+        expect(showInformationMessage).toHaveBeenCalledTimes(1);
+        expect(showInformationMessage.mock.calls[0]?.[0]).toContain(
+            "3 other items",
+        );
     });
 
     describe("with automatic renumbering enabled", () => {
