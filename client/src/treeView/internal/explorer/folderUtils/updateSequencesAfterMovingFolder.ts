@@ -17,6 +17,7 @@ import { window } from "vscode";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { setSequenceForFolder } from "./setSequenceForFolder";
+import { showSequenceGapsHintIfNeeded } from "../sequenceUtils/sequenceGapsHint";
 
 export async function updateSequencesAfterMovingFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -101,6 +102,8 @@ export async function updateSequencesAfterMovingFolder(
     for (const { path: settingsFile, sequence } of shiftedItems) {
         await replaceSequenceForFile(settingsFile, sequence);
     }
+
+    showSequenceGapsHintIfNeeded(shiftedItems.length);
 
     if (shouldRenumberSequencesAutomatically()) {
         await normalizeSequencesForFolders(

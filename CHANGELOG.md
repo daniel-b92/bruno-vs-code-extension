@@ -7,6 +7,7 @@
     - The collection explorer keeps the prefixes in sync when items are created, moved, renamed, deleted or their sequences are normalized.
     - Show a warning with a quick fix on the `seq` value of files whose name does not match their sequence.
     - Add the action "Remove sequence prefixes" to the context menu of collections and folders.
+- Show a one-time hint about gaps between sequences, when inserting or moving an item in the collection explorer changes the sequences of at least 3 other items.
 
 ### Fixes / Maintenance
 
