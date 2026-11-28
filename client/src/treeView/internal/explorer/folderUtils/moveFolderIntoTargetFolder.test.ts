@@ -121,6 +121,57 @@ describe("moveFolderIntoTargetFolder", () => {
         ).toContain('runRequest("b/00020_users/00020_other")');
     });
 
+    // Only Bru collections can have folders with the sequence 0, it is invalid in Yaml files.
+    it("assigns a new sequence to a moved folder with the sequence 0", async () => {
+        const format = CollectionFormat.Bru;
+        mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+        jest.spyOn(workspace, "applyEdit").mockImplementation(
+            applyWorkspaceEdit,
+        );
+        const settingsFile = getFolderSettingsFileName(format);
+        const directory = await createTemporaryDirectory({
+            [`a/users/${settingsFile}`]: folderSettingsContent(
+                format,
+                "users",
+                0,
+            ),
+            [`b/existing/${settingsFile}`]: folderSettingsContent(
+                format,
+                "existing",
+                0,
+            ),
+        });
+        const { itemProvider } =
+            createCollectionWithItems<TypedCollectionItemProvider>(
+                [
+                    new CollectionDirectory(join(directory, "a")),
+                    new CollectionDirectory(join(directory, "b")),
+                    createFolderItem(join(directory, "a", "users"), format, 0),
+                    createFolderItem(
+                        join(directory, "b", "existing"),
+                        format,
+                        0,
+                    ),
+                ],
+                format,
+                [],
+                directory,
+            );
+
+        await moveFolderIntoTargetFolder(
+            itemProvider,
+            join(directory, "a", "users"),
+            new BrunoTreeItem(join(directory, "b"), false, false),
+            FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+            0,
+        );
+
+        expect(await getFolderSequences(directory, format)).toEqual({
+            [join("b", "existing")]: 0,
+            [join("b", "users")]: 10,
+        });
+    });
+
     it("replaces an existing folder if overwriting is requested", async () => {
         mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
         jest.spyOn(workspace, "applyEdit").mockImplementation(

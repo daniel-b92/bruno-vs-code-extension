@@ -20,6 +20,8 @@
 - Fix an issue that caused moving an item via drag-and-drop in the collection explorer to fail after confirming to overwrite an existing item.
 - Fix remaining folders not being renumbered after deleting a folder when `bru-as-code.renumberSequencesAutomatically` is enabled.
 - Show a clear error message when moving a folder before or after another one fails because a folder with the same name already exists there.
+- Fix the sequence of an app file not being adjusted when moving it to another folder via drag and drop.
+- Fix a folder with the sequence `0` (Bru collections) keeping it when moved into another folder.
 
 ## [2.2.0] (2026-11-19)
 

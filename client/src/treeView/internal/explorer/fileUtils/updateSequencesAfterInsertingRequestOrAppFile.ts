@@ -11,13 +11,13 @@ import { basename } from "path";
 import { window } from "vscode";
 import { normalizeSequencesForRequestsAndAppFiles } from "./normalizeSequencesForRequestsAndAppFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
-import { setSequenceForRequestOrAppFile } from "./setSequenceForRequestOrAppFile";
 import { FileInsertionPosition } from "./interfaces";
 import {
     calculateSequenceChangesForInsertion,
     SequenceInsertionPoint,
     SequenceInsertionPointType,
 } from "../sequenceUtils/calculateSequenceChangesForInsertion";
+import { setSequenceInFile } from "../sequenceUtils/setSequenceInFile";
 
 /**
  * Sets the sequence of a newly inserted (or moved) request or app file, without changing the sequences of other files if possible.
@@ -50,7 +50,7 @@ export async function updateSequencesAfterInsertingRequestOrAppFile(
     const setSequence = async (sequence: number) => {
         if (replacedSequence !== undefined) {
             // The overwritten file had a sequence, so the new one needs one too, even if it has none yet.
-            return await setSequenceForRequestOrAppFile(
+            return await setSequenceInFile(
                 newPath,
                 sequence,
                 collection.getFormat(),
@@ -77,7 +77,7 @@ export async function updateSequencesAfterInsertingRequestOrAppFile(
 
     if (!wasSuccessful) {
         window.showErrorMessage(
-            `An unexpected error occured while trying to set the sequence of '${basename(newPath)}'.`,
+            `An unexpected error occurred while trying to set the sequence of '${basename(newPath)}'.`,
         );
         return;
     }

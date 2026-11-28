@@ -400,6 +400,11 @@ function requestFile(
 function afterFile(sequence: number): FileInsertionPosition {
     return {
         type: RequestFileInsertionPositionType.AfterFile,
-        item: { getSequence: () => sequence } as unknown as BrunoTreeItem,
+        item: new BrunoTreeItem(
+            `file-with-sequence-${sequence}`,
+            true,
+            false,
+            sequence,
+        ),
     };
 }

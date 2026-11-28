@@ -100,6 +100,50 @@ describe("moveFileIntoFolder", () => {
         },
     );
 
+    it.each([BrunoFileType.RequestFile, BrunoFileType.AppFile])(
+        "appends the moved file to the files of the target folder (%s)",
+        async (fileType) => {
+            mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
+            jest.spyOn(workspace, "applyEdit").mockImplementation(
+                applyWorkspaceEdit,
+            );
+            const directory = await createTemporaryDirectory({
+                "a/x.bru": requestContent(CollectionFormat.Bru, "x", 10),
+                "b/y.bru": requestContent(CollectionFormat.Bru, "y", 10),
+            });
+            const sourcePath = join(directory, "a", "x.bru");
+            const targetFolder = join(directory, "b");
+            const { itemProvider } =
+                createCollectionWithItems<TypedCollectionItemProvider>(
+                    [
+                        new CollectionDirectory(join(directory, "a")),
+                        new CollectionDirectory(targetFolder),
+                        fileType == BrunoFileType.AppFile
+                            ? new BrunoAppFile(sourcePath, 10)
+                            : new BrunoRequestFile(sourcePath, 10),
+                        new BrunoRequestFile(join(targetFolder, "y.bru"), 10),
+                    ],
+                    CollectionFormat.Bru,
+                    [],
+                    directory,
+                );
+
+            await moveFileIntoFolder(
+                itemProvider,
+                sourcePath,
+                join(targetFolder, "x.bru"),
+                new BrunoTreeItem(targetFolder, false, false),
+                targetFolder,
+                fileType,
+            );
+
+            expect(await getRequestSequences(targetFolder)).toEqual({
+                "y.bru": 10,
+                "x.bru": 20,
+            });
+        },
+    );
+
     it("replaces an existing file if overwriting is requested", async () => {
         mockVsCodeSettings({ "bru-as-code.sequenceStep": 10 });
         jest.spyOn(workspace, "applyEdit").mockImplementation(

@@ -52,7 +52,7 @@ export async function moveFolderIntoTargetFolder(
     }
 
     if (
-        originalItemSequence ||
+        originalItemSequence !== undefined ||
         replacedSequence !== undefined ||
         insertionOption != FolderDropInsertionOption.MoveIntoTargetAsSubfolder
     ) {

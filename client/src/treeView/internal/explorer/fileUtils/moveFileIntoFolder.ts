@@ -52,11 +52,8 @@ export async function moveFileIntoFolder(
         return;
     }
 
-    if (
-        fileType == BrunoFileType.RequestFile ||
-        replacedSequence !== undefined
-    ) {
-        // Only when moving a request file or overwriting a file with a sequence, sequences of requests may need to be adjusted
+    if (isRequestOrAppFile) {
+        // Only when moving a request or app file, sequences of requests and app files may need to be adjusted
         await updateSequencesAfterInsertingRequestOrAppFile(
             itemProvider,
             target.isFile

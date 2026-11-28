@@ -1,16 +1,14 @@
 import { basename, resolve } from "path";
-import { readFile, writeFile } from "fs/promises";
+import { writeFile } from "fs/promises";
 import { stringify } from "yaml";
 import {
     CollectionFormat,
     getFolderSettingsFilePath,
     getFolderSettingsFileName,
-    getSequenceValueRangeFromFileContent,
     removeSequencePrefix,
 } from "@global_shared";
 import { shouldPrefixNamesWithSequence } from "@shared";
-import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
-import { addSequenceToSection } from "../sequenceUtils/addSequenceToSection";
+import { setSequenceInFile } from "../sequenceUtils/setSequenceInFile";
 
 /**
  * Sets the sequence in the folder settings file of the given folder, without changing any other settings.
@@ -49,32 +47,9 @@ export async function setSequenceForFolder(
             .catch(() => false);
     }
 
-    const content = await readFile(settingsFile, "utf-8").catch(
-        () => undefined,
+    return await setSequenceInFile(settingsFile, sequence, format, (content) =>
+        addSectionToContent(content, folderName, sequence, format),
     );
-
-    if (content === undefined) {
-        return false;
-    }
-
-    if (getSequenceValueRangeFromFileContent(settingsFile, content)) {
-        return await replaceSequenceForFile(settingsFile, sequence);
-    }
-
-    const { hasSection, contentWithSequence } = addSequenceToSection(
-        content,
-        sequence,
-        format,
-    );
-    const newContent = hasSection
-        ? contentWithSequence
-        : addSectionToContent(content, folderName, sequence, format);
-
-    return newContent === undefined
-        ? false
-        : await writeFile(settingsFile, newContent)
-              .then(() => true)
-              .catch(() => false);
 }
 
 function getMinimalContent(
